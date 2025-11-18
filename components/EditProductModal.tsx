@@ -294,18 +294,28 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
               type="submit"
               className="flex-1 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg font-medium text-sm sm:text-base transition-all duration-300"
               style={{
-                backgroundColor: theme.colors.buttonPrimary,
+                backgroundColor: typeof theme.colors.buttonPrimary === 'string' && !theme.colors.buttonPrimary.includes('gradient')
+                  ? theme.colors.buttonPrimary
+                  : undefined,
                 backgroundImage: typeof theme.colors.buttonPrimary === 'string' && theme.colors.buttonPrimary.includes('gradient') 
                   ? theme.colors.buttonPrimary 
                   : undefined
-              }}
+              } as React.CSSProperties}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.buttonPrimaryHover;
+                if (typeof theme.colors.buttonPrimary === 'string' && !theme.colors.buttonPrimary.includes('gradient')) {
+                  e.currentTarget.style.backgroundColor = theme.colors.buttonPrimaryHover;
+                  e.currentTarget.style.backgroundImage = 'none';
+                } else {
+                  e.currentTarget.style.backgroundImage = theme.colors.buttonPrimaryHover;
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = typeof theme.colors.buttonPrimary === 'string' && !theme.colors.buttonPrimary.includes('gradient')
-                  ? theme.colors.buttonPrimary
-                  : undefined;
+                if (typeof theme.colors.buttonPrimary === 'string' && !theme.colors.buttonPrimary.includes('gradient')) {
+                  e.currentTarget.style.backgroundColor = theme.colors.buttonPrimary;
+                  e.currentTarget.style.backgroundImage = 'none';
+                } else {
+                  e.currentTarget.style.backgroundImage = theme.colors.buttonPrimary;
+                }
               }}
             >
               {t.saveChanges}
