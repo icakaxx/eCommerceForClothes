@@ -57,20 +57,42 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({
+    // Set session cookie for the client
+    const response = NextResponse.json({
       success: true,
       role: userRole,
       user: {
+        id: authData.user.id,
         email: authData.user.email,
         fullName: authData.user.user_metadata?.full_name,
         role: userRole
       },
       session: {
         access_token: authData.session?.access_token,
-        refresh_token: authData.session?.refresh_token
+        refresh_token: authData.session?.refresh_token,
+        expires_at: authData.session?.expires_at
       },
       message: 'Login successful'
     })
+
+    // Set HTTP-only cookies for session (more secure than localStorage)
+    if (authData.session) {
+      response.cookies.set('sb-access-token', authData.session.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7 // 7 days
+      })
+      
+      response.cookies.set('sb-refresh-token', authData.session.refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30 // 30 days
+      })
+    }
+
+    return response
 
   } catch (error) {
     console.error('Admin login error:', error)

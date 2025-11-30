@@ -76,17 +76,38 @@ export default function AdminLoginPage() {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        // Store authentication state
+        // Set Supabase session on client side
+        const { supabase } = await import('@/lib/supabase');
+        
+        if (result.session?.access_token && result.session?.refresh_token) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: result.session.access_token,
+            refresh_token: result.session.refresh_token
+          });
+
+          if (sessionError) {
+            console.error('Error setting session:', sessionError);
+            setError({
+              message: 'Грешка при създаване на сесия. Моля, опитайте отново.',
+              type: 'error'
+            });
+            return;
+          }
+
+          console.log('✅ Session created successfully');
+          console.log('📋 Session info:', {
+            email: result.user?.email,
+            role: result.role,
+            expiresAt: result.session?.expires_at 
+              ? new Date(result.session.expires_at * 1000).toLocaleString() 
+              : 'N/A'
+          });
+        }
+
+        // Store basic auth state (for quick check)
         localStorage.setItem('admin_authenticated', 'true');
         localStorage.setItem('admin_login_time', new Date().toISOString());
-        
-        // Store JWT tokens for API requests
-        if (result.session?.access_token) {
-          localStorage.setItem('admin_access_token', result.session.access_token);
-        }
-        if (result.session?.refresh_token) {
-          localStorage.setItem('admin_refresh_token', result.session.refresh_token);
-        }
+        localStorage.setItem('admin_user_email', result.user?.email || '');
         
         // Redirect to admin panel
         router.push('/admin');

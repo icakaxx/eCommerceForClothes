@@ -14,6 +14,7 @@ import LanguageToggle from '@/components/LanguageToggle';
 import { supabase } from '@/lib/supabase';
 import { testStorageConnection, DEFAULT_BUCKET, uploadFile, getStorageUrl, listFiles } from '@/lib/supabaseStorage';
 import { generateAndUploadTestImage } from '@/lib/generateTestImage';
+import { signOutAdmin } from '@/lib/auth';
 
 export default function AdminPanel() {
   const { products, setProducts } = useProducts();
@@ -30,7 +31,7 @@ export default function AdminPanel() {
   const [uploadedFiles, setUploadedFiles] = useState<Array<{ name: string; url: string; path: string }>>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
 
-  // Test Supabase connection and Storage bucket on component mount (client-side only)
+  // Test Supabase connection, Storage bucket, and Session on component mount (client-side only)
   useEffect(() => {
     // Only run on client-side
     if (typeof window === 'undefined') return;
@@ -38,6 +39,22 @@ export default function AdminPanel() {
     const testConnections = async () => {
       try {
         console.log('🔌 AdminPanel: Testing Supabase connections...');
+        
+        // Check session first
+        const { getAdminSession } = await import('@/lib/auth');
+        const session = await getAdminSession();
+        
+        if (session) {
+          console.log('✅ AdminPanel: Active session found!');
+          console.log('Session info:', {
+            email: session.user.email,
+            userId: session.user.id,
+            expiresAt: new Date(session.expires_at! * 1000).toLocaleString(),
+            role: session.user.user_metadata?.role
+          });
+        } else {
+          console.warn('⚠️ AdminPanel: No active session found');
+        }
         
         // Check if environment variables are available
         const hasUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -97,9 +114,30 @@ export default function AdminPanel() {
     testConnections();
   }, []);
 
-  const handleBackToStore = () => {
-    localStorage.setItem('isAdmin', 'false');
-    router.push('/');
+  const handleBackToStore = async () => {
+    try {
+      // Sign out from Supabase
+      await signOutAdmin();
+      
+      // Clear localStorage
+      localStorage.removeItem('admin_authenticated');
+      localStorage.removeItem('admin_access_token');
+      localStorage.removeItem('admin_refresh_token');
+      localStorage.removeItem('admin_login_time');
+      localStorage.removeItem('admin_user_email');
+      localStorage.setItem('isAdmin', 'false');
+
+      // Call logout API to clear cookies
+      await fetch('/api/auth/logout', { method: 'POST' });
+
+      // Redirect to home
+      router.push('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still redirect even if logout fails
+      localStorage.setItem('isAdmin', 'false');
+      router.push('/');
+    }
   };
 
   const filteredProducts = products.filter(p => {
