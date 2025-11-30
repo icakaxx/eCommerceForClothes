@@ -1,493 +1,382 @@
--- Supabase schema for ModaBox admin capabilities
--- Run this script inside the Supabase SQL editor.
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
-create extension if not exists "pgcrypto";
-
----------------------------------------------------------------------------------------------------
--- Helper function for updated_at management
----------------------------------------------------------------------------------------------------
-create or replace function public.set_updated_at()
-returns trigger
-language plpgsql
-as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$;
-
----------------------------------------------------------------------------------------------------
--- Custom enums
----------------------------------------------------------------------------------------------------
-create type order_status as enum ('pending','paid','fulfilled','cancelled','refunded');
-create type product_status as enum ('draft','active','hidden');
-create type inventory_policy as enum ('deny','continue','backorder');
-create type media_type as enum ('image','video');
-create type menu_target_type as enum ('category','collection','page','url','event','product');
-create type menu_visibility as enum ('always','campaign_only');
-create type menu_device as enum ('desktop','mobile','footer','all');
-create type page_status as enum ('draft','published','archived');
-create type page_section_type as enum ('hero','grid','banner','video','rich_text','custom_html');
-create type widget_type as enum ('hero','grid','banner','video','rich_text','custom_html','cta');
-create type discount_type as enum ('percentage','fixed_amount','free_shipping');
-create type promotion_asset_type as enum ('banner','landing','tab_badge','popup');
-create type campaign_status as enum ('draft','active','upcoming','ended');
-create type campaign_change_scope as enum ('menu','page','product','collection','theme');
-create type campaign_tab_visibility as enum ('during','preview_only');
-create type theme_token_group as enum ('color','typography','layout','spacing');
-create type bulk_job_type as enum ('hide_products','price_adjustment','assign_collection','remove_collection','inventory_update');
-create type bulk_job_state as enum ('queued','running','completed','failed');
-
----------------------------------------------------------------------------------------------------
--- Core commerce tables
----------------------------------------------------------------------------------------------------
-create table public.customers (
-  id uuid primary key default gen_random_uuid(),
-  email text not null unique,
-  full_name text not null,
-  phone text,
-  segment text,
-  metadata jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+CREATE TABLE public.admin_users (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  auth_user_id uuid NOT NULL UNIQUE,
+  email text NOT NULL UNIQUE,
+  full_name text NOT NULL,
+  status text NOT NULL DEFAULT 'active'::text,
+  last_login timestamp with time zone,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT admin_users_pkey PRIMARY KEY (id),
+  CONSTRAINT admin_users_auth_user_id_fkey FOREIGN KEY (auth_user_id) REFERENCES auth.users(id)
 );
-create trigger trg_customers_updated
-before update on public.customers
-for each row execute function public.set_updated_at();
-
-create table public.orders (
-  id uuid primary key default gen_random_uuid(),
-  order_number text not null unique,
-  customer_id uuid references public.customers(id) on delete set null,
-  status order_status not null default 'pending',
-  total_amount numeric(12,2) not null default 0,
-  currency char(3) not null default 'USD',
-  campaign_id uuid,
-  shipping_address jsonb not null default '{}'::jsonb,
-  billing_address jsonb not null default '{}'::jsonb,
-  notes text,
-  placed_at timestamptz not null default now(),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-create trigger trg_orders_updated
-before update on public.orders
-for each row execute function public.set_updated_at();
-
-create table public.order_items (
-  id uuid primary key default gen_random_uuid(),
-  order_id uuid not null references public.orders(id) on delete cascade,
-  product_id uuid not null,
-  variant_id uuid,
-  qty integer not null check (qty > 0),
-  unit_price numeric(12,2) not null default 0,
-  currency char(3) not null default 'USD',
-  discount_amount numeric(12,2) not null default 0
-);
-create index order_items_order_id_idx on public.order_items(order_id);
-
-create table public.metrics_daily (
-  metric_date date primary key,
-  revenue numeric(14,2) not null default 0,
-  orders_count integer not null default 0,
-  conversion_rate numeric(7,4) not null default 0,
-  top_product_ids uuid[] not null default array[]::uuid[],
-  top_campaign_ids uuid[] not null default array[]::uuid[]
-);
-
----------------------------------------------------------------------------------------------------
--- Catalog: products, categories, collections
----------------------------------------------------------------------------------------------------
-create table public.products (
-  id uuid primary key default gen_random_uuid(),
-  slug text not null unique,
-  title text not null,
-  subtitle text,
-  description text,
-  status product_status not null default 'draft',
-  base_price numeric(12,2) not null default 0,
-  currency char(3) not null default 'USD',
-  sku text unique,
-  inventory_policy inventory_policy not null default 'deny',
-  inventory_qty integer not null default 0,
-  tags text[] not null default array[]::text[],
-  seo jsonb not null default '{}'::jsonb,
-  metadata jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-create trigger trg_products_updated
-before update on public.products
-for each row execute function public.set_updated_at();
-
-create table public.product_media (
-  id uuid primary key default gen_random_uuid(),
-  product_id uuid not null references public.products(id) on delete cascade,
-  media_type media_type not null default 'image',
-  url text not null,
-  alt text,
-  position integer not null default 0,
-  metadata jsonb not null default '{}'::jsonb
-);
-create index product_media_product_id_idx on public.product_media(product_id);
-
-create table public.product_variants (
-  id uuid primary key default gen_random_uuid(),
-  product_id uuid not null references public.products(id) on delete cascade,
-  option_values jsonb not null,
-  sku text unique,
-  price_override numeric(12,2),
-  inventory_qty integer not null default 0,
-  metadata jsonb not null default '{}'::jsonb
-);
-create index product_variants_product_id_idx on public.product_variants(product_id);
-
-create table public.categories (
-  id uuid primary key default gen_random_uuid(),
-  parent_id uuid references public.categories(id) on delete set null,
-  slug text not null unique,
-  title text not null,
-  description text,
-  position integer not null default 0,
-  is_active boolean not null default true,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-create trigger trg_categories_updated
-before update on public.categories
-for each row execute function public.set_updated_at();
-
-create table public.collections (
-  id uuid primary key default gen_random_uuid(),
-  slug text not null unique,
-  title text not null,
-  description text,
-  badge_color text,
-  is_automatic boolean not null default false,
-  metadata jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-create trigger trg_collections_updated
-before update on public.collections
-for each row execute function public.set_updated_at();
-
-create table public.collection_rules (
-  id uuid primary key default gen_random_uuid(),
-  collection_id uuid not null references public.collections(id) on delete cascade,
-  rule jsonb not null
-);
-
-create table public.product_categories (
-  product_id uuid not null references public.products(id) on delete cascade,
-  category_id uuid not null references public.categories(id) on delete cascade,
-  primary key (product_id, category_id)
-);
-
-create table public.product_collections (
-  product_id uuid not null references public.products(id) on delete cascade,
-  collection_id uuid not null references public.collections(id) on delete cascade,
-  position integer not null default 0,
-  primary key (product_id, collection_id)
-);
-
-create table public.bulk_jobs (
-  id uuid primary key default gen_random_uuid(),
-  job_type bulk_job_type not null,
-  state bulk_job_state not null default 'queued',
-  payload jsonb not null,
+CREATE TABLE public.bulk_jobs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  job_type USER-DEFINED NOT NULL,
+  state USER-DEFINED NOT NULL DEFAULT 'queued'::bulk_job_state,
+  payload jsonb NOT NULL,
   result jsonb,
   requested_by uuid,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT bulk_jobs_pkey PRIMARY KEY (id)
 );
-create trigger trg_bulk_jobs_updated
-before update on public.bulk_jobs
-for each row execute function public.set_updated_at();
-
----------------------------------------------------------------------------------------------------
--- Navigation, pages, widgets
----------------------------------------------------------------------------------------------------
-create table public.menus (
-  id uuid primary key default gen_random_uuid(),
-  code text not null unique,
-  title text not null,
-  device menu_device not null default 'all',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-create trigger trg_menus_updated
-before update on public.menus
-for each row execute function public.set_updated_at();
-
-create table public.menu_items (
-  id uuid primary key default gen_random_uuid(),
-  menu_id uuid not null references public.menus(id) on delete cascade,
-  parent_id uuid references public.menu_items(id) on delete cascade,
-  label text not null,
-  target_type menu_target_type not null,
+CREATE TABLE public.campaign_changes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  campaign_id uuid NOT NULL,
+  scope USER-DEFINED NOT NULL,
   target_id uuid,
-  href text,
-  position integer not null default 0,
-  visibility menu_visibility not null default 'always',
-  metadata jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  change jsonb NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT campaign_changes_pkey PRIMARY KEY (id),
+  CONSTRAINT campaign_changes_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id)
 );
-create index menu_items_menu_id_idx on public.menu_items(menu_id);
-create trigger trg_menu_items_updated
-before update on public.menu_items
-for each row execute function public.set_updated_at();
-
-create table public.pages (
-  id uuid primary key default gen_random_uuid(),
-  slug text not null unique,
-  title text not null,
-  excerpt text,
-  status page_status not null default 'draft',
-  meta jsonb not null default '{}'::jsonb,
-  published_at timestamptz,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+CREATE TABLE public.campaign_previews (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  campaign_id uuid NOT NULL,
+  snapshot jsonb NOT NULL,
+  generated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT campaign_previews_pkey PRIMARY KEY (id),
+  CONSTRAINT campaign_previews_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id)
 );
-create trigger trg_pages_updated
-before update on public.pages
-for each row execute function public.set_updated_at();
-
-create table public.page_sections (
-  id uuid primary key default gen_random_uuid(),
-  page_id uuid not null references public.pages(id) on delete cascade,
-  section_type page_section_type not null,
-  data jsonb not null,
-  position integer not null default 0,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+CREATE TABLE public.campaign_products (
+  campaign_id uuid NOT NULL,
+  product_id uuid NOT NULL,
+  badge_text text,
+  price_override numeric,
+  CONSTRAINT campaign_products_pkey PRIMARY KEY (campaign_id, product_id),
+  CONSTRAINT campaign_products_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id),
+  CONSTRAINT campaign_products_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
 );
-create index page_sections_page_id_idx on public.page_sections(page_id);
-create trigger trg_page_sections_updated
-before update on public.page_sections
-for each row execute function public.set_updated_at();
-
-create table public.widgets (
-  id uuid primary key default gen_random_uuid(),
-  name text not null unique,
-  widget_type widget_type not null,
-  data jsonb not null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+CREATE TABLE public.campaign_tabs (
+  campaign_id uuid NOT NULL,
+  menu_item_id uuid NOT NULL,
+  visibility USER-DEFINED NOT NULL DEFAULT 'during'::campaign_tab_visibility,
+  CONSTRAINT campaign_tabs_pkey PRIMARY KEY (campaign_id, menu_item_id),
+  CONSTRAINT campaign_tabs_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id),
+  CONSTRAINT campaign_tabs_menu_item_id_fkey FOREIGN KEY (menu_item_id) REFERENCES public.menu_items(id)
 );
-create trigger trg_widgets_updated
-before update on public.widgets
-for each row execute function public.set_updated_at();
-
-create table public.page_widgets (
-  page_id uuid not null references public.pages(id) on delete cascade,
-  widget_id uuid not null references public.widgets(id) on delete cascade,
-  position integer not null default 0,
-  primary key (page_id, widget_id)
+CREATE TABLE public.campaigns (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  slug text NOT NULL UNIQUE,
+  name text NOT NULL,
+  description text,
+  status USER-DEFINED NOT NULL DEFAULT 'draft'::campaign_status,
+  starts_at timestamp with time zone,
+  ends_at timestamp with time zone,
+  preview_token text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT campaigns_pkey PRIMARY KEY (id)
 );
-
----------------------------------------------------------------------------------------------------
--- Marketing, discounts, promotions
----------------------------------------------------------------------------------------------------
-create table public.discount_rules (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  code text unique,
-  discount_type discount_type not null,
-  value numeric(12,2) not null default 0,
+CREATE TABLE public.categories (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  parent_id uuid,
+  slug text NOT NULL UNIQUE,
+  title text NOT NULL,
+  description text,
+  position integer NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT categories_pkey PRIMARY KEY (id),
+  CONSTRAINT categories_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.categories(id)
+);
+CREATE TABLE public.collection_rules (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  collection_id uuid NOT NULL,
+  rule jsonb NOT NULL,
+  CONSTRAINT collection_rules_pkey PRIMARY KEY (id),
+  CONSTRAINT collection_rules_collection_id_fkey FOREIGN KEY (collection_id) REFERENCES public.collections(id)
+);
+CREATE TABLE public.collections (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  slug text NOT NULL UNIQUE,
+  title text NOT NULL,
+  description text,
+  badge_color text,
+  is_automatic boolean NOT NULL DEFAULT false,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT collections_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.customers (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  email text NOT NULL UNIQUE,
+  full_name text NOT NULL,
+  phone text,
+  segment text,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT customers_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.discount_applications (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  discount_id uuid NOT NULL,
+  order_id uuid,
+  customer_id uuid,
+  amount numeric NOT NULL DEFAULT 0,
+  applied_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT discount_applications_pkey PRIMARY KEY (id),
+  CONSTRAINT discount_applications_discount_id_fkey FOREIGN KEY (discount_id) REFERENCES public.discount_rules(id),
+  CONSTRAINT discount_applications_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id),
+  CONSTRAINT discount_applications_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id)
+);
+CREATE TABLE public.discount_rules (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  code text UNIQUE,
+  discount_type USER-DEFINED NOT NULL,
+  value numeric NOT NULL DEFAULT 0,
   usage_limit integer,
   per_customer_limit integer,
-  starts_at timestamptz,
-  ends_at timestamptz,
-  conditions jsonb not null default '{}'::jsonb,
-  metadata jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  starts_at timestamp with time zone,
+  ends_at timestamp with time zone,
+  conditions jsonb NOT NULL DEFAULT '{}'::jsonb,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT discount_rules_pkey PRIMARY KEY (id)
 );
-create trigger trg_discount_rules_updated
-before update on public.discount_rules
-for each row execute function public.set_updated_at();
-
-create table public.discount_applications (
-  id uuid primary key default gen_random_uuid(),
-  discount_id uuid not null references public.discount_rules(id) on delete cascade,
-  order_id uuid references public.orders(id) on delete set null,
-  customer_id uuid references public.customers(id) on delete set null,
-  amount numeric(12,2) not null default 0,
-  applied_at timestamptz not null default now()
-);
-
-create table public.promotion_assets (
-  id uuid primary key default gen_random_uuid(),
-  discount_id uuid references public.discount_rules(id) on delete cascade,
-  campaign_id uuid,
-  asset_type promotion_asset_type not null,
-  data jsonb not null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-create trigger trg_promotion_assets_updated
-before update on public.promotion_assets
-for each row execute function public.set_updated_at();
-
----------------------------------------------------------------------------------------------------
--- Campaigns / content staging
----------------------------------------------------------------------------------------------------
-create table public.campaigns (
-  id uuid primary key default gen_random_uuid(),
-  slug text not null unique,
-  name text not null,
-  description text,
-  status campaign_status not null default 'draft',
-  starts_at timestamptz,
-  ends_at timestamptz,
-  preview_token text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-create trigger trg_campaigns_updated
-before update on public.campaigns
-for each row execute function public.set_updated_at();
-
-create table public.campaign_changes (
-  id uuid primary key default gen_random_uuid(),
-  campaign_id uuid not null references public.campaigns(id) on delete cascade,
-  scope campaign_change_scope not null,
+CREATE TABLE public.menu_items (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  menu_id uuid NOT NULL,
+  parent_id uuid,
+  label text NOT NULL,
+  target_type USER-DEFINED NOT NULL,
   target_id uuid,
-  change jsonb not null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  href text,
+  position integer NOT NULL DEFAULT 0,
+  visibility USER-DEFINED NOT NULL DEFAULT 'always'::menu_visibility,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT menu_items_pkey PRIMARY KEY (id),
+  CONSTRAINT menu_items_menu_id_fkey FOREIGN KEY (menu_id) REFERENCES public.menus(id),
+  CONSTRAINT menu_items_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.menu_items(id)
 );
-create index campaign_changes_campaign_id_idx on public.campaign_changes(campaign_id);
-create trigger trg_campaign_changes_updated
-before update on public.campaign_changes
-for each row execute function public.set_updated_at();
-
-create table public.campaign_tabs (
-  campaign_id uuid not null references public.campaigns(id) on delete cascade,
-  menu_item_id uuid not null references public.menu_items(id) on delete cascade,
-  visibility campaign_tab_visibility not null default 'during',
-  primary key (campaign_id, menu_item_id)
+CREATE TABLE public.menus (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  code text NOT NULL UNIQUE,
+  title text NOT NULL,
+  device USER-DEFINED NOT NULL DEFAULT 'all'::menu_device,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT menus_pkey PRIMARY KEY (id)
 );
-
-create table public.campaign_products (
-  campaign_id uuid not null references public.campaigns(id) on delete cascade,
-  product_id uuid not null references public.products(id) on delete cascade,
-  badge_text text,
-  price_override numeric(12,2),
-  primary key (campaign_id, product_id)
+CREATE TABLE public.metrics_daily (
+  metric_date date NOT NULL,
+  revenue numeric NOT NULL DEFAULT 0,
+  orders_count integer NOT NULL DEFAULT 0,
+  conversion_rate numeric NOT NULL DEFAULT 0,
+  top_product_ids ARRAY NOT NULL DEFAULT ARRAY[]::uuid[],
+  top_campaign_ids ARRAY NOT NULL DEFAULT ARRAY[]::uuid[],
+  CONSTRAINT metrics_daily_pkey PRIMARY KEY (metric_date)
 );
-
-create table public.campaign_previews (
-  id uuid primary key default gen_random_uuid(),
-  campaign_id uuid not null references public.campaigns(id) on delete cascade,
-  snapshot jsonb not null,
-  generated_at timestamptz not null default now()
+CREATE TABLE public.order_items (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  order_id uuid NOT NULL,
+  product_id uuid NOT NULL,
+  variant_id uuid,
+  qty integer NOT NULL CHECK (qty > 0),
+  unit_price numeric NOT NULL DEFAULT 0,
+  currency character NOT NULL DEFAULT 'USD'::bpchar,
+  discount_amount numeric NOT NULL DEFAULT 0,
+  CONSTRAINT order_items_pkey PRIMARY KEY (id),
+  CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id)
 );
-
----------------------------------------------------------------------------------------------------
--- Themes and assignments
----------------------------------------------------------------------------------------------------
-create table public.themes (
-  id uuid primary key default gen_random_uuid(),
-  code text not null unique,
-  name text not null,
+CREATE TABLE public.orders (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  order_number text NOT NULL UNIQUE,
+  customer_id uuid,
+  status USER-DEFINED NOT NULL DEFAULT 'pending'::order_status,
+  total_amount numeric NOT NULL DEFAULT 0,
+  currency character NOT NULL DEFAULT 'USD'::bpchar,
+  campaign_id uuid,
+  shipping_address jsonb NOT NULL DEFAULT '{}'::jsonb,
+  billing_address jsonb NOT NULL DEFAULT '{}'::jsonb,
+  notes text,
+  placed_at timestamp with time zone NOT NULL DEFAULT now(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT orders_pkey PRIMARY KEY (id),
+  CONSTRAINT orders_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id)
+);
+CREATE TABLE public.page_sections (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  page_id uuid NOT NULL,
+  section_type USER-DEFINED NOT NULL,
+  data jsonb NOT NULL,
+  position integer NOT NULL DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT page_sections_pkey PRIMARY KEY (id),
+  CONSTRAINT page_sections_page_id_fkey FOREIGN KEY (page_id) REFERENCES public.pages(id)
+);
+CREATE TABLE public.page_widgets (
+  page_id uuid NOT NULL,
+  widget_id uuid NOT NULL,
+  position integer NOT NULL DEFAULT 0,
+  CONSTRAINT page_widgets_pkey PRIMARY KEY (page_id, widget_id),
+  CONSTRAINT page_widgets_page_id_fkey FOREIGN KEY (page_id) REFERENCES public.pages(id),
+  CONSTRAINT page_widgets_widget_id_fkey FOREIGN KEY (widget_id) REFERENCES public.widgets(id)
+);
+CREATE TABLE public.pages (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  slug text NOT NULL UNIQUE,
+  title text NOT NULL,
+  excerpt text,
+  status USER-DEFINED NOT NULL DEFAULT 'draft'::page_status,
+  meta jsonb NOT NULL DEFAULT '{}'::jsonb,
+  published_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT pages_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.permissions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  code text NOT NULL UNIQUE,
   description text,
-  is_active boolean not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT permissions_pkey PRIMARY KEY (id)
 );
-create trigger trg_themes_updated
-before update on public.themes
-for each row execute function public.set_updated_at();
-
-create table public.theme_tokens (
-  id uuid primary key default gen_random_uuid(),
-  theme_id uuid not null references public.themes(id) on delete cascade,
-  token_group theme_token_group not null,
-  token_key text not null,
-  token_value text not null,
-  unique(theme_id, token_group, token_key)
+CREATE TABLE public.product_categories (
+  product_id uuid NOT NULL,
+  category_id uuid NOT NULL,
+  CONSTRAINT product_categories_pkey PRIMARY KEY (product_id, category_id),
+  CONSTRAINT product_categories_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id),
+  CONSTRAINT product_categories_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id)
 );
-
-create table public.theme_assignments (
-  id uuid primary key default gen_random_uuid(),
-  theme_id uuid not null references public.themes(id) on delete cascade,
-  campaign_id uuid references public.campaigns(id) on delete set null,
-  is_default boolean not null default false,
-  starts_at timestamptz,
-  ends_at timestamptz,
-  check ((is_default and campaign_id is null) or not is_default),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+CREATE TABLE public.product_collections (
+  product_id uuid NOT NULL,
+  collection_id uuid NOT NULL,
+  position integer NOT NULL DEFAULT 0,
+  CONSTRAINT product_collections_pkey PRIMARY KEY (product_id, collection_id),
+  CONSTRAINT product_collections_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id),
+  CONSTRAINT product_collections_collection_id_fkey FOREIGN KEY (collection_id) REFERENCES public.collections(id)
 );
-create trigger trg_theme_assignments_updated
-before update on public.theme_assignments
-for each row execute function public.set_updated_at();
-
----------------------------------------------------------------------------------------------------
--- Admin users / permissions
----------------------------------------------------------------------------------------------------
-create table public.admin_users (
-  id uuid primary key default gen_random_uuid(),
-  auth_user_id uuid not null unique references auth.users(id) on delete cascade,
-  email text not null unique,
-  full_name text not null,
-  status text not null default 'active',
-  last_login timestamptz,
-  metadata jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+CREATE TABLE public.product_media (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  product_id uuid NOT NULL,
+  media_type USER-DEFINED NOT NULL DEFAULT 'image'::media_type,
+  url text NOT NULL,
+  alt text,
+  position integer NOT NULL DEFAULT 0,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  CONSTRAINT product_media_pkey PRIMARY KEY (id),
+  CONSTRAINT product_media_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
 );
-create trigger trg_admin_users_updated
-before update on public.admin_users
-for each row execute function public.set_updated_at();
-
-create table public.roles (
-  id uuid primary key default gen_random_uuid(),
-  code text not null unique,
-  name text not null,
+CREATE TABLE public.product_variants (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  product_id uuid NOT NULL,
+  option_values jsonb NOT NULL,
+  sku text UNIQUE,
+  price_override numeric,
+  inventory_qty integer NOT NULL DEFAULT 0,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  CONSTRAINT product_variants_pkey PRIMARY KEY (id),
+  CONSTRAINT product_variants_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
+);
+CREATE TABLE public.products (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  slug text NOT NULL UNIQUE,
+  title text NOT NULL,
+  subtitle text,
   description text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  status USER-DEFINED NOT NULL DEFAULT 'draft'::product_status,
+  base_price numeric NOT NULL DEFAULT 0,
+  currency character NOT NULL DEFAULT 'USD'::bpchar,
+  sku text UNIQUE,
+  inventory_policy USER-DEFINED NOT NULL DEFAULT 'deny'::inventory_policy,
+  inventory_qty integer NOT NULL DEFAULT 0,
+  tags ARRAY NOT NULL DEFAULT ARRAY[]::text[],
+  seo jsonb NOT NULL DEFAULT '{}'::jsonb,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT products_pkey PRIMARY KEY (id)
 );
-create trigger trg_roles_updated
-before update on public.roles
-for each row execute function public.set_updated_at();
-
-create table public.permissions (
-  id uuid primary key default gen_random_uuid(),
-  code text not null unique,
+CREATE TABLE public.promotion_assets (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  discount_id uuid,
+  campaign_id uuid,
+  asset_type USER-DEFINED NOT NULL,
+  data jsonb NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT promotion_assets_pkey PRIMARY KEY (id),
+  CONSTRAINT promotion_assets_discount_id_fkey FOREIGN KEY (discount_id) REFERENCES public.discount_rules(id)
+);
+CREATE TABLE public.role_permissions (
+  role_id uuid NOT NULL,
+  permission_id uuid NOT NULL,
+  CONSTRAINT role_permissions_pkey PRIMARY KEY (role_id, permission_id),
+  CONSTRAINT role_permissions_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.roles(id),
+  CONSTRAINT role_permissions_permission_id_fkey FOREIGN KEY (permission_id) REFERENCES public.permissions(id)
+);
+CREATE TABLE public.roles (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  code text NOT NULL UNIQUE,
+  name text NOT NULL,
   description text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT roles_pkey PRIMARY KEY (id)
 );
-create trigger trg_permissions_updated
-before update on public.permissions
-for each row execute function public.set_updated_at();
-
-create table public.role_permissions (
-  role_id uuid not null references public.roles(id) on delete cascade,
-  permission_id uuid not null references public.permissions(id) on delete cascade,
-  primary key (role_id, permission_id)
+CREATE TABLE public.theme_assignments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  theme_id uuid NOT NULL,
+  campaign_id uuid,
+  is_default boolean NOT NULL DEFAULT false,
+  starts_at timestamp with time zone,
+  ends_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT theme_assignments_pkey PRIMARY KEY (id),
+  CONSTRAINT theme_assignments_theme_id_fkey FOREIGN KEY (theme_id) REFERENCES public.themes(id),
+  CONSTRAINT theme_assignments_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id)
 );
-
-create table public.user_roles (
-  admin_user_id uuid not null references public.admin_users(id) on delete cascade,
-  role_id uuid not null references public.roles(id) on delete cascade,
-  scope jsonb not null default '{}'::jsonb,
-  primary key (admin_user_id, role_id)
+CREATE TABLE public.theme_tokens (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  theme_id uuid NOT NULL,
+  token_group USER-DEFINED NOT NULL,
+  token_key text NOT NULL,
+  token_value text NOT NULL,
+  CONSTRAINT theme_tokens_pkey PRIMARY KEY (id),
+  CONSTRAINT theme_tokens_theme_id_fkey FOREIGN KEY (theme_id) REFERENCES public.themes(id)
 );
-
----------------------------------------------------------------------------------------------------
--- Supporting indexes
----------------------------------------------------------------------------------------------------
-create index products_status_idx on public.products(status);
-create index products_campaign_idx on public.product_collections(collection_id);
-create index collections_auto_idx on public.collections(is_automatic);
-create index discount_rules_active_idx on public.discount_rules(starts_at, ends_at);
-create index campaigns_window_idx on public.campaigns(starts_at, ends_at);
-create index theme_assignments_window_idx on public.theme_assignments(starts_at, ends_at);
-
-
+CREATE TABLE public.themes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  code text NOT NULL UNIQUE,
+  name text NOT NULL,
+  description text,
+  is_active boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT themes_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.user_roles (
+  admin_user_id uuid NOT NULL,
+  role_id uuid NOT NULL,
+  scope jsonb NOT NULL DEFAULT '{}'::jsonb,
+  CONSTRAINT user_roles_pkey PRIMARY KEY (admin_user_id, role_id),
+  CONSTRAINT user_roles_admin_user_id_fkey FOREIGN KEY (admin_user_id) REFERENCES public.admin_users(id),
+  CONSTRAINT user_roles_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.roles(id)
+);
+CREATE TABLE public.widgets (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  widget_type USER-DEFINED NOT NULL,
+  data jsonb NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT widgets_pkey PRIMARY KEY (id)
+);

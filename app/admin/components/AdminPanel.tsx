@@ -1,16 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Edit2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Edit2, Eye, EyeOff, ArrowLeft, Upload, Image as ImageIcon, X } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import EditProductModal from './EditProductModal';
+import EditProductModal from '@/components/EditProductModal';
 import { useProducts } from '@/context/ProductContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { translations } from '@/lib/translations';
 import { Product } from '@/lib/data';
-import LanguageToggle from './LanguageToggle';
+import LanguageToggle from '@/components/LanguageToggle';
+import { supabase } from '@/lib/supabase';
+import { testStorageConnection, DEFAULT_BUCKET, uploadFile, getStorageUrl, listFiles } from '@/lib/supabaseStorage';
+import { generateAndUploadTestImage } from '@/lib/generateTestImage';
 
 export default function AdminPanel() {
   const { products, setProducts } = useProducts();
@@ -22,6 +25,77 @@ export default function AdminPanel() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [visibilityFilter, setVisibilityFilter] = useState('all');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
+  const [uploadedFiles, setUploadedFiles] = useState<Array<{ name: string; url: string; path: string }>>([]);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+
+  // Test Supabase connection and Storage bucket on component mount (client-side only)
+  useEffect(() => {
+    // Only run on client-side
+    if (typeof window === 'undefined') return;
+
+    const testConnections = async () => {
+      try {
+        console.log('🔌 AdminPanel: Testing Supabase connections...');
+        
+        // Check if environment variables are available
+        const hasUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const hasKey = !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!hasUrl || !hasKey) {
+          console.error('❌ AdminPanel: Missing Supabase environment variables');
+          console.error('Please create .env.local file with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY');
+          return;
+        }
+        
+        // Test database connection
+        console.log('📊 Testing database connection...');
+        const { data, error } = await supabase
+          .from('products')
+          .select('id')
+          .limit(1);
+
+        if (error) {
+          console.error('❌ AdminPanel: Database connection error:', error);
+          console.error('Error details:', {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint
+          });
+        } else {
+          console.log('✅ AdminPanel: Database connection successful!');
+          console.log('Connection info:', {
+            url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+            hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+            productsFound: data?.length || 0
+          });
+        }
+
+        // Test Storage bucket connection
+        console.log('📦 Testing Storage bucket connection...');
+        const storageResult = await testStorageConnection(DEFAULT_BUCKET);
+        
+        if (storageResult.success) {
+          console.log('✅ AdminPanel: Storage bucket connection successful!');
+          console.log(`Bucket "${DEFAULT_BUCKET}" is accessible with ${storageResult.fileCount} items`);
+        } else {
+          console.warn('⚠️ AdminPanel: Storage bucket connection issue:', storageResult.message);
+          if (storageResult.availableBuckets) {
+            console.log('Available buckets:', storageResult.availableBuckets);
+          }
+        }
+      } catch (err) {
+        console.error('❌ AdminPanel: Failed to connect to Supabase:', err);
+        if (err instanceof Error) {
+          console.error('Error message:', err.message);
+        }
+      }
+    };
+
+    testConnections();
+  }, []);
 
   const handleBackToStore = () => {
     localStorage.setItem('isAdmin', 'false');
@@ -53,6 +127,88 @@ export default function AdminPanel() {
       p.id === updatedProduct.id ? updatedProduct : p
     ));
     setEditingProduct(null);
+  };
+
+  // Load uploaded files on mount
+  useEffect(() => {
+    const loadFiles = async () => {
+      try {
+        const { data, error } = await listFiles(DEFAULT_BUCKET, '');
+        if (!error && data) {
+          const filesWithUrls = data.map(file => ({
+            name: file.name,
+            path: file.name,
+            url: getStorageUrl(DEFAULT_BUCKET, file.name)
+          }));
+          setUploadedFiles(filesWithUrls);
+          console.log('📁 Loaded files from storage:', filesWithUrls.length);
+        }
+      } catch (err) {
+        console.error('Failed to load files:', err);
+      }
+    };
+    loadFiles();
+  }, []);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Моля изберете снимка (JPG, PNG, etc.)');
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress('Качване на снимка...');
+
+    try {
+      console.log(`📤 Uploading file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+
+      // Use API route for upload (bypasses RLS)
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'images');
+
+      const response = await fetch('/api/storage/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setUploadProgress(`✅ Снимката е качена успешно!`);
+        
+        // Add to uploaded files list
+        setUploadedFiles(prev => [{
+          name: file.name,
+          path: result.path,
+          url: result.url
+        }, ...prev]);
+
+        console.log('✅ Upload successful!');
+        console.log('📎 File path:', result.path);
+        console.log('🔗 Public URL:', result.url);
+        
+        // Clear input
+        event.target.value = '';
+        
+        setTimeout(() => {
+          setUploadProgress('');
+          setShowUploadModal(false);
+        }, 2000);
+      } else {
+        setUploadProgress(`❌ Грешка: ${result.error || 'Неуспешно качване'}`);
+        console.error('Upload failed:', result.error);
+      }
+    } catch (error) {
+      setUploadProgress(`❌ Грешка: ${error instanceof Error ? error.message : 'Неочаквана грешка'}`);
+      console.error('Upload error:', error);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -134,8 +290,95 @@ export default function AdminPanel() {
               >
                 {t.products}
               </h1>
-              <div className="hidden lg:block">
-                <LanguageToggle />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={async () => {
+                    try {
+                      setUploading(true);
+                      setUploadProgress('Генериране на тестова снимка...');
+                      
+                      // Generate test image
+                      const imageBlob = await generateAndUploadTestImage();
+                      
+                      // Create a File object from the blob
+                      const timestamp = Date.now();
+                      const file = new File([imageBlob], `test-${timestamp}.png`, { type: 'image/png' });
+                      
+                      setUploadProgress('Качване на снимката...');
+                      
+                      // Use API route for upload (bypasses RLS)
+                      const formData = new FormData();
+                      formData.append('file', file);
+                      formData.append('folder', 'images');
+
+                      const response = await fetch('/api/storage/upload', {
+                        method: 'POST',
+                        body: formData
+                      });
+
+                      const result = await response.json();
+
+                      if (response.ok && result.success) {
+                        setUploadProgress(`✅ Тестовата снимка е качена успешно!`);
+                        
+                        // Add to uploaded files list
+                        setUploadedFiles(prev => [{
+                          name: `test-${timestamp}.png`,
+                          path: result.path,
+                          url: result.url
+                        }, ...prev]);
+
+                        console.log('✅ Test image uploaded successfully!');
+                        console.log('📎 File path:', result.path);
+                        console.log('🔗 Public URL:', result.url);
+                        
+                        // Open in new tab
+                        setTimeout(() => {
+                          window.open(result.url, '_blank');
+                          setUploadProgress('');
+                        }, 1000);
+                      } else {
+                        setUploadProgress(`❌ Грешка: ${result.error || 'Неуспешно качване'}`);
+                        console.error('Test image upload failed:', result.error);
+                      }
+                    } catch (error) {
+                      setUploadProgress(`❌ Грешка: ${error instanceof Error ? error.message : 'Неочаквана грешка'}`);
+                      console.error('Test image upload error:', error);
+                    } finally {
+                      setUploading(false);
+                    }
+                  }}
+                  disabled={uploading}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors duration-300 font-medium text-sm"
+                  style={{
+                    backgroundColor: uploading ? theme.colors.textSecondary : theme.colors.primary,
+                    color: '#fff',
+                    opacity: uploading ? 0.6 : 1
+                  }}
+                >
+                  <ImageIcon size={18} />
+                  <span>{uploading ? (language === 'bg' ? 'Качване...' : 'Uploading...') : (language === 'bg' ? 'Генерирай тестова снимка' : 'Generate Test Image')}</span>
+                </button>
+                <button
+                  onClick={() => setShowUploadModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors duration-300 font-medium text-sm"
+                  style={{
+                    backgroundColor: theme.colors.primary,
+                    color: '#fff'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '0.9';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                  }}
+                >
+                  <Upload size={18} />
+                  <span>{language === 'bg' ? 'Качи снимка' : 'Upload Image'}</span>
+                </button>
+                <div className="hidden lg:block">
+                  <LanguageToggle />
+                </div>
               </div>
             </div>
             <p 
@@ -508,6 +751,177 @@ export default function AdminPanel() {
           onClose={() => setEditingProduct(null)}
           onSave={handleSaveProduct}
         />
+      )}
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => !uploading && setShowUploadModal(false)}
+        >
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: theme.colors.surface,
+              color: theme.colors.text
+            }}
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 
+                  className="text-xl font-semibold"
+                  style={{ color: theme.colors.text }}
+                >
+                  {language === 'bg' ? 'Качи снимка в Storage' : 'Upload Image to Storage'}
+                </h2>
+                <button
+                  onClick={() => !uploading && setShowUploadModal(false)}
+                  className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  disabled={uploading}
+                >
+                  <X size={20} style={{ color: theme.colors.text }} />
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <label 
+                  className="block mb-2 text-sm font-medium"
+                  style={{ color: theme.colors.text }}
+                >
+                  {language === 'bg' ? 'Избери снимка' : 'Select Image'}
+                </label>
+                <div 
+                  className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors"
+                  style={{
+                    borderColor: theme.colors.border,
+                    backgroundColor: theme.colors.cardBg
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.style.borderColor = theme.colors.primary;
+                  }}
+                  onDragLeave={(e) => {
+                    e.currentTarget.style.borderColor = theme.colors.border;
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.style.borderColor = theme.colors.border;
+                    const file = e.dataTransfer.files[0];
+                    if (file && file.type.startsWith('image/')) {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.files = e.dataTransfer.files as any;
+                      input.onchange = (ev) => handleFileUpload(ev as any);
+                    }
+                  }}
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className="cursor-pointer"
+                  >
+                    <ImageIcon 
+                      size={48} 
+                      className="mx-auto mb-4"
+                      style={{ color: theme.colors.textSecondary }}
+                    />
+                    <p 
+                      className="text-sm mb-2"
+                      style={{ color: theme.colors.text }}
+                    >
+                      {language === 'bg' 
+                        ? 'Кликни или влачи снимка тук' 
+                        : 'Click or drag image here'}
+                    </p>
+                    <p 
+                      className="text-xs"
+                      style={{ color: theme.colors.textSecondary }}
+                    >
+                      {language === 'bg' 
+                        ? 'JPG, PNG, GIF до 10MB' 
+                        : 'JPG, PNG, GIF up to 10MB'}
+                    </p>
+                  </label>
+                </div>
+              </div>
+
+              {uploadProgress && (
+                <div 
+                  className="p-4 rounded-lg mb-4"
+                  style={{
+                    backgroundColor: uploadProgress.includes('✅') 
+                      ? 'rgba(34, 197, 94, 0.1)' 
+                      : uploadProgress.includes('❌')
+                      ? 'rgba(239, 68, 68, 0.1)'
+                      : theme.colors.secondary
+                  }}
+                >
+                  <p 
+                    className="text-sm"
+                    style={{ color: theme.colors.text }}
+                  >
+                    {uploadProgress}
+                  </p>
+                </div>
+              )}
+
+              {/* Uploaded Files Preview */}
+              {uploadedFiles.length > 0 && (
+                <div>
+                  <h3 
+                    className="text-sm font-medium mb-3"
+                    style={{ color: theme.colors.text }}
+                  >
+                    {language === 'bg' ? 'Качени снимки' : 'Uploaded Images'} ({uploadedFiles.length})
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-64 overflow-y-auto">
+                    {uploadedFiles.slice(0, 6).map((file, index) => (
+                      <div 
+                        key={index}
+                        className="relative group"
+                      >
+                        <img
+                          src={file.url}
+                          alt={file.name}
+                          className="w-full h-24 object-cover rounded border"
+                          style={{ borderColor: theme.colors.border }}
+                        />
+                        <div 
+                          className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity rounded flex items-center justify-center"
+                        >
+                          <a
+                            href={file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="opacity-0 group-hover:opacity-100 text-white text-xs px-2 py-1 bg-black bg-opacity-75 rounded"
+                          >
+                            {language === 'bg' ? 'Отвори' : 'Open'}
+                          </a>
+                        </div>
+                        <p 
+                          className="text-xs mt-1 truncate"
+                          style={{ color: theme.colors.textSecondary }}
+                          title={file.name}
+                        >
+                          {file.name}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
