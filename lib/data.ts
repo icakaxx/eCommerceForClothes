@@ -1,5 +1,5 @@
 export interface Product {
-  id: number;
+  id: string | number; // UUID from Supabase (string) or temporary number for new products
   category: 'clothes' | 'shoes' | 'accessories';
   brand: string;
   model: string;
