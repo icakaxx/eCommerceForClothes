@@ -1,7 +1,8 @@
 import { supabase } from './supabase';
 
 // Default bucket name - change this to match your bucket name
-const DEFAULT_BUCKET = 'Products';
+// Note: Supabase Storage bucket names should be lowercase
+const DEFAULT_BUCKET = 'products';
 
 /**
  * Test connection to Supabase Storage bucket

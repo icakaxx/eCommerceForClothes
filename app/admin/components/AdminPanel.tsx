@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Edit2, Eye, EyeOff, ArrowLeft, Upload, Image as ImageIcon, X } from 'lucide-react';
+import { Search, Edit2, Eye, EyeOff, ArrowLeft, Upload, Image as ImageIcon, X, Plus, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import EditProductModal from '@/components/EditProductModal';
@@ -17,7 +17,7 @@ import { generateAndUploadTestImage } from '@/lib/generateTestImage';
 import { signOutAdmin } from '@/lib/auth';
 
 export default function AdminPanel() {
-  const { products, setProducts } = useProducts();
+  const { products, setProducts, loadProducts } = useProducts();
   const { language } = useLanguage();
   const { theme } = useTheme();
   const t = translations[language];
@@ -90,7 +90,7 @@ export default function AdminPanel() {
           });
         }
 
-        // Test Storage bucket connection
+        // Test Storage bucket connection and create if needed
         console.log('📦 Testing Storage bucket connection...');
         const storageResult = await testStorageConnection(DEFAULT_BUCKET);
         
@@ -101,6 +101,27 @@ export default function AdminPanel() {
           console.warn('⚠️ AdminPanel: Storage bucket connection issue:', storageResult.message);
           if (storageResult.availableBuckets) {
             console.log('Available buckets:', storageResult.availableBuckets);
+          }
+          
+          // Try to create bucket if it doesn't exist
+          console.log('📦 Attempting to create bucket...');
+          try {
+            const createResponse = await fetch('/api/storage/setup', { method: 'POST' });
+            const createResult = await createResponse.json();
+            
+            if (createResult.success) {
+              console.log('✅ Bucket created successfully:', createResult.bucket);
+              console.log('📋 Bucket details:', createResult);
+            } else {
+              console.error('❌ Failed to create bucket:', {
+                error: createResult.error,
+                details: createResult.details,
+                bucketName: createResult.bucketName
+              });
+              console.error('💡 Tip: Make sure SUPABASE_SERVICE_ROLE_KEY is set in .env.local');
+            }
+          } catch (createError) {
+            console.error('❌ Error creating bucket:', createError);
           }
         }
       } catch (err) {
@@ -154,17 +175,120 @@ export default function AdminPanel() {
     return matchesSearch && matchesCategory && matchesVisibility;
   });
 
-  const toggleVisibility = (id: number) => {
-    setProducts(products.map(p => 
-      p.id === id ? { ...p, visible: !p.visible } : p
-    ));
+  const toggleVisibility = async (id: string | number) => {
+    try {
+      const product = products.find(p => p.id === id);
+      if (!product) return;
+
+      const updatedProduct = { ...product, visible: !product.visible };
+
+      // Update in database
+      const response = await fetch(`/api/products/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedProduct)
+      });
+
+      if (response.ok) {
+        // Update local state
+        setProducts(products.map(p => 
+          p.id === id ? updatedProduct : p
+        ));
+        console.log('✅ Product visibility updated');
+      } else {
+        console.error('Failed to update product visibility');
+      }
+    } catch (error) {
+      console.error('Error updating visibility:', error);
+    }
   };
 
-  const handleSaveProduct = (updatedProduct: Product) => {
-    setProducts(products.map(p => 
-      p.id === updatedProduct.id ? updatedProduct : p
-    ));
-    setEditingProduct(null);
+  const handleSaveProduct = async (updatedProduct: Product) => {
+    try {
+      const isNewProduct = !updatedProduct.id || updatedProduct.id === 0;
+      
+      if (isNewProduct) {
+        // Create new product
+        const response = await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedProduct)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          console.log('✅ Product created:', result.product.id);
+          await loadProducts(); // Reload products from database
+          setEditingProduct(null);
+        } else {
+          console.error('Failed to create product:', result.error);
+          alert(language === 'bg' ? 'Грешка при създаване на продукт' : 'Error creating product');
+        }
+      } else {
+        // Update existing product
+        const response = await fetch(`/api/products/${updatedProduct.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedProduct)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          console.log('✅ Product updated:', updatedProduct.id);
+          await loadProducts(); // Reload products from database
+          setEditingProduct(null);
+        } else {
+          console.error('Failed to update product:', result.error);
+          alert(language === 'bg' ? 'Грешка при обновяване на продукт' : 'Error updating product');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving product:', error);
+      alert(language === 'bg' ? 'Грешка при записване на продукт' : 'Error saving product');
+    }
+  };
+
+  const handleDeleteProduct = async (id: string | number) => {
+    if (!confirm(language === 'bg' 
+      ? 'Сигурни ли сте, че искате да изтриете този продукт?' 
+      : 'Are you sure you want to delete this product?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/products/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        console.log('✅ Product deleted:', id);
+        await loadProducts(); // Reload products from database
+      } else {
+        console.error('Failed to delete product');
+        alert(language === 'bg' ? 'Грешка при изтриване на продукт' : 'Error deleting product');
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      alert(language === 'bg' ? 'Грешка при изтриване на продукт' : 'Error deleting product');
+    }
+  };
+
+  const handleAddProduct = () => {
+    // Create empty product for new entry
+    const newProduct: Product = {
+      id: 0, // Temporary ID for new products
+      category: 'clothes',
+      brand: '',
+      model: '',
+      color: '',
+      quantity: 0,
+      price: 0,
+      visible: true,
+      images: []
+    };
+    setEditingProduct(newProduct);
   };
 
   // Load uploaded files on mount
@@ -329,6 +453,23 @@ export default function AdminPanel() {
                 {t.products}
               </h1>
               <div className="flex items-center gap-3">
+                <button
+                  onClick={handleAddProduct}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors duration-300 font-medium text-sm"
+                  style={{
+                    backgroundColor: theme.colors.primary,
+                    color: '#fff'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '0.9';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                  }}
+                >
+                  <Plus size={18} />
+                  <span>{language === 'bg' ? 'Добави продукт' : 'Add Product'}</span>
+                </button>
                 <button
                   onClick={async () => {
                     try {
@@ -569,6 +710,13 @@ export default function AdminPanel() {
                             >
                               <Edit2 size={18} />
                             </button>
+                            <button
+                              onClick={() => handleDeleteProduct(product.id)}
+                              className="p-2 rounded touch-manipulation text-red-600 active:bg-red-50"
+                              aria-label={language === 'bg' ? 'Изтрий продукт' : 'Delete product'}
+                            >
+                              <Trash2 size={18} />
+                            </button>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-xs">
@@ -746,22 +894,31 @@ export default function AdminPanel() {
                         </button>
                       </td>
                       <td className="px-4 lg:px-6 py-4">
-                        <button
-                          onClick={() => setEditingProduct(product)}
-                          className="p-2 rounded transition-colors duration-300"
-                          style={{ 
-                            color: theme.colors.primary
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.colors.secondary;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                          }}
-                          aria-label={t.actions}
-                        >
-                          <Edit2 size={18} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setEditingProduct(product)}
+                            className="p-2 rounded transition-colors duration-300"
+                            style={{ 
+                              color: theme.colors.primary
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = theme.colors.secondary;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
+                            aria-label={t.actions}
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(product.id)}
+                            className="p-2 rounded transition-colors duration-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            aria-label={language === 'bg' ? 'Изтрий продукт' : 'Delete product'}
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
