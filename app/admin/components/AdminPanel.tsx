@@ -1,20 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Edit2, Eye, EyeOff, ArrowLeft, Upload, Image as ImageIcon, X, Plus, Trash2 } from 'lucide-react';
-import Image from 'next/image';
+import { Search, Edit2, Eye, EyeOff, Upload, Image as ImageIcon, X, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import EditProductModal from '@/components/EditProductModal';
+import EditProductVariantsModal from '@/components/EditProductVariantsModal';
+import LanguageToggle from '@/components/LanguageToggle';
 import { useProducts } from '@/context/ProductContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { translations } from '@/lib/translations';
 import { Product } from '@/lib/data';
-import LanguageToggle from '@/components/LanguageToggle';
+import { ProductWithDetails } from '@/lib/types/product-types';
 import { supabase } from '@/lib/supabase';
 import { testStorageConnection, DEFAULT_BUCKET, uploadFile, getStorageUrl, listFiles } from '@/lib/supabaseStorage';
 import { generateAndUploadTestImage } from '@/lib/generateTestImage';
-import { signOutAdmin } from '@/lib/auth';
 
 export default function AdminPanel() {
   const { products, setProducts, loadProducts } = useProducts();
@@ -25,7 +24,7 @@ export default function AdminPanel() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [visibilityFilter, setVisibilityFilter] = useState('all');
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | ProductWithDetails | null | undefined>(undefined);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>('');
   const [uploadedFiles, setUploadedFiles] = useState<Array<{ name: string; url: string; path: string }>>([]);
@@ -70,7 +69,7 @@ export default function AdminPanel() {
         console.log('📊 Testing database connection...');
         const { data, error } = await supabase
           .from('products')
-          .select('id')
+          .select('ProductID')
           .limit(1);
 
         if (error) {
@@ -135,31 +134,6 @@ export default function AdminPanel() {
     testConnections();
   }, []);
 
-  const handleBackToStore = async () => {
-    try {
-      // Sign out from Supabase
-      await signOutAdmin();
-      
-      // Clear localStorage
-      localStorage.removeItem('admin_authenticated');
-      localStorage.removeItem('admin_access_token');
-      localStorage.removeItem('admin_refresh_token');
-      localStorage.removeItem('admin_login_time');
-      localStorage.removeItem('admin_user_email');
-      localStorage.setItem('isAdmin', 'false');
-
-      // Call logout API to clear cookies
-      await fetch('/api/auth/logout', { method: 'POST' });
-
-      // Redirect to home
-      router.push('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Still redirect even if logout fails
-      localStorage.setItem('isAdmin', 'false');
-      router.push('/');
-    }
-  };
 
   const filteredProducts = products.filter(p => {
     const matchesSearch = !searchTerm || 
@@ -276,19 +250,8 @@ export default function AdminPanel() {
   };
 
   const handleAddProduct = () => {
-    // Create empty product for new entry
-    const newProduct: Product = {
-      id: 0, // Temporary ID for new products
-      category: 'clothes',
-      brand: '',
-      model: '',
-      color: '',
-      quantity: 0,
-      price: 0,
-      visible: true,
-      images: []
-    };
-    setEditingProduct(newProduct);
+    // Pass null to indicate a new product
+    setEditingProduct(null as any);
   };
 
   // Load uploaded files on mount
@@ -374,78 +337,10 @@ export default function AdminPanel() {
   };
 
   return (
-    <div 
-      className="flex flex-col lg:flex-row min-h-screen transition-colors duration-300"
-      style={{ backgroundColor: theme.colors.background }}
-    >
-      <div 
-        className="w-full lg:w-64 border-b lg:border-b-0 lg:border-r flex-shrink-0 transition-colors duration-300"
-        style={{ 
-          backgroundColor: theme.colors.surface,
-          borderColor: theme.colors.border
-        }}
-      >
-        <div className="p-4 sm:p-6">
-          <div className="flex items-center justify-between lg:block mb-4 lg:mb-8">
-            <div className="flex items-center gap-2">
-              <Image
-                src="/image.png"
-                alt="ModaBox Logo"
-                width={32}
-                height={32}
-                className="w-8 h-8 object-contain"
-              />
-              <div 
-                className="text-lg sm:text-xl font-semibold transition-colors duration-300"
-                style={{ color: theme.colors.text }}
-              >
-                ModaBox
-              </div>
-            </div>
-            <div className="lg:hidden">
-              <LanguageToggle />
-            </div>
-          </div>
-          <nav className="space-y-1">
-            <div 
-              className="px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300"
-              style={{
-                backgroundColor: theme.colors.secondary,
-                color: theme.colors.primary
-              }}
-            >
-              {t.products}
-            </div>
-          </nav>
-          <button
-            onClick={handleBackToStore}
-            className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 text-sm sm:text-base rounded-lg transition-colors duration-300 touch-manipulation min-h-[44px] sm:min-h-[auto]"
-            style={{ 
-              color: theme.colors.text
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.secondary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-            onTouchStart={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.secondary;
-            }}
-            onTouchEnd={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <ArrowLeft size={18} />
-            <span>{language === 'bg' ? 'Обратно в магазина' : 'Back to Store'}</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
-          <div className="mb-4 sm:mb-6 lg:mb-8">
-            <div className="flex items-center justify-between mb-2">
+    <>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="mb-4 sm:mb-6 lg:mb-8">
+          <div className="flex items-center justify-between mb-2">
               <h1 
                 className="text-2xl sm:text-3xl font-semibold transition-colors duration-300"
                 style={{ color: theme.colors.text }}
@@ -854,18 +749,17 @@ export default function AdminPanel() {
             )}
           </div>
         </div>
-      </div>
 
-      {editingProduct && (
-        <EditProductModal
-          product={editingProduct}
-          onClose={() => setEditingProduct(null)}
-          onSave={handleSaveProduct}
-        />
-      )}
+        {editingProduct !== undefined && (
+          <EditProductVariantsModal
+            product={editingProduct as ProductWithDetails | null}
+            onClose={() => setEditingProduct(undefined)}
+            onSave={handleSaveProduct}
+          />
+        )}
 
-      {/* Upload Modal */}
-      {showUploadModal && (
+        {/* Upload Modal */}
+        {showUploadModal && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
           onClick={() => !uploading && setShowUploadModal(false)}
@@ -1034,7 +928,7 @@ export default function AdminPanel() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 

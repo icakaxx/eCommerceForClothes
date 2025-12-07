@@ -1,3 +1,5 @@
+// Legacy Product interface for frontend compatibility
+// This will be gradually replaced with the new schema
 export interface Product {
   id: string | number; // UUID from Supabase (string) or temporary number for new products
   category: 'clothes' | 'shoes' | 'accessories';
@@ -10,6 +12,10 @@ export interface Product {
   price: number;
   visible: boolean;
   images: string[];
+  description?: string;
+  // New fields for product type system
+  productTypeID?: string;
+  propertyValues?: Record<string, string>; // property name -> value mapping
 }
 
 export const initialProducts: Product[] = [

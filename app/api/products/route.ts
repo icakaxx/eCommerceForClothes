@@ -1,84 +1,110 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
 
-// GET - Fetch all products
+// GET - Fetch all products with variants and images
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient();
-    
-    // Get query parameters
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
-    const category = searchParams.get('category');
 
-    // Build query with JOINs for product_media and categories
-    let query = supabase
+    // Get all products with their types
+    const { data: products, error: productsError } = await supabase
       .from('products')
       .select(`
         *,
-        product_media (
-          id,
-          media_type,
-          url,
-          alt,
-          position
-        ),
-        product_categories (
-          categories (
-            slug,
-            title
-          )
-        )
+        ProductType:product_types(*)
       `)
-      .order('created_at', { ascending: false });
+      .order('CreatedAt', { ascending: false });
 
-    // Apply filters
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    const { data: products, error } = await query;
-
-    if (error) {
-      console.error('Error fetching products:', error);
+    if (productsError) {
+      console.error('Error fetching products:', productsError);
       return NextResponse.json(
-        { error: error.message },
+        { error: productsError.message },
         { status: 500 }
       );
     }
 
-    // Transform Supabase data to match Product interface
-    const transformedProducts = products?.map((product: any) => {
-      // Get images from product_media JOIN, sorted by position
-      const images = (product.product_media || [])
-        .sort((a: any, b: any) => a.position - b.position)
-        .map((media: any) => media.url);
+    // For each product, get variants and images
+    const productsWithDetails = await Promise.all(
+      (products || []).map(async (product) => {
+        // Get variants
+        const { data: variants } = await supabase
+          .from('product_variants')
+          .select(`
+            *,
+            ProductVariantPropertyValues:product_variant_property_values(
+              *,
+              Property:properties(*)
+            )
+          `)
+          .eq('ProductID', product.ProductID);
 
-      // Get category from product_categories JOIN or metadata
-      const productCategory = product.product_categories?.[0]?.categories?.slug || 
-                             product.metadata?.category || 
-                             'clothes';
+        // Get images
+        const { data: images } = await supabase
+          .from('product_images')
+          .select('*')
+          .eq('ProductID', product.ProductID)
+          .order('SortOrder', { ascending: true });
 
-      return {
-        id: product.id,
-        category: productCategory as 'clothes' | 'shoes' | 'accessories',
-        brand: product.metadata?.brand || product.title?.split(' ')[0] || product.title || '',
-        model: product.subtitle || product.title?.split(' ').slice(1).join(' ') || '',
-        type: product.metadata?.type,
-        color: product.metadata?.color || '',
-        size: product.metadata?.size,
-        quantity: product.inventory_qty || 0,
-        price: parseFloat(product.base_price) || 0,
-        visible: product.status === 'active',
-        images: images.length > 0 ? images : ['/image.png'] // fallback image
-      };
-    }) || [];
+        // For backwards compatibility, create a "legacy" product from the first variant
+        const firstVariant = variants?.[0];
+        
+        // Extract property values from variant for easy access
+        const variantProperties = firstVariant?.ProductVariantPropertyValues?.reduce((acc: Record<string, string>, pv: any) => {
+          if (pv.Property?.Name) {
+            acc[pv.Property.Name] = pv.Value;
+          }
+          return acc;
+        }, {}) || {};
+        
+        // Try to extract brand and model from Name (format: "Brand Model")
+        const nameParts = product.Name?.split(' ') || [];
+        const brand = nameParts[0] || 'Unknown';
+        const model = nameParts.slice(1).join(' ') || product.Name || 'Unknown';
+        
+        // Map ProductType code to legacy category
+        const categoryMap: Record<string, 'clothes' | 'shoes' | 'accessories'> = {
+          'clothes': 'clothes',
+          'shoes': 'shoes',
+          'accessories': 'accessories',
+          'shirts': 'clothes',
+          'pants': 'clothes',
+          'jackets': 'clothes',
+          'sneakers': 'shoes',
+          'boots': 'shoes',
+          'bags': 'accessories',
+          'watches': 'accessories'
+        };
+        const category = categoryMap[product.ProductType?.Code?.toLowerCase() || ''] || 'clothes';
+        
+        const legacyProduct = {
+          // New schema fields
+          ...product,
+          variants: variants || [],
+          productTypeID: product.ProductTypeID,
+          
+          // Legacy fields for backwards compatibility
+          id: product.ProductID,
+          brand: brand,
+          model: model,
+          category: category,
+          type: product.ProductType?.Name || '',
+          color: variantProperties.color || variantProperties.colour || '',
+          size: variantProperties.size || '',
+          price: firstVariant?.Price || 0,
+          quantity: firstVariant?.Quantity || 0,
+          visible: firstVariant?.IsVisible ?? true,
+          images: images?.map(img => img.ImageURL) || ['/image.png'],
+          description: product.Description || '',
+          propertyValues: variantProperties
+        };
 
-    console.log(`✅ Fetched ${transformedProducts.length} products from database`);
+        return legacyProduct;
+      })
+    );
 
     return NextResponse.json({
       success: true,
-      products: transformedProducts
+      products: productsWithDetails
     });
 
   } catch (error) {
@@ -90,57 +116,42 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new product
+// POST - Create new product with variants
 export async function POST(request: NextRequest) {
   try {
     const supabase = createServerClient();
     const body = await request.json();
 
-    const {
-      category,
-      brand,
-      model,
-      type,
-      color,
-      size,
-      quantity,
-      price,
-      visible,
-      images
-    } = body;
+    console.log('📝 POST /api/products - Received body:', JSON.stringify(body, null, 2));
 
-    // Validate required fields
-    if (!category || !brand || !model || price === undefined) {
+    const { Name, SKU, Description, ProductTypeID, Variants = [] } = body;
+
+    if (!Name || !ProductTypeID) {
       return NextResponse.json(
-        { error: 'Missing required fields: category, brand, model, price' },
+        { error: 'Missing required fields: Name, ProductTypeID' },
         { status: 400 }
       );
     }
 
-    // Generate slug from brand and model
-    const slug = `${brand.toLowerCase()}-${model.toLowerCase()}`.replace(/[^a-z0-9-]/g, '-');
+    console.log('📦 Variants to process:', Variants.length);
+    Variants.forEach((v: any, i: number) => {
+      console.log(`  Variant ${i}:`, { 
+        SKU: v.SKU, 
+        Price: v.Price, 
+        Quantity: v.Quantity,
+        PropertyValues: v.PropertyValues 
+      });
+    });
 
-    // Insert product
+    // Create the product
     const { data: product, error: productError } = await supabase
       .from('products')
       .insert({
-        slug: `${slug}-${Date.now()}`, // Make unique
-        title: `${brand} ${model}`,
-        subtitle: model,
-        description: `${brand} ${model}${type ? ` - ${type}` : ''}`,
-        status: visible ? 'active' : 'hidden',
-        base_price: price,
-        currency: 'EUR',
-        inventory_qty: quantity || 0,
-        inventory_policy: 'deny',
-        tags: [category, brand, color].filter(Boolean),
-        metadata: {
-          type,
-          color,
-          size,
-          brand
-        },
-        seo: {}
+        Name,
+        SKU,
+        Description,
+        ProductTypeID,
+        UpdatedAt: new Date().toISOString()
       })
       .select()
       .single();
@@ -153,84 +164,102 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Insert product media (images)
-    if (images && images.length > 0) {
-      const mediaInserts = images.map((url: string, index: number) => ({
-        product_id: product.id,
-        media_type: 'image',
-        url: url,
-        alt: `${brand} ${model}`,
-        position: index
-      }));
+      // Create new variants
+      for (const variantData of Variants) {
+        const {
+          SKU: variantSKU,
+          Price,
+          CompareAtPrice,
+          Cost,
+          Quantity,
+          Weight,
+          WeightUnit,
+          Barcode,
+          TrackQuantity,
+          ContinueSellingWhenOutOfStock,
+          IsVisible,
+          PropertyValues = [],
+          ImageURL,
+          IsPrimaryImage
+        } = variantData;
 
-      const { error: mediaError } = await supabase
-        .from('product_media')
-        .insert(mediaInserts);
-
-      if (mediaError) {
-        console.error('Error inserting product media:', mediaError);
-        // Don't fail the whole request if media fails
-      }
-    }
-
-    // Get or create category and link product to category
-    if (category) {
-      // First, try to find existing category
-      let { data: categoryData } = await supabase
-        .from('categories')
-        .select('id')
-        .eq('slug', category)
-        .single();
-
-      // If category doesn't exist, create it
-      if (!categoryData) {
-        const { data: newCategory } = await supabase
-          .from('categories')
+        // Create variant
+        const { data: variant, error: variantError } = await supabase
+          .from('product_variants')
           .insert({
-            slug: category,
-            title: category.charAt(0).toUpperCase() + category.slice(1),
-            is_active: true
+            ProductID: product.ProductID,
+            SKU: variantSKU,
+            Price,
+            CompareAtPrice,
+            Cost,
+            Quantity,
+            Weight,
+            WeightUnit: WeightUnit || 'kg',
+            Barcode,
+            TrackQuantity: TrackQuantity ?? true,
+            ContinueSellingWhenOutOfStock: ContinueSellingWhenOutOfStock ?? false,
+            IsVisible: IsVisible ?? true
           })
           .select()
           .single();
-        
-        categoryData = newCategory;
-      }
 
-      if (categoryData) {
-        // Remove existing category links
-        await supabase
-          .from('product_categories')
-          .delete()
-          .eq('product_id', product.id);
+        if (variantError) {
+          console.error('❌ Error creating variant:', variantError);
+          continue; // Continue with other variants
+        }
 
-        // Add new category link
-        await supabase
-          .from('product_categories')
-          .insert({
-            product_id: product.id,
-            category_id: categoryData.id
+        console.log('✅ Created variant:', variant);
+
+        // Create property values for this variant
+        if (PropertyValues.length > 0) {
+          const propertyValuesData = PropertyValues.map((pv: any) => ({
+            ProductVariantID: variant.ProductVariantID,
+            PropertyID: pv.PropertyID,
+            Value: pv.Value
+          }));
+
+          const { error: pvError } = await supabase
+            .from('product_variant_property_values')
+            .insert(propertyValuesData);
+
+          if (pvError) {
+            console.error('Error creating property values:', pvError);
+          }
+        }
+
+        // Create image for this variant if provided
+        if (ImageURL) {
+          console.log('🖼️ Saving variant image:', {
+            ProductID: product.ProductID,
+            ProductVariantID: variant.ProductVariantID,
+            ImageURL: ImageURL,
+            IsPrimary: IsPrimaryImage || false
           });
-      }
-    }
+          
+          const { data: imageData, error: imageError } = await supabase
+            .from('product_images')
+            .insert({
+              ProductID: product.ProductID,
+              ProductVariantID: variant.ProductVariantID,
+              ImageURL: ImageURL,
+              IsPrimary: IsPrimaryImage || false,
+              SortOrder: 0
+            })
+            .select();
 
-    console.log('✅ Product created successfully:', product.id);
+          if (imageError) {
+            console.error('❌ Error creating variant image:', imageError);
+          } else {
+            console.log('✅ Variant image saved:', imageData);
+          }
+        } else {
+          console.log('⚠️ No ImageURL for variant:', variant.ProductVariantID);
+        }
+      }
 
     return NextResponse.json({
       success: true,
-      product: {
-        id: product.id,
-        category,
-        brand,
-        model,
-        type,
-        color,
-        size,
-        quantity: product.inventory_qty,
-        price: parseFloat(product.base_price),
-        visible: product.status === 'active',
-        images: images || []
-      }
+      product
     });
 
   } catch (error) {
@@ -241,4 +270,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

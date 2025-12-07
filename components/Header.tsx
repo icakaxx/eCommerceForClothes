@@ -8,6 +8,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
 import { useTheme } from '@/context/ThemeContext';
+import { useProductTypes } from '@/context/ProductTypeContext';
 import LanguageToggle from './LanguageToggle';
 import ThemeSwitcher from './ThemeSwitcher';
 
@@ -21,16 +22,35 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { language } = useLanguage();
+  const { productTypes } = useProductTypes();
   const t = translations[language];
 
+  // Create nav items with Home and dynamic product types
   const navItems = [
     { id: 'home', label: t.home, path: '/' },
-    { id: 'clothes', label: t.clothes, path: '/clothes' },
-    { id: 'shoes', label: t.shoes, path: '/shoes' },
-    { id: 'accessories', label: t.accessories, path: '/accessories' }
+    ...productTypes.map(type => ({
+      id: type.ProductTypeID,
+      label: type.Name,
+      path: `/${type.Code.toLowerCase()}`,
+      code: type.Code.toLowerCase()
+    }))
   ];
 
-  const currentPage = pathname === '/' ? 'home' : pathname.slice(1);
+  const getCurrentPage = () => {
+    if (pathname === '/') return 'home';
+
+    const pathSegment = pathname.slice(1); // Remove leading slash
+
+    // Check if pathSegment matches a product type code
+    const productType = productTypes.find(type => type.Code.toLowerCase() === pathSegment);
+    if (productType) {
+      return productType.ProductTypeID;
+    }
+
+    return pathSegment;
+  };
+
+  const currentPage = getCurrentPage();
 
   const { theme } = useTheme();
 

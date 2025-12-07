@@ -1,0 +1,96 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import ProductView from '@/components/ProductView';
+import { Product } from '@/lib/data';
+
+export default function ProductDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const adminState = localStorage.getItem('isAdmin');
+    if (adminState === 'true') {
+      setIsAdmin(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const response = await fetch(`/api/products/${params.id}`);
+        if (!response.ok) {
+          throw new Error('Product not found');
+        }
+        const data = await response.json();
+        console.log('Fetched product:', data);
+        
+        // API returns { success: true, product: {...} }
+        if (data.success && data.product) {
+          // Ensure images array exists and has at least one image
+          const productData = {
+            ...data.product,
+            images: data.product.images && data.product.images.length > 0 
+              ? data.product.images 
+              : ['/image.png'], // Fallback image
+            brand: data.product.brand || 'Unknown',
+            model: data.product.model || data.product.Name || 'Product'
+          };
+          setProduct(productData);
+        } else {
+          throw new Error('Invalid product data');
+        }
+      } catch (error) {
+        console.error('Error fetching product:', error);
+        router.push('/');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (params.id) {
+      fetchProduct();
+    }
+  }, [params.id, router]);
+
+  const handleSetIsAdmin = (value: boolean) => {
+    setIsAdmin(value);
+    localStorage.setItem('isAdmin', value.toString());
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading product...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!product) {
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin} />
+      <div className="flex-1">
+        <ProductView product={product} />
+      </div>
+      <Footer />
+    </div>
+  );
+}
+

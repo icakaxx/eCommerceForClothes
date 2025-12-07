@@ -15,10 +15,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
+    // Validate file type - support all image formats
+    const supportedImageTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/avif',
+      'image/heic',
+      'image/heif',
+      'image/svg+xml',
+      'image/bmp',
+      'image/tiff',
+      'image/x-icon'
+    ];
+
+    const isValidImage = supportedImageTypes.includes(file.type.toLowerCase()) || 
+                        file.type.startsWith('image/') ||
+                        /\.(jpg|jpeg|png|gif|webp|avif|heic|heif|svg|bmp|tiff?|ico)$/i.test(file.name);
+
+    if (!isValidImage) {
       return NextResponse.json(
-        { error: 'File must be an image' },
+        { error: 'File must be an image (JPG, PNG, GIF, WebP, AVIF, HEIC, etc.)' },
         { status: 400 }
       );
     }
@@ -53,8 +72,7 @@ export async function POST(request: NextRequest) {
       console.log(`📦 Bucket "${DEFAULT_BUCKET}" not found, creating...`);
       const { data: newBucket, error: createError } = await supabase.storage.createBucket(DEFAULT_BUCKET, {
         public: true,
-        allowedMimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-        fileSizeLimit: 10485760 // 10MB
+        fileSizeLimit: 10485760 // 10MB - Don't restrict MIME types, we validate on our end
       });
       
       if (createError) {

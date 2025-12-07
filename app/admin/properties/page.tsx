@@ -1,0 +1,581 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Plus, Edit2, Trash2, X, List, ChevronDown, ChevronRight } from 'lucide-react';
+import { Property, PropertyValue } from '@/lib/types/product-types';
+import { PropertyValuesStorage } from '@/lib/propertyValuesStorage';
+import AdminLayout from '../components/AdminLayout';
+
+export default function PropertiesPage() {
+  const router = useRouter();
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [formData, setFormData] = useState({ Name: '', Description: '', DataType: 'text' as 'text' | 'select' | 'number' });
+  const [expandedProperties, setExpandedProperties] = useState<Set<string>>(new Set());
+  const [showValueModal, setShowValueModal] = useState(false);
+  const [editingValue, setEditingValue] = useState<PropertyValue | null>(null);
+  const [currentProperty, setCurrentProperty] = useState<Property | null>(null);
+  const [valueFormData, setValueFormData] = useState({ Value: '', DisplayOrder: 0 });
+
+  useEffect(() => {
+    loadProperties();
+  }, []);
+
+  const loadProperties = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/properties');
+      const result = await response.json();
+      if (result.success) {
+        // Merge database properties with local storage values
+        const propertiesWithLocalValues = result.properties.map((prop: Property) => {
+          // If database has values, use them; otherwise check local storage
+          const localValues = PropertyValuesStorage.getPropertyValues(prop.PropertyID);
+          return {
+            ...prop,
+            Values: prop.Values && prop.Values.length > 0 ? prop.Values : localValues
+          };
+        });
+        setProperties(propertiesWithLocalValues);
+      }
+    } catch (error) {
+      console.error('Failed to load properties:', error);
+      // As a last resort, try to load from local storage only
+      try {
+        const localData = PropertyValuesStorage.getAllPropertyValues();
+        const localProperties = Object.keys(localData).map(propertyId => ({
+          PropertyID: propertyId,
+          Name: `Property ${propertyId}`,
+          Description: 'Locally stored property',
+          DataType: 'select' as const,
+          CreatedAt: new Date().toISOString(),
+          UpdatedAt: new Date().toISOString(),
+          Values: localData[propertyId]
+        }));
+        setProperties(localProperties);
+      } catch (localError) {
+        console.error('Failed to load local properties:', localError);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const url = editingProperty 
+        ? `/api/properties/${editingProperty.PropertyID}`
+        : '/api/properties';
+      const method = editingProperty ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setShowModal(false);
+        setFormData({ Name: '', Description: '', DataType: 'text' });
+        setEditingProperty(null);
+        loadProperties();
+      } else {
+        alert('Error: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Failed to save property:', error);
+      alert('Failed to save property');
+    }
+  };
+
+  const handleEdit = (property: Property) => {
+    setEditingProperty(property);
+    setFormData({ 
+      Name: property.Name, 
+      Description: property.Description || '', 
+      DataType: property.DataType 
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this property?')) return;
+
+    try {
+      const response = await fetch(`/api/properties/${id}`, { method: 'DELETE' });
+      const result = await response.json();
+      if (result.success) {
+        loadProperties();
+      } else {
+        alert('Error: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Failed to delete property:', error);
+      alert('Failed to delete property');
+    }
+  };
+
+  const togglePropertyExpansion = (propertyId: string) => {
+    const newExpanded = new Set(expandedProperties);
+    if (newExpanded.has(propertyId)) {
+      newExpanded.delete(propertyId);
+    } else {
+      newExpanded.add(propertyId);
+    }
+    setExpandedProperties(newExpanded);
+  };
+
+  const handleAddValue = (property: Property) => {
+    setCurrentProperty(property);
+    setEditingValue(null);
+    setValueFormData({ Value: '', DisplayOrder: (property.Values?.length || 0) + 1 });
+    setShowValueModal(true);
+  };
+
+  const handleEditValue = (property: Property, value: PropertyValue) => {
+    setCurrentProperty(property);
+    setEditingValue(value);
+    setValueFormData({ Value: value.Value, DisplayOrder: value.DisplayOrder });
+    setShowValueModal(true);
+  };
+
+  const handleDeleteValue = async (valueId: string) => {
+    if (!confirm('Are you sure you want to delete this property value?')) return;
+
+    try {
+      const response = await fetch(`/api/properties/values/${valueId}`, { method: 'DELETE' });
+      const result = await response.json();
+      if (result.success) {
+        // If it's a temporary/local value, also remove from local storage
+        if (valueId.startsWith('temp-') || result.warning) {
+          // Find which property this value belongs to and remove it from local storage
+          const allLocalData = PropertyValuesStorage.getAllPropertyValues();
+          for (const [propertyId, values] of Object.entries(allLocalData)) {
+            const valueIndex = values.findIndex(v => v.PropertyValueID === valueId);
+            if (valueIndex !== -1) {
+              PropertyValuesStorage.deletePropertyValue(propertyId, valueId);
+              break;
+            }
+          }
+        }
+
+        loadProperties();
+
+        if (result.warning) {
+          alert('Property value deleted locally. Database migration needed for persistence.');
+        }
+      } else {
+        alert('Error: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Failed to delete property value via API, using local storage:', error);
+
+      // Fallback to local storage
+      const allLocalData = PropertyValuesStorage.getAllPropertyValues();
+      for (const [propertyId, values] of Object.entries(allLocalData)) {
+        const valueIndex = values.findIndex(v => v.PropertyValueID === valueId);
+        if (valueIndex !== -1) {
+          PropertyValuesStorage.deletePropertyValue(propertyId, valueId);
+          loadProperties();
+          alert('Property value deleted locally. Database migration needed for full functionality.');
+          return;
+        }
+      }
+
+      alert('Failed to delete property value');
+    }
+  };
+
+  const handleValueSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentProperty) return;
+
+    try {
+      const url = editingValue
+        ? `/api/properties/values/${editingValue.PropertyValueID}`
+        : `/api/properties/${currentProperty.PropertyID}/values`;
+      const method = editingValue ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(valueFormData)
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        // If it's a temporary/local value, store it locally
+        if (result.value?.PropertyValueID?.startsWith('temp-') || result.warning) {
+          const value: PropertyValue = {
+            PropertyValueID: result.value.PropertyValueID || PropertyValuesStorage.generateTempId(),
+            PropertyID: currentProperty.PropertyID,
+            Value: valueFormData.Value,
+            DisplayOrder: valueFormData.DisplayOrder,
+            IsActive: true,
+            CreatedAt: new Date().toISOString(),
+            UpdatedAt: new Date().toISOString()
+          };
+
+          if (editingValue) {
+            PropertyValuesStorage.updatePropertyValue(currentProperty.PropertyID, editingValue.PropertyValueID, value);
+          } else {
+            PropertyValuesStorage.addPropertyValue(currentProperty.PropertyID, value);
+          }
+        }
+
+        setShowValueModal(false);
+        setValueFormData({ Value: '', DisplayOrder: 0 });
+        setEditingValue(null);
+        setCurrentProperty(null);
+        loadProperties();
+
+        if (result.warning) {
+          alert('Property value saved locally. Database migration needed for persistence.');
+        }
+      } else {
+        alert('Error: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Failed to save property value via API, using local storage:', error);
+
+      // Fallback to local storage
+      const value: PropertyValue = {
+        PropertyValueID: editingValue?.PropertyValueID || PropertyValuesStorage.generateTempId(),
+        PropertyID: currentProperty.PropertyID,
+        Value: valueFormData.Value,
+        DisplayOrder: valueFormData.DisplayOrder,
+        IsActive: true,
+        CreatedAt: new Date().toISOString(),
+        UpdatedAt: new Date().toISOString()
+      };
+
+      if (editingValue) {
+        PropertyValuesStorage.updatePropertyValue(currentProperty.PropertyID, editingValue.PropertyValueID, value);
+      } else {
+        PropertyValuesStorage.addPropertyValue(currentProperty.PropertyID, value);
+      }
+
+      setShowValueModal(false);
+      setValueFormData({ Value: '', DisplayOrder: 0 });
+      setEditingValue(null);
+      setCurrentProperty(null);
+      loadProperties();
+
+      alert('Property value saved locally. Database migration needed for full functionality.');
+    }
+  };
+
+  return (
+    <AdminLayout currentPath="/admin/properties">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold">Properties</h1>
+          <button
+            onClick={() => {
+              setEditingProperty(null);
+              setFormData({ Name: '', Description: '', DataType: 'text' });
+              setShowModal(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            <Plus className="w-5 h-5" />
+            Add Property
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-12">Loading...</div>
+        ) : (
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Description
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Data Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Values
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {properties.map((prop) => (
+                  <>
+                    <tr key={prop.PropertyID} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <div className="flex items-center gap-2">
+                          {prop.DataType === 'select' && (
+                            <button
+                              onClick={() => togglePropertyExpansion(prop.PropertyID)}
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              {expandedProperties.has(prop.PropertyID) ? (
+                                <ChevronDown className="w-4 h-4" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4" />
+                              )}
+                            </button>
+                          )}
+                          {prop.Name}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {prop.Description || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {prop.DataType}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {prop.DataType === 'select' ? (
+                          <span>{prop.Values?.length || 0} values</span>
+                        ) : (
+                          <span className="text-gray-300">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex justify-end gap-2">
+                          {prop.DataType === 'select' && (
+                            <button
+                              onClick={() => handleAddValue(prop)}
+                              className="text-green-600 hover:text-green-900"
+                              title="Add Value"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleEdit(prop)}
+                            className="text-indigo-600 hover:text-indigo-900"
+                            title="Edit Property"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(prop.PropertyID)}
+                            className="text-red-600 hover:text-red-900"
+                            title="Delete Property"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Expanded property values */}
+                    {expandedProperties.has(prop.PropertyID) && prop.DataType === 'select' && (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-0">
+                          <div className="bg-gray-50 rounded-md p-4 m-2">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="text-sm font-medium text-gray-700">
+                                Property Values
+                              </h4>
+                              <button
+                                onClick={() => handleAddValue(prop)}
+                                className="flex items-center gap-1 text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                              >
+                                <Plus className="w-3 h-3" />
+                                Add Value
+                              </button>
+                            </div>
+
+                            {prop.Values && prop.Values.length > 0 ? (
+                              <div className="space-y-2">
+                                {prop.Values.map((value) => (
+                                  <div
+                                    key={value.PropertyValueID}
+                                    className="flex items-center justify-between bg-white p-2 rounded border"
+                                  >
+                                    <span className="text-sm">{value.Value}</span>
+                                    <div className="flex gap-1">
+                                      <button
+                                        onClick={() => handleEditValue(prop, value)}
+                                        className="text-indigo-600 hover:text-indigo-900 p-1"
+                                        title="Edit Value"
+                                      >
+                                        <Edit2 className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteValue(value.PropertyValueID)}
+                                        className="text-red-600 hover:text-red-900 p-1"
+                                        title="Delete Value"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-4 text-gray-500 text-sm">
+                                No values defined. Click "Add Value" to create options for this property.
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                ))}
+              </tbody>
+            </table>
+            {properties.length === 0 && (
+              <div className="text-center py-12 text-gray-500">
+                No properties found. Create one to get started.
+              </div>
+            )}
+          </div>
+        )}
+
+        {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">
+                  {editingProperty ? 'Edit Property' : 'Add Property'}
+                </h2>
+                <button onClick={() => setShowModal(false)}>
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form onSubmit={handleSubmit}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.Name}
+                    onChange={(e) => setFormData({ ...formData, Name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={formData.Description}
+                    onChange={(e) => setFormData({ ...formData, Description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    rows={3}
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Data Type
+                  </label>
+                  <select
+                    value={formData.DataType}
+                    onChange={(e) => setFormData({ ...formData, DataType: e.target.value as 'text' | 'select' | 'number' })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="text">Text</option>
+                    <option value="select">Select</option>
+                    <option value="number">Number</option>
+                  </select>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    {editingProperty ? 'Update' : 'Create'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {showValueModal && currentProperty && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">
+                  {editingValue ? 'Edit Property Value' : 'Add Property Value'}
+                </h2>
+                <button onClick={() => setShowValueModal(false)}>
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="mb-4 p-3 bg-gray-50 rounded">
+                <p className="text-sm text-gray-600">
+                  Property: <strong>{currentProperty.Name}</strong>
+                </p>
+              </div>
+              <form onSubmit={handleValueSubmit}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Value *
+                  </label>
+                  <input
+                    type="text"
+                    value={valueFormData.Value}
+                    onChange={(e) => setValueFormData({ ...valueFormData, Value: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="Enter value (e.g., Genuine Leather)"
+                    required
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Display Order
+                  </label>
+                  <input
+                    type="number"
+                    value={valueFormData.DisplayOrder}
+                    onChange={(e) => setValueFormData({ ...valueFormData, DisplayOrder: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    min="0"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Lower numbers appear first in the list
+                  </p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowValueModal(false)}
+                    className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    {editingValue ? 'Update' : 'Add'} Value
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </AdminLayout>
+  );
+}
+

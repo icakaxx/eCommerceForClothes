@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import ImageSlider from './ImageSlider';
 import { Product } from '@/lib/data';
 import { useLanguage } from '@/context/LanguageContext';
@@ -11,6 +12,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const router = useRouter();
   const { language } = useLanguage();
   const { theme } = useTheme();
   const t = translations[language];
@@ -22,14 +24,19 @@ export default function ProductCard({ product }: ProductCardProps) {
     return '';
   };
 
+  const handleClick = () => {
+    router.push(`/products/${product.id}`);
+  };
+
   return (
     <div 
-      className="rounded-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+      className="rounded-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden cursor-pointer"
       style={{
         backgroundColor: theme.colors.cardBg,
         boxShadow: theme.effects.shadow,
         borderRadius: theme.effects.borderRadius
       }}
+      onClick={handleClick}
       onMouseEnter={(e) => {
         e.currentTarget.style.boxShadow = theme.effects.shadowHover;
       }}

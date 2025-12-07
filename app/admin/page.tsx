@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import AdminPanel from './components/AdminPanel';
+import Dashboard from './components/Dashboard';
+import AdminLayout from './components/AdminLayout';
 import { getAdminSession, isAdminAuthenticated } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
@@ -92,6 +93,10 @@ export default function AdminPage() {
     return null;
   }
 
-  return <AdminPanel />;
+  return (
+    <AdminLayout currentPath="/admin">
+      <Dashboard />
+    </AdminLayout>
+  );
 }
 
