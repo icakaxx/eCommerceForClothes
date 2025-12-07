@@ -16,14 +16,14 @@ export default function ProductView({ product }: ProductViewProps) {
 
   useEffect(() => {
     // Get initial images - primary variant image or general product images
-    const primaryVariant = product.Variants?.find((v: any) => v.IsPrimaryImage && v.ImageURL);
-    
+    const primaryVariant = product.variants?.find((v: any) => v.IsPrimaryImage && v.ImageURL);
+
     if (primaryVariant?.ImageURL) {
       // Use primary variant image
       setCurrentImages([primaryVariant.ImageURL]);
-    } else if (product.Variants?.[0]?.ImageURL) {
+    } else if (product.variants?.[0]?.ImageURL) {
       // Use first variant's image
-      setCurrentImages([product.Variants[0].ImageURL]);
+      setCurrentImages([product.variants[0].ImageURL]);
     } else if (product.images && product.images.length > 0) {
       // Fallback to general product images
       setCurrentImages(product.images);
@@ -31,7 +31,7 @@ export default function ProductView({ product }: ProductViewProps) {
       // Fallback to placeholder
       setCurrentImages(['/image.png']);
     }
-  }, [product.Variants, product.images]); // Fixed dependencies
+  }, [product.variants, product.images]); // Fixed dependencies
 
   const handleVariantImageChange = useCallback((imageUrl: string | undefined) => {
     if (imageUrl) {

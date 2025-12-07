@@ -16,6 +16,7 @@ export interface Product {
   // New fields for product type system
   productTypeID?: string;
   propertyValues?: Record<string, string>; // property name -> value mapping
+  variants?: any[]; // Product variants from database
 }
 
 export const initialProducts: Product[] = [

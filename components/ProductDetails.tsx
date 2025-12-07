@@ -18,7 +18,7 @@ interface Variant {
   Price: number;
   Quantity: number;
   IsVisible: boolean;
-  PropertyValues: Array<{
+  ProductVariantPropertyValues?: Array<{
     PropertyID: string;
     Property?: {
       PropertyID: string;
@@ -26,6 +26,8 @@ interface Variant {
     };
     Value: string;
   }>;
+  ImageURL?: string;
+  IsPrimaryImage?: boolean;
 }
 
 export default function ProductDetails({ product, onVariantChange }: ProductDetailsProps) {
@@ -42,8 +44,8 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
 
   useEffect(() => {
     // Extract variants from product
-    if (product.Variants && Array.isArray(product.Variants)) {
-      const visibleVariants = product.Variants.filter((v: any) => v.IsVisible !== false);
+    if (product.variants && Array.isArray(product.variants)) {
+      const visibleVariants = product.variants.filter((v: any) => v.IsVisible !== false);
       setVariants(visibleVariants);
 
       // Build available options map
@@ -82,7 +84,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         }
       }
     }
-  }, [product.Variants]); // Removed onVariantChange from dependencies
+  }, [product.variants]); // Removed onVariantChange from dependencies
 
   const handleOptionChange = (propertyName: string, value: string) => {
     const newOptions = { ...selectedOptions, [propertyName]: value };
