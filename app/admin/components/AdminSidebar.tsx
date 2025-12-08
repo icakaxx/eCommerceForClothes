@@ -134,3 +134,4 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
     </div>
   );
 }
+

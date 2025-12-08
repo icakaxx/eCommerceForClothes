@@ -23,3 +23,4 @@ export default function AdminLayout({ children, currentPath }: AdminLayoutProps)
     </div>
   );
 }
+
