@@ -102,3 +102,13 @@ CREATE TABLE public.property_values (
   CONSTRAINT property_values_pkey PRIMARY KEY (PropertyValueID),
   CONSTRAINT property_values_propertyid_fkey FOREIGN KEY (PropertyID) REFERENCES public.properties(PropertyID)
 );
+CREATE TABLE public.store_settings (
+  StoreSettingsID uuid NOT NULL DEFAULT gen_random_uuid(),
+  StoreName text NOT NULL DEFAULT 'ModaBox',
+  LogoUrl text,
+  ThemeId text NOT NULL DEFAULT 'default',
+  Language text NOT NULL DEFAULT 'en' CHECK ("Language" = ANY (ARRAY['en'::text, 'bg'::text])),
+  CreatedAt timestamp with time zone NOT NULL DEFAULT now(),
+  UpdatedAt timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT store_settings_pkey PRIMARY KEY (StoreSettingsID)
+);

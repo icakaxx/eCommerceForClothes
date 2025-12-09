@@ -51,7 +51,11 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
     >
       <div className="p-4 sm:p-6">
         <div className="flex items-center justify-between lg:block mb-4 lg:mb-8">
-          <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push('/admin')}
+            onAuxClick={() => window.open('/admin', '_blank')}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200"
+          >
             <Image
               src="/image.png"
               alt="ModaBox Logo"
@@ -65,7 +69,7 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
             >
               ModaBox
             </div>
-          </div>
+          </button>
           <div className="lg:hidden">
             <LanguageToggle />
           </div>
@@ -73,6 +77,7 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
         <nav className="space-y-1">
           <button
             onClick={() => router.push('/admin/products')}
+            onAuxClick={() => window.open('/admin/products', '_blank')}
             className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
               currentPath === '/admin/products' ? 'opacity-100' : 'opacity-80'
             }`}
@@ -85,6 +90,7 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
           </button>
           <button
             onClick={() => router.push('/admin/product-types')}
+            onAuxClick={() => window.open('/admin/product-types', '_blank')}
             className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
               currentPath === '/admin/product-types' ? 'opacity-100' : 'opacity-80'
             }`}
@@ -97,6 +103,7 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
           </button>
           <button
             onClick={() => router.push('/admin/properties')}
+            onAuxClick={() => window.open('/admin/properties', '_blank')}
             className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
               currentPath === '/admin/properties' ? 'opacity-100' : 'opacity-80'
             }`}
@@ -107,9 +114,23 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
           >
             Properties
           </button>
+          <button
+            onClick={() => router.push('/admin/settings')}
+            onAuxClick={() => window.open('/admin/settings', '_blank')}
+            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
+              currentPath === '/admin/settings' ? 'opacity-100' : 'opacity-80'
+            }`}
+            style={{
+              backgroundColor: currentPath === '/admin/settings' ? theme.colors.secondary : theme.colors.surface,
+              color: currentPath === '/admin/settings' ? theme.colors.primary : theme.colors.text
+            }}
+          >
+            Settings
+          </button>
         </nav>
         <button
           onClick={handleBackToStore}
+          onAuxClick={handleBackToStore}
           className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 text-sm sm:text-base rounded-lg transition-colors duration-300 touch-manipulation min-h-[44px] sm:min-h-[auto]"
           style={{
             color: theme.colors.text
@@ -134,4 +155,6 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
     </div>
   );
 }
+
+
 

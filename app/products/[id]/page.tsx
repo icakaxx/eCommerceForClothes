@@ -36,8 +36,10 @@ export default function ProductDetailPage() {
           // Ensure images array exists and has at least one image
           const productData = {
             ...data.product,
-            images: data.product.images && data.product.images.length > 0 
-              ? data.product.images 
+            // Map Variants to variants for compatibility with ProductDetails component
+            variants: data.product.Variants || [],
+            images: data.product.images && data.product.images.length > 0
+              ? data.product.images
               : ['/image.png'], // Fallback image
             brand: data.product.brand || 'Unknown',
             model: data.product.model || data.product.Name || 'Product'

@@ -9,8 +9,6 @@ import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
 import { useTheme } from '@/context/ThemeContext';
 import { useProductTypes } from '@/context/ProductTypeContext';
-import LanguageToggle from './LanguageToggle';
-import ThemeSwitcher from './ThemeSwitcher';
 
 interface HeaderProps {
   isAdmin: boolean;
@@ -25,29 +23,13 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
   const { productTypes } = useProductTypes();
   const t = translations[language];
 
-  // Create nav items with Home and dynamic product types
+  // Create nav items with only Home
   const navItems = [
-    { id: 'home', label: t.home, path: '/' },
-    ...productTypes.map(type => ({
-      id: type.ProductTypeID,
-      label: type.Name,
-      path: `/${type.Code.toLowerCase()}`,
-      code: type.Code.toLowerCase()
-    }))
+    { id: 'home', label: t.home, path: '/' }
   ];
 
   const getCurrentPage = () => {
-    if (pathname === '/') return 'home';
-
-    const pathSegment = pathname.slice(1); // Remove leading slash
-
-    // Check if pathSegment matches a product type code
-    const productType = productTypes.find(type => type.Code.toLowerCase() === pathSegment);
-    if (productType) {
-      return productType.ProductTypeID;
-    }
-
-    return pathSegment;
+    return pathname === '/' ? 'home' : '';
   };
 
   const currentPage = getCurrentPage();
@@ -114,8 +96,6 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
           </nav>
           
           <div className="flex items-center gap-2 sm:gap-4">
-            <LanguageToggle />
-            <ThemeSwitcher />
             <button
               onClick={() => {
                 if (!isAdmin) {
