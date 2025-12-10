@@ -3,7 +3,7 @@ import './globals.css'
 import Providers from './providers'
 
 export const metadata: Metadata = {
-  title: 'ModaBox - E-commerce Store',
+  title: 'Store - E-commerce Store',
   description: 'Browse our available clothes, shoes, and accessories',
 }
 

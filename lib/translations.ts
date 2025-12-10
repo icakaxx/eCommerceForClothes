@@ -1,5 +1,3 @@
-export type Language = 'en' | 'bg';
-
 export interface Translations {
   // Navigation
   home: string;
@@ -8,7 +6,7 @@ export interface Translations {
   accessories: string;
   admin: string;
   exitAdmin: string;
-  
+
   // Store Page
   ourCurrentStock: string;
   clothesInStock: string;
@@ -18,7 +16,7 @@ export interface Translations {
   allItemsInStock: string;
   all: string;
   noProductsAvailable: string;
-  
+
   // Product Card
   color: string;
   size: string;
@@ -26,7 +24,7 @@ export interface Translations {
   pairs: string;
   pcs: string;
   inclVAT: string;
-  
+
   // Admin Panel
   products: string;
   manageProducts: string;
@@ -43,7 +41,7 @@ export interface Translations {
   price: string;
   actions: string;
   noProductsFound: string;
-  
+
   // Edit Modal
   editProduct: string;
   basicInfo: string;
@@ -62,7 +60,7 @@ export interface Translations {
   sizeLabel: string;
   quantityLabel: string;
   priceLabel: string;
-  
+
   // Footer
   contact: string;
   copyright: string;
@@ -101,6 +99,8 @@ export interface Translations {
   fileTooLarge: string;
   errorUploadingLogo: string;
   addProduct: string;
+  expressAdd: string;
+  addToCart: string;
   searchByBrandModelColor: string;
   basicInformation: string;
   productAttributes: string;
@@ -115,77 +115,91 @@ export interface Translations {
   productBrand: string;
   productModel: string;
   productType: string;
-  productColor: string;
-  productSize: string;
-  productQuantity: string;
-  productPrice: string;
-  selectOptions: string;
-  noVariants: string;
-  completed: string;
-  processing: string;
-  shipped: string;
-
-  // Admin Table Headers
-  name: string;
-  sku: string;
   variant: string;
-  quantity: string;
   primary: string;
-  description: string;
-  dataType: string;
-  active: string;
-  type: string;
-  code: string;
-  manageProperties: string;
-  edit: string;
-  delete: string;
-  addNew: string;
-  addProductType: string;
-  editProductType: string;
-  save: string;
-  confirmDelete: string;
-  dataTypeText: string;
-  dataTypeSelect: string;
-  dataTypeNumber: string;
-  isActive: string;
-  propertyValues: string;
-  addProperty: string;
-  editProperty: string;
-  addPropertyValue: string;
-  editPropertyValue: string;
 
-  // Admin Tooltips
+  // Checkout
+  checkout: string;
+  orderNotes: string;
+  orderNotesPlaceholder: string;
+  firstName: string;
+  lastName: string;
+  telephone: string;
+  email: string;
+  country: string;
+  city: string;
+  deliveryType: string;
+  deliveryOffice: string;
+  deliveryAddress: string;
+  deliveryEcontomat: string;
+  orderSummary: string;
+  total: string;
+  delivery: string;
+  orderTotal: string;
+  placeOrder: string;
+  placingOrder: string;
+
+  // Tooltips
+  tooltipDashboard: string;
   tooltipProducts: string;
   tooltipProductTypes: string;
   tooltipProperties: string;
   tooltipSettings: string;
   tooltipBackToStore: string;
-  tooltipDashboard: string;
+
+  // Product Types
+  addProductType: string;
+  editProductType: string;
+
+  // Properties
+  addProperty: string;
+  editProperty: string;
+  addPropertyValue: string;
+  editPropertyValue: string;
+  description: string;
+  dataType: string;
+  propertyValues: string;
+
+  // General
+  name: string;
+  code: string;
+  sku: string;
+  quantity: string;
   goToStore: string;
+  manageProperties: string;
 }
+
+export type Language = 'en' | 'bg';
 
 export const translations: Record<Language, Translations> = {
   en: {
+    // Navigation
     home: 'Home',
     clothes: 'Clothes',
     shoes: 'Shoes',
     accessories: 'Accessories',
     admin: 'Admin',
     exitAdmin: 'Exit Admin',
+
+    // Store Page
     ourCurrentStock: 'Our Current Stock',
-    clothesInStock: 'Clothes – In Stock',
-    shoesInStock: 'Shoes – In Stock',
-    accessoriesInStock: 'Accessories – In Stock',
-    browseDescription: 'Browse our available clothes, shoes, and accessories with live quantities and prices',
+    clothesInStock: 'Clothes in Stock',
+    shoesInStock: 'Shoes in Stock',
+    accessoriesInStock: 'Accessories in Stock',
+    browseDescription: 'Browse our available products',
     allItemsInStock: 'All items listed here are currently in stock',
     all: 'All',
-    noProductsAvailable: 'No products available in this category',
+    noProductsAvailable: 'No products available',
+
+    // Product Card
     color: 'Color',
     size: 'Size',
     available: 'Available',
     pairs: 'pairs',
     pcs: 'pcs',
     inclVAT: 'incl. VAT',
+
+    // Admin Panel
     products: 'Products',
     manageProducts: 'Manage product visibility, details, and stock quantities',
     searchPlaceholder: 'Search by brand, model, or color...',
@@ -201,6 +215,8 @@ export const translations: Record<Language, Translations> = {
     price: 'Price',
     actions: 'Actions',
     noProductsFound: 'No products found',
+
+    // Edit Modal
     editProduct: 'Edit Product',
     basicInfo: 'Basic Info',
     attributes: 'Attributes',
@@ -218,8 +234,12 @@ export const translations: Record<Language, Translations> = {
     sizeLabel: 'Size',
     quantityLabel: 'Quantity',
     priceLabel: 'Price (€)',
+
+    // Footer
     contact: 'contact@storename.com · +1 234 567 890',
     copyright: '© 2025',
+
+    // Admin Panel
     dashboard: 'Dashboard',
     welcomeToAdmin: 'Welcome to your admin dashboard',
     totalSales: 'Total Sales',
@@ -253,6 +273,8 @@ export const translations: Record<Language, Translations> = {
     fileTooLarge: 'File too large. Maximum size: 5MB',
     errorUploadingLogo: 'Error uploading logo',
     addProduct: 'Add Product',
+    expressAdd: 'Express Add',
+    addToCart: 'Add to Cart',
     searchByBrandModelColor: 'Search by brand, model, or color...',
     basicInformation: 'Basic Information',
     productAttributes: 'Attributes',
@@ -267,71 +289,88 @@ export const translations: Record<Language, Translations> = {
     productBrand: 'Brand',
     productModel: 'Model',
     productType: 'Type',
-    productColor: 'Color',
-    productSize: 'Size',
-    productQuantity: 'Quantity',
-    productPrice: 'Price (€)',
-    selectOptions: 'Select Options',
-    noVariants: 'No variants',
-    completed: 'completed',
-    processing: 'processing',
-    shipped: 'shipped',
-    name: 'Name',
-    sku: 'SKU',
     variant: 'Variant',
-    quantity: 'Quantity',
     primary: 'Primary',
-    description: 'Description',
-    dataType: 'Data Type',
-    active: 'Active',
-    type: 'Type',
-    code: 'Code',
-    manageProperties: 'Manage Properties',
-    edit: 'Edit',
-    delete: 'Delete',
-    addNew: 'Add New',
+
+    // Checkout
+    checkout: 'Checkout',
+    orderNotes: 'Order Notes',
+    orderNotesPlaceholder: 'Any special instructions for your order...',
+    firstName: 'First Name',
+    lastName: 'Last Name',
+    telephone: 'Telephone',
+    email: 'Email',
+    country: 'Country',
+    city: 'City',
+    deliveryType: 'Delivery Type',
+    deliveryOffice: 'Econt Office',
+    deliveryAddress: 'Address',
+    deliveryEcontomat: 'Econtomat',
+    orderSummary: 'Order Summary',
+    total: 'Total',
+    delivery: 'Delivery',
+    orderTotal: 'Order Total',
+    placeOrder: 'Place Order',
+    placingOrder: 'Placing Order...',
+
+    // Tooltips
+    tooltipDashboard: 'Go to Dashboard',
+    tooltipProducts: 'Manage Products',
+    tooltipProductTypes: 'Manage Product Types',
+    tooltipProperties: 'Manage Properties',
+    tooltipSettings: 'Store Settings',
+    tooltipBackToStore: 'Return to Store',
+
+    // Product Types
     addProductType: 'Add Product Type',
     editProductType: 'Edit Product Type',
-    save: 'Save',
-    confirmDelete: 'Are you sure you want to delete this?',
-    dataTypeText: 'Text',
-    dataTypeSelect: 'Select',
-    dataTypeNumber: 'Number',
-    isActive: 'Active',
-    propertyValues: 'Values',
+
+    // Properties
     addProperty: 'Add Property',
     editProperty: 'Edit Property',
     addPropertyValue: 'Add Property Value',
     editPropertyValue: 'Edit Property Value',
-    tooltipProducts: 'Manage products and their variants',
-    tooltipProductTypes: 'Manage product types',
-    tooltipProperties: 'Manage product properties',
-    tooltipSettings: 'Store settings',
-    tooltipBackToStore: 'Back to store',
-    tooltipDashboard: 'Dashboard',
+    description: 'Description',
+    dataType: 'Data Type',
+    propertyValues: 'Property Values',
+
+    // General
+    name: 'Name',
+    code: 'Code',
+    sku: 'SKU',
+    quantity: 'Quantity',
     goToStore: 'Go to Store',
+    manageProperties: 'Manage Properties'
   },
+
   bg: {
+    // Navigation
     home: 'Начало',
     clothes: 'Дрехи',
     shoes: 'Обувки',
     accessories: 'Аксесоари',
     admin: 'Админ',
-    exitAdmin: 'Изход от админ',
-    ourCurrentStock: 'Нашето текущо наличност',
-    clothesInStock: 'Дрехи – В наличност',
-    shoesInStock: 'Обувки – В наличност',
-    accessoriesInStock: 'Аксесоари – В наличност',
-    browseDescription: 'Разгледайте нашите налични дрехи, обувки и аксесоари с актуални количества и цени',
-    allItemsInStock: 'Всички артикули, изброени тук, са в момента налични',
+    exitAdmin: 'Изход от Админ',
+
+    // Store Page
+    ourCurrentStock: 'Нашата наличност',
+    clothesInStock: 'Дрехи в наличност',
+    shoesInStock: 'Обувки в наличност',
+    accessoriesInStock: 'Аксесоари в наличност',
+    browseDescription: 'Разгледайте наличните ни продукти',
+    allItemsInStock: 'Всички артикули изброени тук са в наличност',
     all: 'Всички',
-    noProductsAvailable: 'Няма налични продукти в тази категория',
+    noProductsAvailable: 'Няма налични продукти',
+
+    // Product Card
     color: 'Цвят',
     size: 'Размер',
-    available: 'Налично',
+    available: 'Налични',
     pairs: 'чифта',
-    pcs: 'бр',
-    inclVAT: 'вкл. ДДС',
+    pcs: 'бр.',
+    inclVAT: 'с ДДС',
+
+    // Admin Panel
     products: 'Продукти',
     manageProducts: 'Управление на видимостта на продуктите, детайлите и количествата на склад',
     searchPlaceholder: 'Търсене по марка, модел или цвят...',
@@ -343,10 +382,12 @@ export const translations: Record<Language, Translations> = {
     category: 'Категория',
     brand: 'Марка',
     model: 'Модел',
-    qty: 'Кол',
+    qty: 'Кол.',
     price: 'Цена',
     actions: 'Действия',
     noProductsFound: 'Няма намерени продукти',
+
+    // Edit Modal
     editProduct: 'Редактиране на продукт',
     basicInfo: 'Основна информация',
     attributes: 'Атрибути',
@@ -355,7 +396,7 @@ export const translations: Record<Language, Translations> = {
     visibleOnWebsite: 'Видим на уебсайта',
     saveChanges: 'Запази промените',
     cancel: 'Отказ',
-    typePlaceholder: 'Тениска, Риза, Блуза и т.н.',
+    typePlaceholder: 'Тениска, Ризa, Блуза и т.н.',
     categoryLabel: 'Категория',
     brandLabel: 'Марка',
     modelLabel: 'Модел',
@@ -364,16 +405,20 @@ export const translations: Record<Language, Translations> = {
     sizeLabel: 'Размер',
     quantityLabel: 'Количество',
     priceLabel: 'Цена (€)',
-    contact: 'contact@storename.com · +1 234 567 890',
+
+    // Footer
+    contact: 'contact@storename.com · +359 88 123 4567',
     copyright: '© 2025',
-    dashboard: 'Табло за управление',
-    welcomeToAdmin: 'Добре дошли в административния панел',
+
+    // Admin Panel
+    dashboard: 'Табло',
+    welcomeToAdmin: 'Добре дошли в администраторското табло',
     totalSales: 'Общи продажби',
-    totalOrders: 'Общо поръчки',
+    totalOrders: 'Общи поръчки',
     customers: 'Клиенти',
     fromLastMonth: 'от миналия месец',
-    weeklySales: 'Продажби за седмицата',
-    salesByCategory: 'Продажби по категории',
+    weeklySales: 'Седмични продажби',
+    salesByCategory: 'Продажби по категория',
     recentOrders: 'Последни поръчки',
     topProducts: 'Топ продукти',
     sales: 'продажби',
@@ -382,7 +427,7 @@ export const translations: Record<Language, Translations> = {
     settings: 'Настройки',
     backToStore: 'Обратно към магазина',
     storeSettings: 'Настройки на магазина',
-    manageStoreSettings: 'Управлявайте общите настройки на вашия магазин',
+    manageStoreSettings: 'Управление на общите настройки на магазина',
     storeInformation: 'Информация за магазина',
     storeName: 'Име на магазина',
     logo: 'Лого',
@@ -399,6 +444,8 @@ export const translations: Record<Language, Translations> = {
     fileTooLarge: 'Файлът е твърде голям. Максимален размер: 5MB',
     errorUploadingLogo: 'Грешка при качване на лого',
     addProduct: 'Добави продукт',
+    expressAdd: 'Бързо добавяне',
+    addToCart: 'Добави в количката',
     searchByBrandModelColor: 'Търсене по марка, модел или цвят...',
     basicInformation: 'Основна информация',
     productAttributes: 'Атрибути',
@@ -413,49 +460,57 @@ export const translations: Record<Language, Translations> = {
     productBrand: 'Марка',
     productModel: 'Модел',
     productType: 'Тип',
-    productColor: 'Цвят',
-    productSize: 'Размер',
-    productQuantity: 'Количество',
-    productPrice: 'Цена (€)',
-    selectOptions: 'Избери опции',
-    noVariants: 'Няма варианти',
-    completed: 'завършен',
-    processing: 'обработва се',
-    shipped: 'изпратен',
-    name: 'Име',
-    sku: 'SKU',
     variant: 'Вариант',
-    quantity: 'Количество',
     primary: 'Основен',
+
+    // Checkout
+    checkout: 'Поръчка',
+    orderNotes: 'Бележки към поръчката',
+    orderNotesPlaceholder: 'Специални инструкции за поръчката...',
+    firstName: 'Име',
+    lastName: 'Фамилия',
+    telephone: 'Телефон',
+    email: 'Имейл',
+    country: 'Държава',
+    city: 'Град',
+    deliveryType: 'Тип доставка',
+    deliveryOffice: 'Офис на Еконт',
+    deliveryAddress: 'Адрес',
+    deliveryEcontomat: 'Еконтмат',
+    orderSummary: 'Обобщение на поръчката',
+    total: 'Общо',
+    delivery: 'Доставка',
+    orderTotal: 'Крайна сума',
+    placeOrder: 'Направи поръчка',
+    placingOrder: 'Изпълнение на поръчка...',
+
+    // Tooltips
+    tooltipDashboard: 'Отиди в Таблото',
+    tooltipProducts: 'Управление на продукти',
+    tooltipProductTypes: 'Управление на типове продукти',
+    tooltipProperties: 'Управление на свойства',
+    tooltipSettings: 'Настройки на магазина',
+    tooltipBackToStore: 'Връщане в магазина',
+
+    // Product Types
+    addProductType: 'Добави тип продукт',
+    editProductType: 'Редактирай тип продукт',
+
+    // Properties
+    addProperty: 'Добави свойство',
+    editProperty: 'Редактирай свойство',
+    addPropertyValue: 'Добави стойност на свойство',
+    editPropertyValue: 'Редактирай стойност на свойство',
     description: 'Описание',
     dataType: 'Тип данни',
-    active: 'Активен',
-    type: 'Тип',
-    code: 'Код',
-    manageProperties: 'Управление на свойства',
-    edit: 'Редактиране',
-    delete: 'Изтриване',
-    addNew: 'Добави нов',
-    addProductType: 'Добави тип продукт',
-    editProductType: 'Редактиране на тип продукт',
-    save: 'Запази',
-    confirmDelete: 'Сигурни ли сте, че искате да изтриете това?',
-    dataTypeText: 'Текст',
-    dataTypeSelect: 'Избор',
-    dataTypeNumber: 'Число',
-    isActive: 'Активен',
-    propertyValues: 'Стойности',
-    addProperty: 'Добави свойство',
-    editProperty: 'Редактиране на свойство',
-    addPropertyValue: 'Добави стойност',
-    editPropertyValue: 'Редактиране на стойност',
-    tooltipProducts: 'Управление на продуктите и техните варианти',
-    tooltipProductTypes: 'Управление на типовете продукти',
-    tooltipProperties: 'Управление на свойствата на продуктите',
-    tooltipSettings: 'Настройки на магазина',
-    tooltipBackToStore: 'Връщане към магазина',
-    tooltipDashboard: 'Табло за управление',
-    goToStore: 'Към магазина',
-  },
-};
+    propertyValues: 'Стойности на свойствата',
 
+    // General
+    name: 'Име',
+    code: 'Код',
+    sku: 'SKU',
+    quantity: 'Количество',
+    goToStore: 'Към магазина',
+    manageProperties: 'Управление на свойства'
+  }
+};

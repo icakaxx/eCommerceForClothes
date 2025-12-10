@@ -23,9 +23,18 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
   const { productTypes } = useProductTypes();
   const t = translations[language];
 
+  // Filter categories to only show those with available products
+  const availableCategories = productTypes.filter(type => {
+    return products.some(p =>
+      p.visible &&
+      p.quantity > 0 &&
+      p.productTypeID === type.ProductTypeID
+    );
+  });
+
   const categories = [
     { id: 'all', label: t.all },
-    ...productTypes.map(type => ({
+    ...availableCategories.map(type => ({
       id: type.ProductTypeID,
       label: type.Name,
       code: type.Code.toLowerCase()
@@ -35,7 +44,7 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
   const activeCategoryFilter = currentPage === 'home' ? selectedCategory : currentPage;
 
   const filteredProducts = products.filter(p => {
-    if (!p.visible) return false;
+    if (!p.visible || p.quantity <= 0) return false;
 
     // Category/Product Type filtering
     if (activeCategoryFilter === 'all') {

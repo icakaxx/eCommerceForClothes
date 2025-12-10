@@ -9,6 +9,9 @@ import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
 import { useTheme } from '@/context/ThemeContext';
 import { useProductTypes } from '@/context/ProductTypeContext';
+import { useStoreSettings } from '@/context/StoreSettingsContext';
+import { useCart } from '@/context/CartContext';
+import { ShoppingCart } from 'lucide-react';
 
 interface HeaderProps {
   isAdmin: boolean;
@@ -35,6 +38,8 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
   const currentPage = getCurrentPage();
 
   const { theme } = useTheme();
+  const { settings } = useStoreSettings();
+  const { totalItems, openCart } = useCart();
 
   return (
     <>
@@ -47,24 +52,35 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
       >
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Link 
+          <Link
             href="/"
             className="flex items-center gap-2 sm:gap-3 cursor-pointer"
             onClick={() => setIsAdmin(false)}
           >
-            <Image
-              src="/image.png"
-              alt="ModaBox Logo"
-              width={120}
-              height={40}
-              className="h-8 sm:h-10 w-auto object-contain"
-              priority
-            />
-            <span 
+            {settings?.logourl ? (
+              <Image
+                src={settings.logourl}
+                alt={`${settings.storename} Logo`}
+                width={120}
+                height={40}
+                className="h-8 sm:h-10 w-auto object-contain"
+                priority
+              />
+            ) : (
+              <Image
+                src="/image.png"
+                alt={`${settings?.storename || 'Store'} Logo`}
+                width={120}
+                height={40}
+                className="h-8 sm:h-10 w-auto object-contain"
+                priority
+              />
+            )}
+            <span
               className="text-lg sm:text-xl font-semibold transition-colors duration-300"
               style={{ color: theme.colors.text }}
             >
-              ModaBox
+              {settings?.storename || 'Store'}
             </span>
           </Link>
           
@@ -97,6 +113,24 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
           </nav>
           
           <div className="flex items-center gap-2 sm:gap-4">
+            {!isAdmin && (
+              <button
+                onClick={openCart}
+                className="relative p-2 transition-colors duration-300"
+                style={{ color: theme.colors.textSecondary }}
+                onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}
+                onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textSecondary}
+                aria-label="Shopping Cart"
+              >
+                <ShoppingCart size={20} />
+                {totalItems > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {totalItems > 99 ? '99+' : totalItems}
+                  </span>
+                )}
+              </button>
+            )}
+
             <button
               onClick={() => {
                 if (!isAdmin) {
@@ -108,7 +142,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                 }
               }}
               className="text-xs sm:text-sm whitespace-nowrap transition-colors duration-300"
-              style={{ 
+              style={{
                 color: theme.colors.textSecondary
               }}
               onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}

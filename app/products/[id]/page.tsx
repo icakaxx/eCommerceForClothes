@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProductView from '@/components/ProductView';
+import CartDrawer from '@/components/CartDrawer';
 import { Product } from '@/lib/data';
 
 export default function ProductDetailPage() {
@@ -92,6 +93,7 @@ export default function ProductDetailPage() {
         <ProductView product={product} />
       </div>
       <Footer />
+      <CartDrawer />
     </div>
   );
 }

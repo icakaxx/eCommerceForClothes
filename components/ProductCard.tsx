@@ -1,11 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ImageSlider from './ImageSlider';
+import AddToCartModal from './AddToCartModal';
 import { Product } from '@/lib/data';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { translations } from '@/lib/translations';
+import { ShoppingCart } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -16,6 +19,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const { language } = useLanguage();
   const { theme } = useTheme();
   const t = translations[language];
+  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
 
   const getCategoryLabel = () => {
     if (product.category === 'clothes') return product.type || t.clothes;
@@ -90,14 +94,35 @@ export default function ProductCard({ product }: ProductCardProps) {
           >
             €{product.price.toFixed(2)}
           </div>
-          <div 
+          <div
             className="text-xs mt-0.5 transition-colors duration-300"
             style={{ color: theme.colors.textSecondary }}
           >
             {t.inclVAT}
           </div>
         </div>
+
+        {/* Express Add Button */}
+        {product.visible && product.quantity > 0 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowAddToCartModal(true);
+            }}
+            className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center justify-center gap-2"
+          >
+            <ShoppingCart size={16} />
+            {t.expressAdd}
+          </button>
+        )}
       </div>
+
+      {/* Add to Cart Modal */}
+      <AddToCartModal
+        isOpen={showAddToCartModal}
+        onClose={() => setShowAddToCartModal(false)}
+        product={product}
+      />
     </div>
   );
 }

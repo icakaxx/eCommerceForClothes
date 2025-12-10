@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { Product } from '@/lib/data';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useCart } from '@/context/CartContext';
 import { translations } from '@/lib/translations';
 import { useRouter } from 'next/navigation';
+import { ShoppingCart } from 'lucide-react';
 
 interface ProductDetailsProps {
   product: Product;
@@ -33,6 +35,7 @@ interface Variant {
 export default function ProductDetails({ product, onVariantChange }: ProductDetailsProps) {
   const { theme } = useTheme();
   const { language } = useLanguage();
+  const { addItem, openCart } = useCart();
   const router = useRouter();
   const t = translations[language];
 
@@ -129,6 +132,29 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
 
   const handleBackToStore = () => {
     router.push(`/${product.category}`);
+  };
+
+  const handleAddToCart = () => {
+    if (currentQuantity <= 0) return;
+
+    // Add item to cart
+    addItem({
+      id: selectedVariant?.ProductVariantID || product.id,
+      name: `${product.brand} ${product.model}`,
+      brand: product.brand,
+      model: product.model,
+      type: product.type,
+      color: product.color,
+      size: selectedVariant ? selectedOptions['Size'] || selectedOptions['size'] || product.size : product.size,
+      price: currentPrice,
+      quantity: 1, // Default to 1, user can adjust in cart
+      imageUrl: selectedVariant?.ImageURL || product.images[0] || '/image.png',
+      category: product.category,
+      propertyValues: product.propertyValues,
+    });
+
+    // Open cart drawer
+    openCart();
   };
 
   return (
@@ -364,6 +390,19 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
           </span>
         </p>
       </div>
+
+      {/* Add to Cart Button */}
+      {product.visible && currentQuantity > 0 && (
+        <div className="mb-6">
+          <button
+            onClick={handleAddToCart}
+            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center justify-center gap-2 font-medium"
+          >
+            <ShoppingCart size={20} />
+            {t.addToCart}
+          </button>
+        </div>
+      )}
 
       {/* Quick Info */}
       <div 

@@ -2,11 +2,13 @@
 
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useStoreSettings } from '@/context/StoreSettingsContext';
 import { translations } from '@/lib/translations';
 
 export default function Footer() {
   const { language } = useLanguage();
   const { theme } = useTheme();
+  const { settings } = useStoreSettings();
   const t = translations[language];
 
   return (
@@ -22,11 +24,11 @@ export default function Footer() {
           className="text-center text-xs sm:text-sm transition-colors duration-300"
           style={{ color: theme.colors.textSecondary }}
         >
-          <div 
+          <div
             className="font-medium mb-1 transition-colors duration-300"
             style={{ color: theme.colors.text }}
           >
-            ModaBox
+            {settings?.storename || 'Store'}
           </div>
           <div className="break-words">{t.copyright} · {t.contact}</div>
         </div>

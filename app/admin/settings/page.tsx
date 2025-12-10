@@ -12,15 +12,16 @@ import AdminLayout from '../components/AdminLayout';
 import { supabase } from '@/lib/supabase';
 import { uploadFile, getStorageUrl } from '@/lib/supabaseStorage';
 import { getAdminSession } from '@/lib/auth';
+import { useStoreSettings } from '@/context/StoreSettingsContext';
 
 interface StoreSettings {
-  StoreSettingsID: string;
-  StoreName: string;
-  LogoUrl: string | null;
-  ThemeId: string;
-  Language: 'en' | 'bg';
-  CreatedAt: string;
-  UpdatedAt: string;
+  storesettingsid: string;
+  storename: string;
+  logourl: string | null;
+  themeid: string;
+  language: 'en' | 'bg';
+  createdat: string;
+  updatedat: string;
 }
 
 export default function AdminSettingsPage() {
@@ -29,6 +30,7 @@ export default function AdminSettingsPage() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const { language, setLanguage } = useLanguage();
   const { theme, setTheme } = useTheme();
+  const { refreshSettings } = useStoreSettings();
   const t = translations[language || 'en'];
 
   const [settings, setSettings] = useState<StoreSettings | null>(null);
@@ -108,15 +110,21 @@ export default function AdminSettingsPage() {
 
         if (data) {
           setSettings(data);
-          // Note: We don't apply language/theme from settings to avoid overriding user preferences
-          // These settings are for store defaults, not user preferences
+          // Apply language and theme from settings for admin panel context
+          // Note: User preferences in localStorage take priority over store settings
+          if (!localStorage.getItem('theme')) {
+            setTheme(data.themeid);
+          }
+          if (!localStorage.getItem('language')) {
+            setLanguage(data.language);
+          }
         } else {
           // Create default settings if none exist
-          const defaultSettings: Omit<StoreSettings, 'StoreSettingsID' | 'CreatedAt' | 'UpdatedAt'> = {
-            StoreName: 'ModaBox',
-            LogoUrl: null,
-            ThemeId: 'default',
-            Language: 'en'
+          const defaultSettings: Omit<StoreSettings, 'storesettingsid' | 'createdat' | 'updatedat'> = {
+            storename: 'ModaBox',
+            logourl: null,
+            themeid: 'default',
+            language: 'en'
           };
 
           const { data: newSettings, error: insertError } = await supabase
@@ -142,6 +150,22 @@ export default function AdminSettingsPage() {
     loadSettings();
   }, [setLanguage, setTheme, isAuthenticated]);
 
+  // Sync local settings with global theme changes
+  useEffect(() => {
+    if (settings && theme.id !== settings.themeid) {
+      setSettings(prev => prev ? { ...prev, themeid: theme.id } : null);
+      setHasChanges(true);
+    }
+  }, [theme.id, settings]);
+
+  // Sync local settings with global language changes
+  useEffect(() => {
+    if (settings && language !== settings.language) {
+      setSettings(prev => prev ? { ...prev, language: language } : null);
+      setHasChanges(true);
+    }
+  }, [language, settings]);
+
   const handleSave = async () => {
     if (!settings) return;
 
@@ -150,13 +174,13 @@ export default function AdminSettingsPage() {
       const { error } = await supabase
         .from('store_settings')
         .update({
-          StoreName: settings.StoreName,
-          LogoUrl: settings.LogoUrl,
-          ThemeId: settings.ThemeId,
-          Language: settings.Language,
-          UpdatedAt: new Date().toISOString()
+          storename: settings.storename,
+          logourl: settings.logourl,
+          themeid: settings.themeid,
+          language: settings.language,
+          updatedat: new Date().toISOString()
         })
-        .eq('StoreSettingsID', settings.StoreSettingsID);
+        .eq('storesettingsid', settings.storesettingsid);
 
       if (error) {
         console.error('Error saving settings:', error);
@@ -165,6 +189,8 @@ export default function AdminSettingsPage() {
       }
 
       setHasChanges(false);
+      // Refresh global store settings to update the application
+      await refreshSettings();
       alert(t.settingsSaved);
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -196,7 +222,7 @@ export default function AdminSettingsPage() {
       const result = await uploadFile('logos', fileName, file);
 
       if (result.success && result.url) {
-        setSettings(prev => prev ? { ...prev, LogoUrl: result.url } : null);
+        setSettings(prev => prev ? { ...prev, logourl: result.url } : null);
         setHasChanges(true);
       } else {
         alert(t.errorUploadingLogo);
@@ -214,6 +240,14 @@ export default function AdminSettingsPage() {
     if (!settings) return;
 
     setSettings(prev => prev ? { ...prev, [field]: value } : null);
+
+    // Update global contexts immediately for theme and language changes
+    if (field === 'themeid') {
+      setTheme(value);
+    } else if (field === 'language') {
+      setLanguage(value);
+    }
+
     setHasChanges(true);
   };
 
@@ -299,8 +333,8 @@ export default function AdminSettingsPage() {
                 </label>
                 <input
                   type="text"
-                  value={settings.StoreName}
-                  onChange={(e) => handleSettingChange('StoreName', e.target.value)}
+                  value={settings.storename}
+                  onChange={(e) => handleSettingChange('storename', e.target.value)}
                   className="w-full px-3 py-2 rounded-md border transition-colors duration-300"
                   style={{
                     backgroundColor: theme.colors.background,
@@ -324,12 +358,12 @@ export default function AdminSettingsPage() {
                     className="w-20 h-20 rounded-lg border-2 border-dashed flex items-center justify-center"
                     style={{
                       borderColor: theme.colors.border,
-                      backgroundColor: settings.LogoUrl ? 'transparent' : theme.colors.secondary
+                      backgroundColor: settings.logourl ? 'transparent' : theme.colors.secondary
                     }}
                   >
-                    {settings.LogoUrl ? (
+                    {settings.logourl ? (
                       <img
-                        src={settings.LogoUrl}
+                        src={settings.logourl}
                         alt="Store Logo"
                         className="w-full h-full object-contain rounded-lg"
                       />
@@ -409,26 +443,25 @@ export default function AdminSettingsPage() {
           </div>
 
           {/* Save Button */}
-          {hasChanges && (
-            <div className="flex justify-end">
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-300 disabled:opacity-50"
-                style={{
-                  backgroundColor: theme.colors.primary,
-                  color: '#ffffff',
-                  boxShadow: theme.effects.shadow
-                }}
-              >
-                <Save size={20} />
-                {isSaving
-                  ? t.saving
-                  : t.saveSettings
-                }
-              </button>
-            </div>
-          )}
+          <div className="flex justify-end">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-300 disabled:opacity-50"
+              style={{
+                backgroundColor: hasChanges ? theme.colors.primary : theme.colors.secondary,
+                color: '#ffffff',
+                boxShadow: theme.effects.shadow,
+                opacity: isSaving ? 0.5 : 1
+              }}
+            >
+              <Save size={20} />
+              {isSaving
+                ? t.saving
+                : t.saveSettings
+              }
+            </button>
+          </div>
         </div>
       </div>
     </AdminLayout>

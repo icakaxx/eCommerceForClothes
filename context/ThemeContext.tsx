@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Theme, themes, defaultTheme } from '@/lib/themes';
+import { useStoreSettings } from './StoreSettingsContext';
 
 interface ThemeContextType {
   theme: Theme;
@@ -13,8 +14,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(defaultTheme);
+  const { settings } = useStoreSettings();
 
   useEffect(() => {
+    // First check if user has a saved theme preference
     const savedThemeId = localStorage.getItem('theme');
     if (savedThemeId) {
       const savedTheme = themes.find(t => t.id === savedThemeId);
@@ -24,8 +27,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         return;
       }
     }
+
+    // If no user preference, use store settings theme
+    if (settings?.themeid) {
+      const storeTheme = themes.find(t => t.id === settings.themeid);
+      if (storeTheme) {
+        setThemeState(storeTheme);
+        applyTheme(storeTheme);
+        return;
+      }
+    }
+
+    // Fallback to default theme
     applyTheme(defaultTheme);
-  }, []);
+  }, [settings?.themeid]);
 
   const applyTheme = (selectedTheme: Theme) => {
     const root = document.documentElement;

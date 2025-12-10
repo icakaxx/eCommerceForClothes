@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useStoreSettings } from '@/context/StoreSettingsContext';
 import { translations } from '@/lib/translations';
 import LanguageToggle from '@/components/LanguageToggle';
 import { signOutAdmin } from '@/lib/auth';
@@ -18,6 +19,7 @@ export default function AdminSidebar({ currentPath, onClose }: AdminSidebarProps
   const router = useRouter();
   const { theme } = useTheme();
   const { language } = useLanguage();
+  const { settings } = useStoreSettings();
   const t = translations[language || 'en'];
 
   const handleBackToStore = async () => {
@@ -78,18 +80,28 @@ export default function AdminSidebar({ currentPath, onClose }: AdminSidebarProps
             title={t.tooltipDashboard}
             className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200"
           >
-            <Image
-              src="/image.png"
-              alt="ModaBox Logo"
-              width={32}
-              height={32}
-              className="w-8 h-8 object-contain"
-            />
+            {settings?.logourl ? (
+              <Image
+                src={settings.logourl}
+                alt={`${settings.storename} Logo`}
+                width={32}
+                height={32}
+                className="w-8 h-8 object-contain"
+              />
+            ) : (
+              <Image
+                src="/image.png"
+                alt={`${settings?.storename || 'Store'} Logo`}
+                width={32}
+                height={32}
+                className="w-8 h-8 object-contain"
+              />
+            )}
             <div
               className="text-lg sm:text-xl font-semibold transition-colors duration-300"
               style={{ color: theme.colors.text }}
             >
-              ModaBox
+              {settings?.storename || 'Store'}
             </div>
           </button>
           <div className="lg:hidden">
