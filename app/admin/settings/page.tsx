@@ -29,7 +29,7 @@ export default function AdminSettingsPage() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const { language, setLanguage } = useLanguage();
   const { theme, setTheme } = useTheme();
-  const t = translations[language];
+  const t = translations[language || 'en'];
 
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -108,9 +108,8 @@ export default function AdminSettingsPage() {
 
         if (data) {
           setSettings(data);
-          // Apply loaded settings to context
-          setLanguage(data.Language);
-          setTheme(data.ThemeId);
+          // Note: We don't apply language/theme from settings to avoid overriding user preferences
+          // These settings are for store defaults, not user preferences
         } else {
           // Create default settings if none exist
           const defaultSettings: Omit<StoreSettings, 'StoreSettingsID' | 'CreatedAt' | 'UpdatedAt'> = {
@@ -161,12 +160,12 @@ export default function AdminSettingsPage() {
 
       if (error) {
         console.error('Error saving settings:', error);
-        alert(language === 'bg' ? 'Грешка при запазване на настройките' : 'Error saving settings');
+        alert(t.errorSavingSettings);
         return;
       }
 
       setHasChanges(false);
-      alert(language === 'bg' ? 'Настройките са запазени успешно' : 'Settings saved successfully');
+      alert(t.settingsSaved);
     } catch (error) {
       console.error('Error saving settings:', error);
       alert(language === 'bg' ? 'Грешка при запазване на настройките' : 'Error saving settings');
@@ -181,30 +180,30 @@ export default function AdminSettingsPage() {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert(language === 'bg' ? 'Моля изберете изображение' : 'Please select an image file');
+      alert(t.pleaseSelectImage);
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert(language === 'bg' ? 'Файлът е твърде голям. Максимален размер: 5MB' : 'File too large. Maximum size: 5MB');
+      alert(t.fileTooLarge);
       return;
     }
 
     try {
       // Upload to Supabase Storage
       const fileName = `logo-${Date.now()}.${file.name.split('.').pop()}`;
-      const result = await uploadFile(file, 'logos', fileName);
+      const result = await uploadFile('logos', fileName, file);
 
       if (result.success && result.url) {
         setSettings(prev => prev ? { ...prev, LogoUrl: result.url } : null);
         setHasChanges(true);
       } else {
-        alert(language === 'bg' ? 'Грешка при качване на лого' : 'Error uploading logo');
+        alert(t.errorUploadingLogo);
       }
     } catch (error) {
       console.error('Logo upload error:', error);
-      alert(language === 'bg' ? 'Грешка при качване на лого' : 'Error uploading logo');
+      alert(t.errorUploadingLogo);
     }
 
     // Clear input
@@ -262,14 +261,14 @@ export default function AdminSettingsPage() {
               className="text-3xl font-bold"
               style={{ color: theme.colors.text }}
             >
-              {language === 'bg' ? 'Настройки на магазина' : 'Store Settings'}
+              {t.storeSettings}
             </h1>
           </div>
           <p
             className="text-base"
             style={{ color: theme.colors.textSecondary }}
           >
-            {language === 'bg' ? 'Управлявайте общите настройки на вашия магазин' : 'Manage your store general settings'}
+            {t.manageStoreSettings}
           </p>
         </div>
 
@@ -286,7 +285,7 @@ export default function AdminSettingsPage() {
               className="text-xl font-semibold mb-6"
               style={{ color: theme.colors.text }}
             >
-              {language === 'bg' ? 'Информация за магазина' : 'Store Information'}
+              {t.storeInformation}
             </h2>
 
             <div className="space-y-6">
@@ -296,7 +295,7 @@ export default function AdminSettingsPage() {
                   className="block text-sm font-medium mb-2"
                   style={{ color: theme.colors.text }}
                 >
-                  {language === 'bg' ? 'Име на магазина' : 'Store Name'}
+                  {t.storeName}
                 </label>
                 <input
                   type="text"
@@ -318,7 +317,7 @@ export default function AdminSettingsPage() {
                   className="block text-sm font-medium mb-2"
                   style={{ color: theme.colors.text }}
                 >
-                  {language === 'bg' ? 'Лого' : 'Logo'}
+                  {t.logo}
                 </label>
                 <div className="flex items-center gap-4">
                   <div
@@ -355,13 +354,13 @@ export default function AdminSettingsPage() {
                       }}
                     >
                       <Upload size={16} />
-                      {language === 'bg' ? 'Качи лого' : 'Upload Logo'}
+                      {t.uploadLogo}
                     </label>
                     <p
                       className="text-sm mt-1"
                       style={{ color: theme.colors.textSecondary }}
                     >
-                      {language === 'bg' ? 'PNG, JPG до 5MB' : 'PNG, JPG up to 5MB'}
+                      {t.logoRequirements}
                     </p>
                   </div>
                 </div>
@@ -381,7 +380,7 @@ export default function AdminSettingsPage() {
               className="text-xl font-semibold mb-6"
               style={{ color: theme.colors.text }}
             >
-              {language === 'bg' ? 'Външен вид' : 'Appearance'}
+              {t.appearance}
             </h2>
 
             <div className="space-y-6">
@@ -391,7 +390,7 @@ export default function AdminSettingsPage() {
                   className="block text-sm font-medium mb-3"
                   style={{ color: theme.colors.text }}
                 >
-                  {language === 'bg' ? 'Цветова палитра' : 'Color Palette'}
+                  {t.colorPalette}
                 </label>
                 <ThemeSwitcher />
               </div>
@@ -402,7 +401,7 @@ export default function AdminSettingsPage() {
                   className="block text-sm font-medium mb-3"
                   style={{ color: theme.colors.text }}
                 >
-                  {language === 'bg' ? 'Език' : 'Language'}
+                  {t.language}
                 </label>
                 <LanguageToggle />
               </div>
@@ -424,8 +423,8 @@ export default function AdminSettingsPage() {
               >
                 <Save size={20} />
                 {isSaving
-                  ? (language === 'bg' ? 'Запазване...' : 'Saving...')
-                  : (language === 'bg' ? 'Запази настройки' : 'Save Settings')
+                  ? t.saving
+                  : t.saveSettings
                 }
               </button>
             </div>

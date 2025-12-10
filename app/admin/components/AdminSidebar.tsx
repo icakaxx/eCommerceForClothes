@@ -1,19 +1,24 @@
 'use client';
 
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Package, Tags, Settings, Cog, X } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/lib/translations';
 import LanguageToggle from '@/components/LanguageToggle';
 import { signOutAdmin } from '@/lib/auth';
 
 interface AdminSidebarProps {
   currentPath: string;
+  onClose?: () => void;
 }
 
-export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
+export default function AdminSidebar({ currentPath, onClose }: AdminSidebarProps) {
   const router = useRouter();
   const { theme } = useTheme();
+  const { language } = useLanguage();
+  const t = translations[language || 'en'];
 
   const handleBackToStore = async () => {
     try {
@@ -43,17 +48,34 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
 
   return (
     <div
-      className="w-full lg:w-64 border-b lg:border-b-0 lg:border-r flex-shrink-0 transition-colors duration-300"
+      className="w-64 h-full border-r flex-shrink-0 transition-colors duration-300"
       style={{
         backgroundColor: theme.colors.surface,
         borderColor: theme.colors.border
       }}
     >
-      <div className="p-4 sm:p-6">
+      <div className="flex flex-col h-full">
+        {/* Mobile close button */}
+        <div className="flex justify-end p-4 lg:hidden">
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg transition-colors duration-300 hover:opacity-70"
+            style={{ color: theme.colors.textSecondary }}
+            aria-label="Close menu"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex-1 p-4 sm:p-6 pt-0 lg:pt-6">
         <div className="flex items-center justify-between lg:block mb-4 lg:mb-8">
           <button
-            onClick={() => router.push('/admin')}
+            onClick={() => {
+              router.push('/admin');
+              onClose?.();
+            }}
             onAuxClick={() => window.open('/admin', '_blank')}
+            title={t.tooltipDashboard}
             className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200"
           >
             <Image
@@ -76,8 +98,12 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
         </div>
         <nav className="space-y-1">
           <button
-            onClick={() => router.push('/admin/products')}
+            onClick={() => {
+              router.push('/admin/products');
+              onClose?.();
+            }}
             onAuxClick={() => window.open('/admin/products', '_blank')}
+            title={t.tooltipProducts}
             className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
               currentPath === '/admin/products' ? 'opacity-100' : 'opacity-80'
             }`}
@@ -86,11 +112,18 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
               color: currentPath === '/admin/products' ? theme.colors.primary : theme.colors.text
             }}
           >
-            Products
+            <div className="flex items-center gap-3">
+              <Package size={18} />
+              <span>{t.products}</span>
+            </div>
           </button>
           <button
-            onClick={() => router.push('/admin/product-types')}
+            onClick={() => {
+              router.push('/admin/product-types');
+              onClose?.();
+            }}
             onAuxClick={() => window.open('/admin/product-types', '_blank')}
+            title={t.tooltipProductTypes}
             className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
               currentPath === '/admin/product-types' ? 'opacity-100' : 'opacity-80'
             }`}
@@ -99,11 +132,18 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
               color: currentPath === '/admin/product-types' ? theme.colors.primary : theme.colors.text
             }}
           >
-            Product Types
+            <div className="flex items-center gap-3">
+              <Tags size={18} />
+              <span>{t.productTypes}</span>
+            </div>
           </button>
           <button
-            onClick={() => router.push('/admin/properties')}
+            onClick={() => {
+              router.push('/admin/properties');
+              onClose?.();
+            }}
             onAuxClick={() => window.open('/admin/properties', '_blank')}
+            title={t.tooltipProperties}
             className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
               currentPath === '/admin/properties' ? 'opacity-100' : 'opacity-80'
             }`}
@@ -112,11 +152,18 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
               color: currentPath === '/admin/properties' ? theme.colors.primary : theme.colors.text
             }}
           >
-            Properties
+            <div className="flex items-center gap-3">
+              <Settings size={18} />
+              <span>{t.properties}</span>
+            </div>
           </button>
           <button
-            onClick={() => router.push('/admin/settings')}
+            onClick={() => {
+              router.push('/admin/settings');
+              onClose?.();
+            }}
             onAuxClick={() => window.open('/admin/settings', '_blank')}
+            title={t.tooltipSettings}
             className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
               currentPath === '/admin/settings' ? 'opacity-100' : 'opacity-80'
             }`}
@@ -125,12 +172,22 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
               color: currentPath === '/admin/settings' ? theme.colors.primary : theme.colors.text
             }}
           >
-            Settings
+            <div className="flex items-center gap-3">
+              <Cog size={18} />
+              <span>{t.settings}</span>
+            </div>
           </button>
         </nav>
         <button
-          onClick={handleBackToStore}
-          onAuxClick={handleBackToStore}
+          onClick={() => {
+            handleBackToStore();
+            onClose?.();
+          }}
+          onAuxClick={() => {
+            handleBackToStore();
+            onClose?.();
+          }}
+          title={t.tooltipBackToStore}
           className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 text-sm sm:text-base rounded-lg transition-colors duration-300 touch-manipulation min-h-[44px] sm:min-h-[auto]"
           style={{
             color: theme.colors.text
@@ -149,8 +206,9 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
           }}
         >
           <ArrowLeft size={18} />
-          <span>Back to Store</span>
+          <span>{t.backToStore}</span>
         </button>
+        </div>
       </div>
     </div>
   );

@@ -2,17 +2,36 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, List } from 'lucide-react';
 import { ProductType } from '@/lib/types/product-types';
 import AdminLayout from '../components/AdminLayout';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/lib/translations';
 
 export default function ProductTypesPage() {
   const router = useRouter();
+  const { language } = useLanguage();
+  const t = translations[language || 'en'];
   const [productTypes, setProductTypes] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProductType, setEditingProductType] = useState<ProductType | null>(null);
   const [formData, setFormData] = useState({ Name: '', Code: '' });
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Pagination calculations
+  const totalPages = Math.ceil(productTypes.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentProductTypes = productTypes.slice(startIndex, endIndex);
+
+  // Reset to first page when product types change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [productTypes.length]);
 
   useEffect(() => {
     loadProductTypes();
@@ -103,7 +122,7 @@ export default function ProductTypesPage() {
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             <Plus className="w-5 h-5" />
-            Add Product Type
+            {t.addProductType}
           </button>
         </div>
 
@@ -115,18 +134,18 @@ export default function ProductTypesPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
+                    {t.name}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Code
+                    {t.code}
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                    {t.actions}
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {productTypes.map((pt) => (
+                {currentProductTypes.map((pt) => (
                   <tr key={pt.ProductTypeID}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {pt.Name}
@@ -140,7 +159,7 @@ export default function ProductTypesPage() {
                           onClick={() => handleManageProperties(pt)}
                           className="text-blue-600 hover:text-blue-900"
                         >
-                          Manage Properties
+                          {t.manageProperties}
                         </button>
                         <button
                           onClick={() => handleEdit(pt)}
@@ -168,12 +187,98 @@ export default function ProductTypesPage() {
           </div>
         )}
 
+        {/* Mobile Card Layout */}
+        {!loading && (
+          <div className="block md:hidden space-y-4">
+            {currentProductTypes.map((pt) => (
+              <div key={pt.ProductTypeID} className="bg-white p-4 rounded-lg shadow border">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-medium text-gray-900">{pt.Name}</h3>
+                    <p className="text-sm text-gray-500">{t.code}: {pt.Code}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleManageProperties(pt)}
+                      className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded"
+                      title={t.manageProperties}
+                    >
+                      <List className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleEdit(pt)}
+                      className="p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(pt.ProductTypeID)}
+                      className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              {language === 'bg'
+                ? `Показване на ${startIndex + 1} до ${Math.min(endIndex, productTypes.length)} от ${productTypes.length} типа продукта`
+                : `Showing ${startIndex + 1} to ${Math.min(endIndex, productTypes.length)} of ${productTypes.length} product types`
+              }
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                {language === 'bg' ? 'Предишна' : 'Previous'}
+              </button>
+
+              <div className="flex gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const pageNumber = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                  if (pageNumber > totalPages) return null;
+                  return (
+                    <button
+                      key={pageNumber}
+                      onClick={() => setCurrentPage(pageNumber)}
+                      className={`px-3 py-1 text-sm border rounded ${
+                        currentPage === pageNumber
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                {language === 'bg' ? 'Следваща' : 'Next'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">
-                  {editingProductType ? 'Edit Product Type' : 'Add Product Type'}
+                  {editingProductType ? t.editProductType : t.addProductType}
                 </h2>
                 <button onClick={() => setShowModal(false)}>
                   <X className="w-5 h-5" />

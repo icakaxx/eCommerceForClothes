@@ -6,13 +6,32 @@ import { Plus, Edit2, Trash2, X, List, ChevronDown, ChevronRight } from 'lucide-
 import { Property, PropertyValue } from '@/lib/types/product-types';
 import { PropertyValuesStorage } from '@/lib/propertyValuesStorage';
 import AdminLayout from '../components/AdminLayout';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/lib/translations';
 
 export default function PropertiesPage() {
   const router = useRouter();
+  const { language } = useLanguage();
+  const t = translations[language || 'en'];
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Pagination calculations
+  const totalPages = Math.ceil(properties.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentProperties = properties.slice(startIndex, endIndex);
+
+  // Reset to first page when properties change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [properties.length]);
   const [formData, setFormData] = useState({ Name: '', Description: '', DataType: 'text' as 'text' | 'select' | 'number' });
   const [expandedProperties, setExpandedProperties] = useState<Set<string>>(new Set());
   const [showValueModal, setShowValueModal] = useState(false);
@@ -284,7 +303,7 @@ export default function PropertiesPage() {
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             <Plus className="w-5 h-5" />
-            Add Property
+            {t.addProperty}
           </button>
         </div>
 
@@ -296,24 +315,24 @@ export default function PropertiesPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
+                    {t.name}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Description
+                    {t.description}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Data Type
+                    {t.dataType}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Values
+                    {t.propertyValues}
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                    {t.actions}
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {properties.map((prop) => (
+                {currentProperties.map((prop) => (
                   <>
                     <tr key={prop.PropertyID} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -441,12 +460,129 @@ export default function PropertiesPage() {
           </div>
         )}
 
+        {/* Mobile Card Layout */}
+        {!loading && (
+          <div className="block md:hidden space-y-4">
+            {currentProperties.map((prop) => (
+              <div key={prop.PropertyID} className="bg-white p-4 rounded-lg shadow border">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-gray-900">{prop.Name}</h3>
+                    <p className="text-sm text-gray-500 mt-1">{prop.Description || 'No description'}</p>
+                    <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                      <span>{t.dataType}: {prop.DataType}</span>
+                      {prop.DataType === 'select' && (
+                        <span>{prop.Values?.length || 0} {t.propertyValues.toLowerCase()}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 ml-4">
+                    {prop.DataType === 'select' && (
+                      <button
+                        onClick={() => handleAddValue(prop)}
+                        className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded"
+                        title="Add Value"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleEdit(prop)}
+                      className="p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded"
+                      title="Edit Property"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(prop.PropertyID)}
+                      className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded"
+                      title="Delete Property"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Expanded values for mobile */}
+                {expandedProperties.has(prop.PropertyID) && prop.DataType === 'select' && prop.Values && prop.Values.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">{t.propertyValues}:</h4>
+                    <div className="space-y-1">
+                      {prop.Values.map((value) => (
+                        <div key={value.PropertyValueID} className="flex items-center justify-between py-1 px-2 bg-gray-50 rounded text-sm">
+                          <span>{value.Value}</span>
+                          <button
+                            onClick={() => handleDeleteValue(value.PropertyValueID)}
+                            className="text-red-500 hover:text-red-700 ml-2"
+                            title="Delete Value"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              {language === 'bg'
+                ? `Показване на ${startIndex + 1} до ${Math.min(endIndex, properties.length)} от ${properties.length} свойства`
+                : `Showing ${startIndex + 1} to ${Math.min(endIndex, properties.length)} of ${properties.length} properties`
+              }
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                {language === 'bg' ? 'Предишна' : 'Previous'}
+              </button>
+
+              <div className="flex gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const pageNumber = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                  if (pageNumber > totalPages) return null;
+                  return (
+                    <button
+                      key={pageNumber}
+                      onClick={() => setCurrentPage(pageNumber)}
+                      className={`px-3 py-1 text-sm border rounded ${
+                        currentPage === pageNumber
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                {language === 'bg' ? 'Следваща' : 'Next'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">
-                  {editingProperty ? 'Edit Property' : 'Add Property'}
+                  {editingProperty ? t.editProperty : t.addProperty}
                 </h2>
                 <button onClick={() => setShowModal(false)}>
                   <X className="w-5 h-5" />
@@ -515,7 +651,7 @@ export default function PropertiesPage() {
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">
-                  {editingValue ? 'Edit Property Value' : 'Add Property Value'}
+                  {editingValue ? t.editPropertyValue : t.addPropertyValue}
                 </h2>
                 <button onClick={() => setShowValueModal(false)}>
                   <X className="w-5 h-5" />

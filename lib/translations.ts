@@ -66,6 +66,102 @@ export interface Translations {
   // Footer
   contact: string;
   copyright: string;
+
+  // Admin Panel
+  dashboard: string;
+  welcomeToAdmin: string;
+  totalSales: string;
+  totalOrders: string;
+  customers: string;
+  fromLastMonth: string;
+  weeklySales: string;
+  salesByCategory: string;
+  recentOrders: string;
+  topProducts: string;
+  sales: string;
+  productTypes: string;
+  properties: string;
+  settings: string;
+  backToStore: string;
+  storeSettings: string;
+  manageStoreSettings: string;
+  storeInformation: string;
+  storeName: string;
+  logo: string;
+  uploadLogo: string;
+  logoRequirements: string;
+  appearance: string;
+  colorPalette: string;
+  language: string;
+  saveSettings: string;
+  saving: string;
+  settingsSaved: string;
+  errorSavingSettings: string;
+  pleaseSelectImage: string;
+  fileTooLarge: string;
+  errorUploadingLogo: string;
+  addProduct: string;
+  searchByBrandModelColor: string;
+  basicInformation: string;
+  productAttributes: string;
+  productPricing: string;
+  productVisibility: string;
+  saveProduct: string;
+  createProduct: string;
+  productName: string;
+  productSKU: string;
+  productDescription: string;
+  productCategory: string;
+  productBrand: string;
+  productModel: string;
+  productType: string;
+  productColor: string;
+  productSize: string;
+  productQuantity: string;
+  productPrice: string;
+  selectOptions: string;
+  noVariants: string;
+  completed: string;
+  processing: string;
+  shipped: string;
+
+  // Admin Table Headers
+  name: string;
+  sku: string;
+  variant: string;
+  quantity: string;
+  primary: string;
+  description: string;
+  dataType: string;
+  active: string;
+  type: string;
+  code: string;
+  manageProperties: string;
+  edit: string;
+  delete: string;
+  addNew: string;
+  addProductType: string;
+  editProductType: string;
+  save: string;
+  confirmDelete: string;
+  dataTypeText: string;
+  dataTypeSelect: string;
+  dataTypeNumber: string;
+  isActive: string;
+  propertyValues: string;
+  addProperty: string;
+  editProperty: string;
+  addPropertyValue: string;
+  editPropertyValue: string;
+
+  // Admin Tooltips
+  tooltipProducts: string;
+  tooltipProductTypes: string;
+  tooltipProperties: string;
+  tooltipSettings: string;
+  tooltipBackToStore: string;
+  tooltipDashboard: string;
+  goToStore: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -124,6 +220,96 @@ export const translations: Record<Language, Translations> = {
     priceLabel: 'Price (€)',
     contact: 'contact@storename.com · +1 234 567 890',
     copyright: '© 2025',
+    dashboard: 'Dashboard',
+    welcomeToAdmin: 'Welcome to your admin dashboard',
+    totalSales: 'Total Sales',
+    totalOrders: 'Total Orders',
+    customers: 'Customers',
+    fromLastMonth: 'from last month',
+    weeklySales: 'Weekly Sales',
+    salesByCategory: 'Sales by Category',
+    recentOrders: 'Recent Orders',
+    topProducts: 'Top Products',
+    sales: 'sales',
+    productTypes: 'Product Types',
+    properties: 'Properties',
+    settings: 'Settings',
+    backToStore: 'Back to Store',
+    storeSettings: 'Store Settings',
+    manageStoreSettings: 'Manage your store general settings',
+    storeInformation: 'Store Information',
+    storeName: 'Store Name',
+    logo: 'Logo',
+    uploadLogo: 'Upload Logo',
+    logoRequirements: 'PNG, JPG up to 5MB',
+    appearance: 'Appearance',
+    colorPalette: 'Color Palette',
+    language: 'Language',
+    saveSettings: 'Save Settings',
+    saving: 'Saving...',
+    settingsSaved: 'Settings saved successfully',
+    errorSavingSettings: 'Error saving settings',
+    pleaseSelectImage: 'Please select an image file',
+    fileTooLarge: 'File too large. Maximum size: 5MB',
+    errorUploadingLogo: 'Error uploading logo',
+    addProduct: 'Add Product',
+    searchByBrandModelColor: 'Search by brand, model, or color...',
+    basicInformation: 'Basic Information',
+    productAttributes: 'Attributes',
+    productPricing: 'Pricing',
+    productVisibility: 'Visibility',
+    saveProduct: 'Save Product',
+    createProduct: 'Create Product',
+    productName: 'Product Name',
+    productSKU: 'SKU',
+    productDescription: 'Description',
+    productCategory: 'Category',
+    productBrand: 'Brand',
+    productModel: 'Model',
+    productType: 'Type',
+    productColor: 'Color',
+    productSize: 'Size',
+    productQuantity: 'Quantity',
+    productPrice: 'Price (€)',
+    selectOptions: 'Select Options',
+    noVariants: 'No variants',
+    completed: 'completed',
+    processing: 'processing',
+    shipped: 'shipped',
+    name: 'Name',
+    sku: 'SKU',
+    variant: 'Variant',
+    quantity: 'Quantity',
+    primary: 'Primary',
+    description: 'Description',
+    dataType: 'Data Type',
+    active: 'Active',
+    type: 'Type',
+    code: 'Code',
+    manageProperties: 'Manage Properties',
+    edit: 'Edit',
+    delete: 'Delete',
+    addNew: 'Add New',
+    addProductType: 'Add Product Type',
+    editProductType: 'Edit Product Type',
+    save: 'Save',
+    confirmDelete: 'Are you sure you want to delete this?',
+    dataTypeText: 'Text',
+    dataTypeSelect: 'Select',
+    dataTypeNumber: 'Number',
+    isActive: 'Active',
+    propertyValues: 'Values',
+    addProperty: 'Add Property',
+    editProperty: 'Edit Property',
+    addPropertyValue: 'Add Property Value',
+    editPropertyValue: 'Edit Property Value',
+    tooltipProducts: 'Manage products and their variants',
+    tooltipProductTypes: 'Manage product types',
+    tooltipProperties: 'Manage product properties',
+    tooltipSettings: 'Store settings',
+    tooltipBackToStore: 'Back to store',
+    tooltipDashboard: 'Dashboard',
+    goToStore: 'Go to Store',
   },
   bg: {
     home: 'Начало',
@@ -180,6 +366,96 @@ export const translations: Record<Language, Translations> = {
     priceLabel: 'Цена (€)',
     contact: 'contact@storename.com · +1 234 567 890',
     copyright: '© 2025',
+    dashboard: 'Табло за управление',
+    welcomeToAdmin: 'Добре дошли в административния панел',
+    totalSales: 'Общи продажби',
+    totalOrders: 'Общо поръчки',
+    customers: 'Клиенти',
+    fromLastMonth: 'от миналия месец',
+    weeklySales: 'Продажби за седмицата',
+    salesByCategory: 'Продажби по категории',
+    recentOrders: 'Последни поръчки',
+    topProducts: 'Топ продукти',
+    sales: 'продажби',
+    productTypes: 'Типове продукти',
+    properties: 'Свойства',
+    settings: 'Настройки',
+    backToStore: 'Обратно към магазина',
+    storeSettings: 'Настройки на магазина',
+    manageStoreSettings: 'Управлявайте общите настройки на вашия магазин',
+    storeInformation: 'Информация за магазина',
+    storeName: 'Име на магазина',
+    logo: 'Лого',
+    uploadLogo: 'Качи лого',
+    logoRequirements: 'PNG, JPG до 5MB',
+    appearance: 'Външен вид',
+    colorPalette: 'Цветова палитра',
+    language: 'Език',
+    saveSettings: 'Запази настройки',
+    saving: 'Запазване...',
+    settingsSaved: 'Настройките са запазени успешно',
+    errorSavingSettings: 'Грешка при запазване на настройките',
+    pleaseSelectImage: 'Моля изберете изображение',
+    fileTooLarge: 'Файлът е твърде голям. Максимален размер: 5MB',
+    errorUploadingLogo: 'Грешка при качване на лого',
+    addProduct: 'Добави продукт',
+    searchByBrandModelColor: 'Търсене по марка, модел или цвят...',
+    basicInformation: 'Основна информация',
+    productAttributes: 'Атрибути',
+    productPricing: 'Ценообразуване',
+    productVisibility: 'Видимост',
+    saveProduct: 'Запази продукт',
+    createProduct: 'Създай продукт',
+    productName: 'Име на продукта',
+    productSKU: 'SKU',
+    productDescription: 'Описание',
+    productCategory: 'Категория',
+    productBrand: 'Марка',
+    productModel: 'Модел',
+    productType: 'Тип',
+    productColor: 'Цвят',
+    productSize: 'Размер',
+    productQuantity: 'Количество',
+    productPrice: 'Цена (€)',
+    selectOptions: 'Избери опции',
+    noVariants: 'Няма варианти',
+    completed: 'завършен',
+    processing: 'обработва се',
+    shipped: 'изпратен',
+    name: 'Име',
+    sku: 'SKU',
+    variant: 'Вариант',
+    quantity: 'Количество',
+    primary: 'Основен',
+    description: 'Описание',
+    dataType: 'Тип данни',
+    active: 'Активен',
+    type: 'Тип',
+    code: 'Код',
+    manageProperties: 'Управление на свойства',
+    edit: 'Редактиране',
+    delete: 'Изтриване',
+    addNew: 'Добави нов',
+    addProductType: 'Добави тип продукт',
+    editProductType: 'Редактиране на тип продукт',
+    save: 'Запази',
+    confirmDelete: 'Сигурни ли сте, че искате да изтриете това?',
+    dataTypeText: 'Текст',
+    dataTypeSelect: 'Избор',
+    dataTypeNumber: 'Число',
+    isActive: 'Активен',
+    propertyValues: 'Стойности',
+    addProperty: 'Добави свойство',
+    editProperty: 'Редактиране на свойство',
+    addPropertyValue: 'Добави стойност',
+    editPropertyValue: 'Редактиране на стойност',
+    tooltipProducts: 'Управление на продуктите и техните варианти',
+    tooltipProductTypes: 'Управление на типовете продукти',
+    tooltipProperties: 'Управление на свойствата на продуктите',
+    tooltipSettings: 'Настройки на магазина',
+    tooltipBackToStore: 'Връщане към магазина',
+    tooltipDashboard: 'Табло за управление',
+    goToStore: 'Към магазина',
   },
 };
 

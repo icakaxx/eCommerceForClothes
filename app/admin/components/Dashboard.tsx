@@ -48,7 +48,7 @@ const mockData = {
 export default function Dashboard() {
   const { theme } = useTheme();
   const { language } = useLanguage();
-  const t = translations[language];
+  const t = translations[language || 'en'];
 
   const MetricCard = ({ title, value, growth, icon: Icon, prefix = '', suffix = '' }: {
     title: string;
@@ -100,7 +100,7 @@ export default function Dashboard() {
           className="text-sm opacity-75 ml-2"
           style={{ color: theme.colors.textSecondary }}
         >
-          {language === 'bg' ? 'от миналия месец' : 'from last month'}
+          {t.fromLastMonth}
         </span>
       </div>
     </div>
@@ -114,39 +114,39 @@ export default function Dashboard() {
           className="text-3xl font-bold"
           style={{ color: theme.colors.text }}
         >
-          {language === 'bg' ? 'Табло за управление' : 'Dashboard'}
+          {t.dashboard}
         </h1>
         <p
           className="mt-2"
           style={{ color: theme.colors.textSecondary }}
         >
-          {language === 'bg' ? 'Добре дошли в административния панел' : 'Welcome to your admin dashboard'}
+          {t.welcomeToAdmin}
         </p>
       </div>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
-          title={language === 'bg' ? 'Общи продажби' : 'Total Sales'}
+          title={t.totalSales}
           value={mockData.totalSales}
           growth={mockData.salesGrowth}
           icon={EuroIcon}
           suffix="€"
         />
         <MetricCard
-          title={language === 'bg' ? 'Общо поръчки' : 'Total Orders'}
+          title={t.totalOrders}
           value={mockData.totalOrders}
           growth={mockData.ordersGrowth}
           icon={ShoppingCart}
         />
         <MetricCard
-          title={language === 'bg' ? 'Продукти' : 'Products'}
+          title={t.products}
           value={mockData.totalProducts}
           growth={mockData.productsGrowth}
           icon={Package}
         />
         <MetricCard
-          title={language === 'bg' ? 'Клиенти' : 'Customers'}
+          title={t.customers}
           value={mockData.totalCustomers}
           growth={mockData.customersGrowth}
           icon={Users}
@@ -165,7 +165,7 @@ export default function Dashboard() {
           }}
         >
           <h3 className="text-lg font-semibold mb-4">
-            {language === 'bg' ? 'Продажби за седмицата' : 'Weekly Sales'}
+            {t.weeklySales}
           </h3>
           <div className="h-64 flex items-end justify-between space-x-2">
             {mockData.weeklySales.map((day, index) => (
@@ -198,7 +198,7 @@ export default function Dashboard() {
           }}
         >
           <h3 className="text-lg font-semibold mb-4">
-            {language === 'bg' ? 'Продажби по категории' : 'Sales by Category'}
+            {t.salesByCategory}
           </h3>
           <div className="space-y-4">
             {mockData.categoryPerformance.map((category) => (
@@ -231,7 +231,7 @@ export default function Dashboard() {
           }}
         >
           <h3 className="text-lg font-semibold mb-4">
-            {language === 'bg' ? 'Последни поръчки' : 'Recent Orders'}
+            {t.recentOrders}
           </h3>
           <div className="space-y-3">
             {mockData.recentOrders.map((order) => (
@@ -279,7 +279,7 @@ export default function Dashboard() {
           }}
         >
           <h3 className="text-lg font-semibold mb-4">
-            {language === 'bg' ? 'Топ продукти' : 'Top Products'}
+            {t.topProducts}
           </h3>
           <div className="space-y-3">
             {mockData.topProducts.map((product, index) => (
@@ -304,7 +304,7 @@ export default function Dashboard() {
                       className="text-xs"
                       style={{ color: theme.colors.textSecondary }}
                     >
-                      {product.sales} {language === 'bg' ? 'продажби' : 'sales'}
+                      {product.sales} {t.sales}
                     </p>
                   </div>
                 </div>

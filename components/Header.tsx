@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -37,13 +37,14 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
   const { theme } = useTheme();
 
   return (
-    <header 
-      className="shadow-sm sticky top-0 z-50 transition-colors duration-300"
-      style={{ 
-        backgroundColor: theme.colors.headerBg,
-        borderBottom: `1px solid ${theme.colors.border}`
-      }}
-    >
+    <>
+      <header
+        className="shadow-sm sticky top-0 z-50 transition-colors duration-300"
+        style={{
+          backgroundColor: theme.colors.headerBg,
+          borderBottom: `1px solid ${theme.colors.border}`
+        }}
+      >
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link 
@@ -118,20 +119,52 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
             
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 transition-colors duration-300"
+              className="md:hidden flex flex-col items-center justify-center p-2 transition-colors duration-300"
               aria-label="Menu"
               style={{ color: theme.colors.textSecondary }}
             >
               <Menu size={24} />
+              <span className="text-[10px] font-medium mt-0.5">МЕНЮ</span>
             </button>
           </div>
         </div>
-        
-        {mobileMenuOpen && (
-          <div 
-            className="md:hidden py-4 border-t transition-colors duration-300"
-            style={{ borderColor: theme.colors.border }}
+      </div>
+    </header>
+
+    {/* Backdrop Overlay */}
+    {mobileMenuOpen && (
+      <div
+        className="fixed inset-0 bg-black/50 z-40 md:hidden"
+        onClick={() => setMobileMenuOpen(false)}
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+      />
+    )}
+
+    {/* Mobile Menu - Sliding from Right */}
+    {mobileMenuOpen && (
+      <div
+        className="fixed top-0 right-0 h-full w-[280px] sm:w-[320px] z-50 md:hidden shadow-2xl"
+        style={{ backgroundColor: theme.colors.surface }}
+      >
+        {/* Close Button */}
+        <div className="flex items-center justify-between p-6 border-b"
+             style={{ borderColor: theme.colors.border }}>
+          <h2 className="font-semibold text-lg"
+              style={{ color: theme.colors.text }}>
+            МЕНЮ
+          </h2>
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="p-2 rounded-lg transition-colors duration-300 hover:opacity-70"
+            style={{ color: theme.colors.textSecondary }}
           >
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* Menu Items */}
+        <nav className="flex flex-col h-full">
+          <div className="flex-1 overflow-y-auto">
             {navItems.map(item => (
               <Link
                 key={item.id}
@@ -140,21 +173,59 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                   setIsAdmin(false);
                   setMobileMenuOpen(false);
                 }}
-                className="block w-full text-left px-4 py-2 text-sm transition-colors duration-300"
+                className="block w-full text-left px-6 py-4 font-medium border-b transition-colors duration-300 hover:opacity-70"
                 style={{
                   color: currentPage === item.id && !isAdmin
                     ? theme.colors.primary
-                    : theme.colors.textSecondary,
-                  fontWeight: currentPage === item.id && !isAdmin ? '500' : '400'
+                    : theme.colors.text,
+                  borderColor: theme.colors.border
                 }}
               >
                 {item.label}
               </Link>
             ))}
+
+            {/* Admin/Exit Admin Button */}
+            <button
+              onClick={() => {
+                if (!isAdmin) {
+                  router.push('/admin');
+                } else {
+                  localStorage.setItem('isAdmin', 'false');
+                  setIsAdmin(false);
+                  router.push('/');
+                }
+                setMobileMenuOpen(false);
+              }}
+              className="block w-full text-left px-6 py-4 font-medium border-b transition-colors duration-300 hover:opacity-70"
+              style={{
+                color: theme.colors.textSecondary,
+                borderColor: theme.colors.border
+              }}
+            >
+              {isAdmin ? t.exitAdmin : t.admin}
+            </button>
           </div>
-        )}
+
+          {/* Bottom CTA Button */}
+          <div className="p-6 border-t"
+               style={{ borderColor: theme.colors.border }}>
+            <Link
+              href="/"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block w-full text-center py-3 px-6 rounded-lg font-medium transition-all duration-300"
+              style={{
+                backgroundColor: theme.colors.primary,
+                color: '#ffffff'
+              }}
+            >
+              {t.goToStore}
+            </Link>
+          </div>
+        </nav>
       </div>
-    </header>
+    )}
+    </>
   );
 }
 
