@@ -17,8 +17,8 @@ async function validateStock(items: StockValidationItem[]): Promise<{ valid: boo
       if (item.size) {
         const { data: variant, error } = await supabase
           .from('product_variants')
-          .select('"Quantity", "ProductVariantID"')
-          .eq('"ProductVariantID"', item.id)
+          .select('"quantity", "productvariantid"')
+          .eq('"productvariantid"', item.id)
           .single();
 
         if (error) {
@@ -27,17 +27,17 @@ async function validateStock(items: StockValidationItem[]): Promise<{ valid: boo
           continue;
         }
 
-        if (!variant || variant.Quantity < item.quantity) {
+        if (!variant || variant.quantity < item.quantity) {
           insufficientStock.push({
             id: item.id,
             requested: item.quantity,
-            available: variant?.Quantity || 0
+            available: variant?.quantity || 0
           });
         }
       } else {
         // For products without variants, assume sufficient stock
-        // (The products table doesn't have a Quantity column in the current schema)
-        // In a full implementation, products table should also have Quantity column
+        // (The products table doesn't have a quantity column in the current schema)
+        // In a full implementation, products table should also have quantity column
         console.log(`Skipping stock check for product ${item.id} (no variants)`);
       }
     } catch (error) {

@@ -16,7 +16,7 @@ export default function ProductTypesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProductType, setEditingProductType] = useState<ProductType | null>(null);
-  const [formData, setFormData] = useState({ Name: '', Code: '' });
+  const [formData, setFormData] = useState({ name: '', code: '' });
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -56,7 +56,7 @@ export default function ProductTypesPage() {
     e.preventDefault();
     try {
       const url = editingProductType 
-        ? `/api/product-types/${editingProductType.ProductTypeID}`
+        ? `/api/product-types/${editingProductType.producttypeid}`
         : '/api/product-types';
       const method = editingProductType ? 'PUT' : 'POST';
 
@@ -69,7 +69,7 @@ export default function ProductTypesPage() {
       const result = await response.json();
       if (result.success) {
         setShowModal(false);
-        setFormData({ Name: '', Code: '' });
+        setFormData({ name: '', code: '' });
         setEditingProductType(null);
         loadProductTypes();
       } else {
@@ -83,7 +83,7 @@ export default function ProductTypesPage() {
 
   const handleEdit = (productType: ProductType) => {
     setEditingProductType(productType);
-    setFormData({ Name: productType.Name, Code: productType.Code });
+    setFormData({ name: productType.name, code: productType.code });
     setShowModal(true);
   };
 
@@ -105,7 +105,7 @@ export default function ProductTypesPage() {
   };
 
   const handleManageProperties = (productType: ProductType) => {
-    router.push(`/admin/product-types/${productType.ProductTypeID}`);
+    router.push(`/admin/product-types/${productType.producttypeid}`);
   };
 
   return (
@@ -116,7 +116,7 @@ export default function ProductTypesPage() {
           <button
             onClick={() => {
               setEditingProductType(null);
-              setFormData({ Name: '', Code: '' });
+              setFormData({ name: '', code: '' });
               setShowModal(true);
             }}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -146,12 +146,12 @@ export default function ProductTypesPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentProductTypes.map((pt) => (
-                  <tr key={pt.ProductTypeID}>
+                  <tr key={pt.producttypeid}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {pt.Name}
+                      {pt.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {pt.Code}
+                      {pt.code}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
@@ -168,7 +168,7 @@ export default function ProductTypesPage() {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(pt.ProductTypeID)}
+                          onClick={() => handleDelete(pt.producttypeid)}
                           className="text-red-600 hover:text-red-900"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -191,11 +191,11 @@ export default function ProductTypesPage() {
         {!loading && (
           <div className="block md:hidden space-y-4">
             {currentProductTypes.map((pt) => (
-              <div key={pt.ProductTypeID} className="bg-white p-4 rounded-lg shadow border">
+              <div key={pt.producttypeid} className="bg-white p-4 rounded-lg shadow border">
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="font-medium text-gray-900">{pt.Name}</h3>
-                    <p className="text-sm text-gray-500">{t.code}: {pt.Code}</p>
+                    <h3 className="font-medium text-gray-900">{pt.name}</h3>
+                    <p className="text-sm text-gray-500">{t.code}: {pt.code}</p>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -212,7 +212,7 @@ export default function ProductTypesPage() {
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(pt.ProductTypeID)}
+                      onClick={() => handleDelete(pt.producttypeid)}
                       className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -291,8 +291,8 @@ export default function ProductTypesPage() {
                   </label>
                   <input
                     type="text"
-                    value={formData.Name}
-                    onChange={(e) => setFormData({ ...formData, Name: e.target.value })}
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     required
                   />
@@ -303,8 +303,8 @@ export default function ProductTypesPage() {
                   </label>
                   <input
                     type="text"
-                    value={formData.Code}
-                    onChange={(e) => setFormData({ ...formData, Code: e.target.value })}
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     required
                   />

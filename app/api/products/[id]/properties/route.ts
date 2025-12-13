@@ -10,20 +10,20 @@ export async function GET(
     const supabase = createServerClient();
     const { id } = await params;
 
-    const { data: productPropertyValues, error } = await supabase
+    const { data: productPropertyvalues, error } = await supabase
       .from('product_property_values')
       .select(`
-        ProductPropertyValueID,
-        PropertyID,
-        Value,
+        productpropertyvalueid,
+        propertyid,
+        value,
         properties (
-          PropertyID,
-          Name,
-          Description,
-          DataType
+          propertyid,
+          name,
+          description,
+          datatype
         )
       `)
-      .eq('ProductID', id);
+      .eq('productid', id);
 
     if (error) {
       console.error('Error fetching product property values:', error);
@@ -35,7 +35,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      propertyValues: productPropertyValues || []
+      propertyvalues: productPropertyvalues || []
     });
 
   } catch (error) {
@@ -57,25 +57,25 @@ export async function POST(
     const { id } = await params;
     const body = await request.json();
 
-    const { PropertyID, Value } = body;
+    const { propertyid, value } = body;
 
-    if (!PropertyID || Value === undefined) {
+    if (!propertyid || value === undefined) {
       return NextResponse.json(
-        { error: 'Missing required fields: PropertyID, Value' },
+        { error: 'Missing required fields: propertyid, value' },
         { status: 400 }
       );
     }
 
     // Use upsert to update if exists, insert if not
-    const { data: productPropertyValue, error } = await supabase
+    const { data: productPropertyvalue, error } = await supabase
       .from('product_property_values')
       .upsert({
-        ProductID: id,
-        PropertyID,
-        Value: String(Value),
-        UpdatedAt: new Date().toISOString()
+        productid: id,
+        propertyid,
+        value: String(value),
+        updatedat: new Date().toISOString()
       }, {
-        onConflict: 'ProductID,PropertyID'
+        onConflict: 'productid,propertyid'
       })
       .select()
       .single();
@@ -90,7 +90,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      productPropertyValue
+      productPropertyvalue
     });
 
   } catch (error) {
@@ -123,8 +123,8 @@ export async function DELETE(
     const { error } = await supabase
       .from('product_property_values')
       .delete()
-      .eq('ProductID', id)
-      .eq('PropertyID', propertyId);
+      .eq('productid', id)
+      .eq('propertyid', propertyId);
 
     if (error) {
       console.error('Error removing product property value:', error);

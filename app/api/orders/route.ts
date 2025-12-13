@@ -1,6 +1,8 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
 import { sendCustomerOrderEmail, sendAdminOrderEmail } from '@/lib/email';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 interface OrderData {
   customer: {
@@ -29,6 +31,7 @@ interface OrderData {
 
 // Validate stock availability
 async function validateStock(items: OrderData['items']): Promise<{ valid: boolean; insufficientStock: any[] }> {
+  const supabase = supabaseAdmin;
   const insufficientStock: any[] = [];
 
   for (const item of items) {
@@ -37,8 +40,8 @@ async function validateStock(items: OrderData['items']): Promise<{ valid: boolea
       if (item.size) {
         const { data: variant, error } = await supabase
           .from('product_variants')
-          .select('"Quantity"')
-          .eq('"ProductVariantID"', item.id)
+          .select('quantity')
+          .eq('productvariantid', item.id)
           .single();
 
         if (error) {
@@ -47,17 +50,17 @@ async function validateStock(items: OrderData['items']): Promise<{ valid: boolea
           continue;
         }
 
-        if (!variant || variant.Quantity < item.quantity) {
+        if (!variant || (variant as any).quantity < item.quantity) {
           insufficientStock.push({
             id: item.id,
             requested: item.quantity,
-            available: variant?.Quantity || 0
+            available: (variant as any)?.quantity || 0
           });
         }
       } else {
         // For products without variants, assume sufficient stock
-        // (The products table doesn't have a Quantity column in the current schema)
-        // In a full implementation, products table should also have Quantity column
+        // (The products table doesn't have a quantity column in the current schema)
+        // In a full implementation, products table should also have quantity column
         console.log(`Skipping stock check for product ${item.id} (no variants)`);
       }
     } catch (error) {
@@ -74,14 +77,27 @@ async function validateStock(items: OrderData['items']): Promise<{ valid: boolea
 
 // Reduce stock quantities
 async function reduceStock(items: OrderData['items']): Promise<void> {
+  const supabase = supabaseAdmin;
   for (const item of items) {
     try {
       if (item.size) {
+        // Get current variant data
+        const { data: variant, error: fetchError } = await supabase
+          .from('product_variants')
+          .select('quantity')
+          .eq('productvariantid', item.id)
+          .single();
+
+        if (fetchError || !variant) {
+          console.error('Error fetching variant for stock reduction:', fetchError);
+          throw new Error(`Failed to fetch variant ${item.id} for stock reduction`);
+        }
+
         // Reduce variant stock
-        const { error } = await supabase.rpc('reduce_variant_stock', {
-          variant_id: item.id,
-          reduce_by: item.quantity
-        });
+        const { error } = await (supabase as any)
+          .from('product_variants')
+          .update({ quantity: (variant as any).quantity - item.quantity })
+          .eq('productvariantid', item.id);
 
         if (error) {
           console.error('Error reducing variant stock:', error);
@@ -89,8 +105,8 @@ async function reduceStock(items: OrderData['items']): Promise<void> {
         }
       } else {
         // For products without variants, skip stock reduction
-        // (The products table doesn't have a Quantity column in the current schema)
-        // In a full implementation, products table should also have Quantity column
+        // (The products table doesn't have a quantity column in the current schema)
+        // In a full implementation, products table should also have quantity column
         console.log(`Skipping stock reduction for product ${item.id} (no variants)`);
       }
     } catch (error) {
@@ -102,6 +118,7 @@ async function reduceStock(items: OrderData['items']): Promise<void> {
 
 // Create order record
 async function createOrder(orderData: OrderData): Promise<string> {
+  const supabase = supabaseAdmin;
   const orderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
   const orderRecord = {
@@ -122,28 +139,62 @@ async function createOrder(orderData: OrderData): Promise<string> {
     updatedat: new Date().toISOString()
   };
 
-  const { data: order, error } = await supabase
+  // Debug: Log connection details
+  console.log('🔍 Order Creation Debug Info:');
+  console.log('- Using supabaseAdmin client from @/lib/supabase/admin');
+  console.log('- Should be using SUPABASE_SERVICE_ROLE_KEY for service role access');
+  console.log('- Environment check:', {
+    hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    serviceRoleKeyLength: process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0
+  });
+
+  // Check what auth context we're running in
+  try {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    console.log('- Auth context:', {
+      hasUser: !!user,
+      userId: user?.id,
+      userRole: user?.user_metadata?.role,
+      authError: authError?.message
+    });
+  } catch (authCheckError) {
+    console.log('- Auth context check failed:', authCheckError);
+  }
+
+  const { data: order, error } = await (supabase as any)
     .from('orders')
     .insert(orderRecord)
     .select()
     .single();
 
   if (error) {
-    console.error('Error creating order:', error);
-    throw new Error('Failed to create order record');
+    console.error('❌ Database Error Details:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      role: 'Should be service_role, but likely falling back to anon/public key'
+    });
+    console.error('🔑 Connection Role Analysis:');
+    console.error('- If error.code is "42501", it\'s a permission denied error');
+    console.error('- This means RLS is blocking the operation');
+    console.error('- The client is likely using anon key instead of service role key');
+    console.error('- Check: Is SUPABASE_SERVICE_ROLE_KEY set in .env.local?');
+    throw new Error(`Failed to create order record: ${error.message} (Code: ${error.code})`);
   }
 
   // Create order items
+  // Note: For now, assuming item.id is the variant ID when size exists, product ID otherwise
   const orderItems = orderData.items.map(item => ({
     orderid: orderId,
-    productid: typeof item.id === 'string' ? parseInt(item.id) : item.id,
-    productvariantid: item.size ? item.id : null,
+    productid: item.size ? null : item.id, // Use productid for non-variant items
+    productvariantid: item.size ? item.id : null, // Use productvariantid for variant items
     quantity: item.quantity,
-    price: 0, // This should be calculated from the product
     createdat: new Date().toISOString()
   }));
 
-  const { error: itemsError } = await supabase
+  const { error: itemsError } = await (supabase as any)
     .from('order_items')
     .insert(orderItems);
 

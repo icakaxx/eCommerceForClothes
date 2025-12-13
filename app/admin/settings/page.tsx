@@ -9,9 +9,9 @@ import { translations } from '@/lib/translations';
 import LanguageToggle from '@/components/LanguageToggle';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import AdminLayout from '../components/AdminLayout';
-import { supabase } from '@/lib/supabase';
 import { uploadFile, getStorageUrl } from '@/lib/supabaseStorage';
 import { getAdminSession } from '@/lib/auth';
+import { supabase } from '@/lib/supabase-browser';
 import { useStoreSettings } from '@/context/StoreSettingsContext';
 
 interface StoreSettings {
@@ -92,53 +92,52 @@ export default function AdminSettingsPage() {
     };
   }, [router]);
 
-  // Load settings from database
+  // Load settings from API
   useEffect(() => {
     if (!isAuthenticated) return;
     const loadSettings = async () => {
       try {
-        const { data, error } = await supabase
-          .from('store_settings')
-          .select('*')
-          .limit(1)
-          .single();
+        const response = await fetch('/api/store-settings');
+        const result = await response.json();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-          console.error('Error loading settings:', error);
+        if (!response.ok) {
+          console.error('Error loading settings:', result.error);
           return;
         }
 
-        if (data) {
-          setSettings(data);
+        if (result.settings) {
+          setSettings(result.settings);
           // Apply language and theme from settings for admin panel context
           // Note: User preferences in localStorage take priority over store settings
           if (!localStorage.getItem('theme')) {
-            setTheme(data.themeid);
+            setTheme(result.settings.themeid);
           }
           if (!localStorage.getItem('language')) {
-            setLanguage(data.language);
+            setLanguage(result.settings.language);
           }
         } else {
           // Create default settings if none exist
-          const defaultSettings: Omit<StoreSettings, 'storesettingsid' | 'createdat' | 'updatedat'> = {
+          const defaultSettings = {
             storename: 'ModaBox',
             logourl: null,
             themeid: 'default',
             language: 'en'
           };
 
-          const { data: newSettings, error: insertError } = await supabase
-            .from('store_settings')
-            .insert(defaultSettings)
-            .select()
-            .single();
+          const createResponse = await fetch('/api/store-settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(defaultSettings)
+          });
 
-          if (insertError) {
-            console.error('Error creating default settings:', insertError);
+          const createResult = await createResponse.json();
+
+          if (!createResponse.ok || !createResult.success) {
+            console.error('Error creating default settings:', createResult.error);
             return;
           }
 
-          setSettings(newSettings);
+          setSettings(createResult.settings);
         }
       } catch (error) {
         console.error('Error loading settings:', error);
@@ -171,19 +170,21 @@ export default function AdminSettingsPage() {
 
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('store_settings')
-        .update({
+      const response = await fetch(`/api/store-settings/${settings.storesettingsid}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           storename: settings.storename,
           logourl: settings.logourl,
           themeid: settings.themeid,
-          language: settings.language,
-          updatedat: new Date().toISOString()
+          language: settings.language
         })
-        .eq('storesettingsid', settings.storesettingsid);
+      });
 
-      if (error) {
-        console.error('Error saving settings:', error);
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        console.error('Error saving settings:', result.error);
         alert(t.errorSavingSettings);
         return;
       }

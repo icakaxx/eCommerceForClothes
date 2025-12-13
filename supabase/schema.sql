@@ -103,12 +103,46 @@ CREATE TABLE public.property_values (
   CONSTRAINT property_values_propertyid_fkey FOREIGN KEY (PropertyID) REFERENCES public.properties(PropertyID)
 );
 CREATE TABLE public.store_settings (
-  StoreSettingsID uuid NOT NULL DEFAULT gen_random_uuid(),
-  StoreName text NOT NULL DEFAULT 'ModaBox',
-  LogoUrl text,
-  ThemeId text NOT NULL DEFAULT 'default',
-  Language text NOT NULL DEFAULT 'en' CHECK ("Language" = ANY (ARRAY['en'::text, 'bg'::text])),
-  CreatedAt timestamp with time zone NOT NULL DEFAULT now(),
-  UpdatedAt timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT store_settings_pkey PRIMARY KEY (StoreSettingsID)
+  storesettingsid uuid NOT NULL DEFAULT gen_random_uuid(),
+  storename text NOT NULL DEFAULT 'ModaBox'::text,
+  logourl text,
+  themeid text NOT NULL DEFAULT 'default'::text,
+  language text NOT NULL DEFAULT 'en'::text CHECK (language = ANY (ARRAY['en'::text, 'bg'::text])),
+  createdat timestamp with time zone NOT NULL DEFAULT now(),
+  updatedat timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT store_settings_pkey PRIMARY KEY (storesettingsid)
+);
+
+-- Orders table
+CREATE TABLE public.orders (
+  orderid text NOT NULL,
+  customerfirstname text NOT NULL,
+  customerlastname text NOT NULL,
+  customeremail text NOT NULL,
+  customertelephone text NOT NULL,
+  customercountry text NOT NULL,
+  customercity text NOT NULL,
+  deliverytype text NOT NULL,
+  deliverynotes text,
+  subtotal numeric(10,2) NOT NULL CHECK (subtotal >= 0),
+  deliverycost numeric(10,2) NOT NULL CHECK (deliverycost >= 0),
+  total numeric(10,2) NOT NULL CHECK (total >= 0),
+  status text NOT NULL DEFAULT 'pending',
+  createdat timestamp with time zone NOT NULL DEFAULT now(),
+  updatedat timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT orders_pkey PRIMARY KEY (orderid)
+);
+
+-- Order items table
+CREATE TABLE public.order_items (
+  OrderItemID uuid NOT NULL DEFAULT gen_random_uuid(),
+  orderid text NOT NULL,
+  productid integer,
+  ProductVariantID uuid,
+  quantity integer NOT NULL CHECK (quantity > 0),
+  price numeric(10,2) NOT NULL CHECK (price >= 0),
+  createdat timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT order_items_pkey PRIMARY KEY (OrderItemID),
+  CONSTRAINT order_items_orderid_fkey FOREIGN KEY (orderid) REFERENCES public.orders(orderid) ON DELETE CASCADE,
+  CONSTRAINT order_items_productvariantid_fkey FOREIGN KEY (ProductVariantID) REFERENCES public.product_variants(ProductVariantID)
 );

@@ -51,17 +51,17 @@ export class PropertyValuesStorage {
 
   static updatePropertyValue(propertyId: string, valueId: string, updates: Partial<PropertyValue>): void {
     const values = this.getPropertyValues(propertyId);
-    const index = values.findIndex(v => v.PropertyValueID === valueId);
+    const index = values.findIndex(v => v.propertyvalueid === valueId);
 
     if (index !== -1) {
-      values[index] = { ...values[index], ...updates, UpdatedAt: new Date().toISOString() };
+      values[index] = { ...values[index], ...updates, updatedat: new Date().toISOString() };
       this.setPropertyValues(propertyId, values);
     }
   }
 
   static deletePropertyValue(propertyId: string, valueId: string): void {
     const values = this.getPropertyValues(propertyId);
-    const filteredValues = values.filter(v => v.PropertyValueID !== valueId);
+    const filteredValues = values.filter(v => v.propertyvalueid !== valueId);
     this.setPropertyValues(propertyId, filteredValues);
   }
 

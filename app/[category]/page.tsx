@@ -28,8 +28,8 @@ export default function CategoryPage() {
 
   // Find the product type by code or ID
   const productType = productTypes.find(type =>
-    type.Code.toLowerCase() === category ||
-    type.ProductTypeID === category
+    type.code.toLowerCase() === category ||
+    type.producttypeid === category
   );
 
   // If it's a valid product type, show the category page
@@ -38,7 +38,7 @@ export default function CategoryPage() {
       <div className="min-h-screen flex flex-col">
         <Header isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin} />
         <div className="flex-1">
-          <StorePage products={products} currentPage={productType.ProductTypeID} />
+          <StorePage products={products} currentPage={productType.producttypeid} />
         </div>
         <Footer />
       </div>

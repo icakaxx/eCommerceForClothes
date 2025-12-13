@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const { data: productTypes, error } = await supabase
       .from('product_types')
       .select('*')
-      .order('Name', { ascending: true });
+      .order('name', { ascending: true });
 
     if (error) {
       console.error('Error fetching product types:', error);
@@ -39,11 +39,11 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient();
     const body = await request.json();
 
-    const { Name, Code } = body;
+    const { name, code } = body;
 
-    if (!Name || !Code) {
+    if (!name || !code) {
       return NextResponse.json(
-        { error: 'Missing required fields: Name, Code' },
+        { error: 'Missing required fields: name, code' },
         { status: 400 }
       );
     }
@@ -51,9 +51,9 @@ export async function POST(request: NextRequest) {
     const { data: productType, error } = await supabase
       .from('product_types')
       .insert({
-        Name,
-        Code,
-        UpdatedAt: new Date().toISOString()
+        name,
+        code,
+        updatedat: new Date().toISOString()
       })
       .select()
       .single();

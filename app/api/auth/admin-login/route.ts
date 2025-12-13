@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { verifyAdminAccess } from '@/lib/auth-admin'
 
 export async function POST(request: NextRequest) {
   try {
-    // Create Supabase client for server-side auth
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    
+
     if (!supabaseUrl || !supabaseServiceKey) {
       return NextResponse.json(
         { error: 'Server configuration error: Missing Supabase credentials' },
         { status: 500 }
       )
     }
-    
+
+    // Create client for authentication
     const supabaseAuth = createClient(
       supabaseUrl,
       supabaseServiceKey,
@@ -49,18 +50,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get user metadata to check role
-    const userRole = authData.user.user_metadata?.role || 'admin'
-    const canAccess = authData.user.user_metadata?.can_access || ['admin']
+    // Verify admin access using profiles table
+    const { isAdmin, user: adminUser } = await verifyAdminAccess(authData.user.id)
 
-    // Check if user has permission to access admin area
-    if (!canAccess.includes('admin')) {
-      console.error('Access denied:', {
-        userRole,
-        canAccess,
-      })
+    if (!isAdmin) {
+      console.error('Access denied: User is not an admin')
       return NextResponse.json(
-        { 
+        {
           error: 'Access denied. Your account does not have permission to access this area.',
         },
         { status: 403 }
@@ -70,13 +66,8 @@ export async function POST(request: NextRequest) {
     // Set session cookie for the client
     const response = NextResponse.json({
       success: true,
-      role: userRole,
-      user: {
-        id: authData.user.id,
-        email: authData.user.email,
-        fullName: authData.user.user_metadata?.full_name,
-        role: userRole
-      },
+      role: adminUser!.role,
+      user: adminUser,
       session: {
         access_token: authData.session?.access_token,
         refresh_token: authData.session?.refresh_token,

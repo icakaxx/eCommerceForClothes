@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase/admin';
+
+// Type-safe Supabase client for this module
+const getSupabase = () => supabaseAdmin as any;
 
 // GET - Fetch all products with variants and images
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerClient();
+    const supabase = getSupabase();
 
     // Get all products with their types
     const { data: products, error: productsError } = await supabase
@@ -13,7 +16,7 @@ export async function GET(request: NextRequest) {
         *,
         ProductType:product_types(*)
       `)
-      .order('CreatedAt', { ascending: false });
+      .order('createdat', { ascending: false });
 
     if (productsError) {
       console.error('Error fetching products:', productsError);
@@ -25,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     // For each product, get variants and images
     const productsWithDetails = await Promise.all(
-      (products || []).map(async (product) => {
+      (products || []).map(async (product: any) => {
         // Get variants
         const { data: variants } = await supabase
           .from('product_variants')
@@ -36,30 +39,30 @@ export async function GET(request: NextRequest) {
               Property:properties(*)
             )
           `)
-          .eq('ProductID', product.ProductID);
+          .eq('productid', product.productid);
 
         // Get images
         const { data: images } = await supabase
           .from('product_images')
           .select('*')
-          .eq('ProductID', product.ProductID)
-          .order('SortOrder', { ascending: true });
+          .eq('productid', product.productid)
+          .order('sortorder', { ascending: true });
 
         // For backwards compatibility, create a "legacy" product from the first variant
         const firstVariant = variants?.[0];
         
         // Extract property values from variant for easy access
         const variantProperties = firstVariant?.ProductVariantPropertyValues?.reduce((acc: Record<string, string>, pv: any) => {
-          if (pv.Property?.Name) {
-            acc[pv.Property.Name] = pv.Value;
+          if (pv.Property?.name) {
+            acc[pv.Property.name] = pv.Value;
           }
           return acc;
         }, {}) || {};
         
-        // Try to extract brand and model from Name (format: "Brand Model")
-        const nameParts = product.Name?.split(' ') || [];
+        // Try to extract brand and model from name (format: "Brand Model")
+        const nameParts = product.name?.split(' ') || [];
         const brand = nameParts[0] || 'Unknown';
-        const model = nameParts.slice(1).join(' ') || product.Name || 'Unknown';
+        const model = nameParts.slice(1).join(' ') || product.name || 'Unknown';
         
         // Map ProductType code to legacy category
         const categoryMap: Record<string, 'clothes' | 'shoes' | 'accessories'> = {
@@ -74,27 +77,27 @@ export async function GET(request: NextRequest) {
           'bags': 'accessories',
           'watches': 'accessories'
         };
-        const category = categoryMap[product.ProductType?.Code?.toLowerCase() || ''] || 'clothes';
+        const category = categoryMap[product.ProductType?.code?.toLowerCase() || ''] || 'clothes';
         
         const legacyProduct = {
           // New schema fields
           ...product,
           variants: variants || [],
-          productTypeID: product.ProductTypeID,
+          productTypeID: product.producttypeid,
           
           // Legacy fields for backwards compatibility
-          id: product.ProductID,
+          id: product.productid,
           brand: brand,
           model: model,
           category: category,
-          type: product.ProductType?.Name || '',
+          type: product.ProductType?.name || '',
           color: variantProperties.color || variantProperties.colour || '',
           size: variantProperties.size || '',
-          price: firstVariant?.Price || 0,
-          quantity: firstVariant?.Quantity || 0,
-          visible: firstVariant?.IsVisible ?? true,
-          images: images?.map(img => img.ImageURL) || ['/image.png'],
-          description: product.Description || '',
+          price: firstVariant?.price || 0,
+          quantity: firstVariant?.quantity || 0,
+          visible: firstVariant?.isvisible ?? true,
+          images: images?.map((img: any) => img.imageurl) || ['/image.png'],
+          description: product.description || '',
           propertyValues: variantProperties
         };
 
@@ -119,16 +122,16 @@ export async function GET(request: NextRequest) {
 // POST - Create new product with variants
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerClient();
+    const supabase = getSupabase();
     const body = await request.json();
 
     console.log('📝 POST /api/products - Received body:', JSON.stringify(body, null, 2));
 
-    const { Name, SKU, Description, ProductTypeID, Variants = [] } = body;
+    const { name, sku, description, producttypeid, Variants = [] } = body;
 
-    if (!Name || !ProductTypeID) {
+    if (!name || !producttypeid) {
       return NextResponse.json(
-        { error: 'Missing required fields: Name, ProductTypeID' },
+        { error: 'Missing required fields: name, producttypeid' },
         { status: 400 }
       );
     }
@@ -136,9 +139,9 @@ export async function POST(request: NextRequest) {
     console.log('📦 Variants to process:', Variants.length);
     Variants.forEach((v: any, i: number) => {
       console.log(`  Variant ${i}:`, { 
-        SKU: v.SKU, 
-        Price: v.Price, 
-        Quantity: v.Quantity,
+        sku: v.sku, 
+        price: v.price, 
+        quantity: v.quantity,
         PropertyValues: v.PropertyValues 
       });
     });
@@ -147,11 +150,11 @@ export async function POST(request: NextRequest) {
     const { data: product, error: productError } = await supabase
       .from('products')
       .insert({
-        Name,
-        SKU,
-        Description,
-        ProductTypeID,
-        UpdatedAt: new Date().toISOString()
+        name,
+        sku,
+        description,
+        producttypeid,
+        updatedat: new Date().toISOString()
       })
       .select()
       .single();
@@ -167,19 +170,19 @@ export async function POST(request: NextRequest) {
       // Create new variants
       for (const variantData of Variants) {
         const {
-          SKU: variantSKU,
-          Price,
-          CompareAtPrice,
-          Cost,
-          Quantity,
-          Weight,
-          WeightUnit,
-          Barcode,
-          TrackQuantity,
+          sku: variantsku,
+          price,
+          CompareAtprice,
+          cost,
+          quantity,
+          weight,
+          weightUnit,
+          barcode,
+          Trackquantity,
           ContinueSellingWhenOutOfStock,
-          IsVisible,
+          isvisible,
           PropertyValues = [],
-          ImageURL,
+          imageurl,
           IsPrimaryImage
         } = variantData;
 
@@ -187,18 +190,18 @@ export async function POST(request: NextRequest) {
         const { data: variant, error: variantError } = await supabase
           .from('product_variants')
           .insert({
-            ProductID: product.ProductID,
-            SKU: variantSKU,
-            Price,
-            CompareAtPrice,
-            Cost,
-            Quantity,
-            Weight,
-            WeightUnit: WeightUnit || 'kg',
-            Barcode,
-            TrackQuantity: TrackQuantity ?? true,
+            productid: product.productid,
+            sku: variantsku,
+            price,
+            CompareAtprice,
+            cost,
+            quantity,
+            weight,
+            weightUnit: weightUnit || 'kg',
+            barcode,
+            Trackquantity: Trackquantity ?? true,
             ContinueSellingWhenOutOfStock: ContinueSellingWhenOutOfStock ?? false,
-            IsVisible: IsVisible ?? true
+            isvisible: isvisible ?? true
           })
           .select()
           .single();
@@ -213,8 +216,8 @@ export async function POST(request: NextRequest) {
         // Create property values for this variant
         if (PropertyValues.length > 0) {
           const propertyValuesData = PropertyValues.map((pv: any) => ({
-            ProductVariantID: variant.ProductVariantID,
-            PropertyID: pv.PropertyID,
+            productvariantid: variant.productvariantid,
+            propertyid: pv.propertyid,
             Value: pv.Value
           }));
 
@@ -228,22 +231,22 @@ export async function POST(request: NextRequest) {
         }
 
         // Create image for this variant if provided
-        if (ImageURL) {
+        if (imageurl) {
           console.log('🖼️ Saving variant image:', {
-            ProductID: product.ProductID,
-            ProductVariantID: variant.ProductVariantID,
-            ImageURL: ImageURL,
+            productid: product.productid,
+            productvariantid: variant.productvariantid,
+            imageurl: imageurl,
             IsPrimary: IsPrimaryImage || false
           });
           
           const { data: imageData, error: imageError } = await supabase
             .from('product_images')
             .insert({
-              ProductID: product.ProductID,
-              ProductVariantID: variant.ProductVariantID,
-              ImageURL: ImageURL,
+              productid: product.productid,
+              productvariantid: variant.productvariantid,
+              imageurl: imageurl,
               IsPrimary: IsPrimaryImage || false,
-              SortOrder: 0
+              sortorder: 0
             })
             .select();
 
@@ -253,7 +256,7 @@ export async function POST(request: NextRequest) {
             console.log('✅ Variant image saved:', imageData);
           }
         } else {
-          console.log('⚠️ No ImageURL for variant:', variant.ProductVariantID);
+          console.log('⚠️ No imageurl for variant:', variant.productvariantid);
         }
       }
 

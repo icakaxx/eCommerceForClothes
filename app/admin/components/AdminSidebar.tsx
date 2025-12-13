@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Package, Tags, Settings, Cog, X } from 'lucide-react';
+import { ArrowLeft, Package, Tags, Settings, Cog, X, DollarSign } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
@@ -127,6 +127,26 @@ export default function AdminSidebar({ currentPath, onClose }: AdminSidebarProps
             <div className="flex items-center gap-3">
               <Package size={18} />
               <span>{t.products}</span>
+            </div>
+          </button>
+          <button
+            onClick={() => {
+              router.push('/admin/sales');
+              onClose?.();
+            }}
+            onAuxClick={() => window.open('/admin/sales', '_blank')}
+            title="Sales"
+            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
+              currentPath === '/admin/sales' ? 'opacity-100' : 'opacity-80'
+            }`}
+            style={{
+              backgroundColor: currentPath === '/admin/sales' ? theme.colors.secondary : theme.colors.surface,
+              color: currentPath === '/admin/sales' ? theme.colors.primary : theme.colors.text
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <DollarSign size={18} />
+              <span>Sales</span>
             </div>
           </button>
           <button

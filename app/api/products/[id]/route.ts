@@ -18,7 +18,7 @@ export async function GET(
         *,
         ProductType:product_types(*)
       `)
-      .eq('ProductID', id)
+      .eq('productid', id)
       .single();
 
     if (productError || !product) {
@@ -33,32 +33,32 @@ export async function GET(
       .from('product_variants')
       .select(`
         *,
-        ProductVariantPropertyValues:product_variant_property_values(
+        ProductVariantPropertyvalues:product_variant_property_values(
           *,
           Property:properties(*)
         )
       `)
-      .eq('ProductID', product.ProductID);
+      .eq('productid', product.productid);
 
     // Get all product images
     const { data: allImages } = await supabase
       .from('product_images')
       .select('*')
-      .eq('ProductID', product.ProductID)
-      .order('SortOrder', { ascending: true });
+      .eq('productid', product.productid)
+      .order('sortorder', { ascending: true });
 
     // Attach images to their variants
     const variantsWithImages = variants?.map(variant => {
-      const variantImage = allImages?.find(img => img.ProductVariantID === variant.ProductVariantID);
+      const variantImage = allImages?.find(img => img.productvariantid === variant.productvariantid);
       return {
         ...variant,
-        ImageURL: variantImage?.ImageURL,
+        imageurl: variantImage?.imageurl,
         IsPrimaryImage: variantImage?.IsPrimary || false
       };
     });
 
     // Get general product images (not variant-specific)
-    const images = allImages?.filter(img => !img.ProductVariantID) || [];
+    const images = allImages?.filter(img => !img.productvariantid) || [];
 
     // Transform to new format with backwards compatibility
     const firstVariant = variants?.[0];
@@ -66,15 +66,15 @@ export async function GET(
     // Extract property values from variant for easy access
     const variantProperties: Record<string, string> = {};
     firstVariant?.ProductVariantPropertyValues?.forEach((pv: ProductVariantPropertyValue) => {
-      if (pv.Property?.Name) {
-        variantProperties[pv.Property.Name] = pv.Value;
+      if (pv.property?.name) {
+        variantProperties[pv.property.name] = pv.value;
       }
     });
     
-    // Try to extract brand and model from Name (format: "Brand Model")
-    const nameParts = product.Name?.split(' ') || [];
+    // Try to extract brand and model from name (format: "Brand Model")
+    const nameParts = product.name?.split(' ') || [];
     const brand = nameParts[0] || 'Unknown';
-    const model = nameParts.slice(1).join(' ') || product.Name || 'Unknown';
+    const model = nameParts.slice(1).join(' ') || product.name || 'Unknown';
     
     // Map ProductType code to legacy category
     const categoryMap: Record<string, 'clothes' | 'shoes' | 'accessories'> = {
@@ -93,30 +93,29 @@ export async function GET(
     
     const legacyProduct = {
       // New schema fields
-      ProductID: product.ProductID,
-      Name: product.Name,
-      SKU: product.SKU,
-      Description: product.Description,
-      ProductTypeID: product.ProductTypeID,
+      productid: product.productid,
+      name: product.name,
+      sku: product.sku,
+      description: product.description,
+      producttypeid: product.producttypeid,
       ProductType: product.ProductType,
       Variants: variantsWithImages || [],
       Images: images || [],
       
       // Legacy fields for backwards compatibility
-      id: product.ProductID,
+      id: product.productid,
       brand: brand,
       model: model,
       category: category,
-      type: product.ProductType?.Name || '',
+      type: product.ProductType?.name || '',
       color: variantProperties.color || variantProperties.colour || '',
       size: variantProperties.size || '',
-      quantity: firstVariant?.Quantity || 0,
-      price: firstVariant?.Price || 0,
-      visible: firstVariant?.IsVisible ?? true,
-      images: images?.map(img => img.ImageURL) || ['/image.png'],
-      description: product.Description || '',
-      productTypeID: product.ProductTypeID,
-      propertyValues: variantProperties
+      quantity: firstVariant?.quantity || 0,
+      price: firstVariant?.price || 0,
+      visible: firstVariant?.isvisible ?? true,
+      images: images?.map(img => img.imageurl) || ['/image.png'],
+      productTypeID: product.producttypeid,
+      propertyvalues: variantProperties
     };
 
     return NextResponse.json({
@@ -146,20 +145,20 @@ export async function PUT(
     console.log('📝 PUT /api/products/[id] - Received body:', JSON.stringify(body, null, 2));
 
     const {
-      Name,
-      SKU,
-      Description,
-      ProductTypeID,
+      name,
+      sku,
+      description,
+      producttypeid,
       Variants = []
     } = body;
 
     console.log('📦 Variants to process:', Variants.length);
     Variants.forEach((v: any, i: number) => {
       console.log(`  Variant ${i}:`, { 
-        SKU: v.SKU, 
-        Price: v.Price, 
-        Quantity: v.Quantity,
-        PropertyValues: v.PropertyValues 
+        sku: v.sku, 
+        price: v.price, 
+        quantity: v.quantity,
+        Propertyvalues: v.Propertyvalues 
       });
     });
 
@@ -167,13 +166,13 @@ export async function PUT(
     const { data: product, error: productError } = await supabase
       .from('products')
       .update({
-        Name,
-        SKU: SKU || null,
-        Description: Description || null,
-        ProductTypeID,
-        UpdatedAt: new Date().toISOString()
+        name,
+        sku: sku || null,
+        description: description || null,
+        producttypeid,
+        updatedat: new Date().toISOString()
       })
-      .eq('ProductID', id)
+      .eq('productid', id)
       .select()
       .single();
 
@@ -187,18 +186,18 @@ export async function PUT(
 
     // Handle variants
     if (Variants.length > 0) {
-      // Delete existing variant images first (cascade doesn't work on ProductVariantID FK)
+      // Delete existing variant images first (cascade doesn't work on productvariantid FK)
       await supabase
         .from('product_images')
         .delete()
-        .eq('ProductID', id)
-        .not('ProductVariantID', 'is', null); // Only delete variant-specific images
+        .eq('productid', id)
+        .not('productvariantid', 'is', null); // Only delete variant-specific images
       
       // Delete existing variants (this will cascade delete property values)
       const { error: deleteError } = await supabase
         .from('product_variants')
         .delete()
-        .eq('ProductID', id);
+        .eq('productid', id);
       
       if (deleteError) {
         console.error('❌ Error deleting existing variants:', deleteError);
@@ -209,49 +208,49 @@ export async function PUT(
       // Create new variants
       for (const variantData of Variants) {
         const {
-          ProductVariantID, // May be present for updates
-          SKU: variantSKU,
-          Price,
-          CompareAtPrice,
-          Cost,
-          Quantity,
-          Weight,
-          WeightUnit,
-          Barcode,
-          TrackQuantity,
+          productvariantid, // May be present for updates
+          sku: variantsku,
+          price,
+          CompareAtprice,
+          cost,
+          quantity,
+          weight,
+          weightUnit,
+          barcode,
+          Trackquantity,
           ContinueSellingWhenOutOfStock,
-          IsVisible,
-          PropertyValues = [],
-          ImageURL,
+          isvisible,
+          Propertyvalues = [],
+          imageurl,
           IsPrimaryImage
         } = variantData;
 
         console.log('🔨 Attempting to insert variant:', {
-          ProductID: id,
-          SKU: variantSKU,
-          Price,
-          Quantity,
-          WeightUnit: WeightUnit || 'kg',
-          TrackQuantity: TrackQuantity ?? true,
-          IsVisible: IsVisible ?? true
+          productid: id,
+          sku: variantsku,
+          price,
+          quantity,
+          weightUnit: weightUnit || 'kg',
+          Trackquantity: Trackquantity ?? true,
+          isvisible: isvisible ?? true
         });
 
         // Create variant
         const { data: variant, error: variantError } = await supabase
           .from('product_variants')
           .insert({
-            ProductID: id,
-            SKU: variantSKU,
-            Price,
-            CompareAtPrice,
-            Cost,
-            Quantity,
-            Weight,
-            WeightUnit: WeightUnit || 'kg',
-            Barcode,
-            TrackQuantity: TrackQuantity ?? true,
+            productid: id,
+            sku: variantsku,
+            price,
+            CompareAtprice,
+            cost,
+            quantity,
+            weight,
+            weightUnit: weightUnit || 'kg',
+            barcode,
+            Trackquantity: Trackquantity ?? true,
             ContinueSellingWhenOutOfStock: ContinueSellingWhenOutOfStock ?? false,
-            IsVisible: IsVisible ?? true
+            isvisible: isvisible ?? true
           })
           .select()
           .single();
@@ -265,16 +264,16 @@ export async function PUT(
         console.log('✅ Created variant:', variant);
 
         // Create property values for this variant
-        if (PropertyValues.length > 0) {
-          const propertyValuesData = PropertyValues.map((pv: any) => ({
-            ProductVariantID: variant.ProductVariantID,
-            PropertyID: pv.PropertyID,
-            Value: pv.Value
+        if (Propertyvalues.length > 0) {
+          const propertyvaluesData = Propertyvalues.map((pv: any) => ({
+            productvariantid: variant.productvariantid,
+            propertyid: pv.propertyid,
+            value: pv.value
           }));
 
           const { error: pvError } = await supabase
             .from('product_variant_property_values')
-            .insert(propertyValuesData);
+            .insert(propertyvaluesData);
 
           if (pvError) {
             console.error('Error creating property values:', pvError);
@@ -282,22 +281,22 @@ export async function PUT(
         }
 
         // Create image for this variant if provided
-        if (ImageURL) {
+        if (imageurl) {
           console.log('🖼️ Saving variant image:', {
-            ProductID: id,
-            ProductVariantID: variant.ProductVariantID,
-            ImageURL: ImageURL,
+            productid: id,
+            productvariantid: variant.productvariantid,
+            imageurl: imageurl,
             IsPrimary: IsPrimaryImage || false
           });
           
           const { data: imageData, error: imageError } = await supabase
             .from('product_images')
             .insert({
-              ProductID: id,
-              ProductVariantID: variant.ProductVariantID,
-              ImageURL: ImageURL,
+              productid: id,
+              productvariantid: variant.productvariantid,
+              imageurl: imageurl,
               IsPrimary: IsPrimaryImage || false,
-              SortOrder: 0
+              sortorder: 0
             })
             .select();
 
@@ -307,7 +306,7 @@ export async function PUT(
             console.log('✅ Variant image saved:', imageData);
           }
         } else {
-          console.log('⚠️ No ImageURL for variant:', variant.ProductVariantID);
+          console.log('⚠️ No imageurl for variant:', variant.productvariantid);
         }
       }
     }
@@ -341,7 +340,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('products')
       .delete()
-      .eq('ProductID', id);
+      .eq('productid', id);
 
     if (error) {
       console.error('Error deleting product:', error);

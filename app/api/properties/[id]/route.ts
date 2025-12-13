@@ -13,7 +13,7 @@ export async function GET(
     const { data: property, error } = await supabase
       .from('properties')
       .select('*')
-      .eq('PropertyID', id)
+      .eq('propertyid', id)
       .single();
 
     if (error || !property) {
@@ -47,17 +47,17 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const { Name, Description, DataType } = body;
+    const { name, description, datatype } = body;
 
     const { data: property, error } = await supabase
       .from('properties')
       .update({
-        Name,
-        Description: Description || null,
-        DataType: DataType || 'text',
-        UpdatedAt: new Date().toISOString()
+        name,
+        description: description || null,
+        datatype: datatype || 'text',
+        updatedat: new Date().toISOString()
       })
-      .eq('PropertyID', id)
+      .eq('propertyid', id)
       .select()
       .single();
 
@@ -95,7 +95,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('properties')
       .delete()
-      .eq('PropertyID', id);
+      .eq('propertyid', id);
 
     if (error) {
       console.error('Error deleting property:', error);

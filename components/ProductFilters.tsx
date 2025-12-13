@@ -395,14 +395,14 @@ export default function ProductFilters({
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {properties.map(property => {
-          const propertyName = property.Name;
+          const propertyName = property.name;
           const hasValues = availableValues[propertyName] && availableValues[propertyName].length > 0;
 
           // Only show filters that have available values
           if (!hasValues) return null;
 
           return (
-            <div key={property.PropertyID}>
+            <div key={property.propertyid}>
               <label
                 className="block text-sm font-medium mb-2"
                 style={{ color: theme.colors.text }}
@@ -415,7 +415,7 @@ export default function ProductFilters({
         })}
 
         {/* Fallback: Show legacy properties if no database properties are available or have values */}
-        {properties.length === 0 || properties.every(p => !availableValues[p.Name] || availableValues[p.Name].length === 0) ? (
+        {properties.length === 0 || properties.every(p => !availableValues[p.name] || availableValues[p.name].length === 0) ? (
           <>
             {['Color', 'Size', 'Type', 'Brand', 'Model'].map(legacyProperty => {
               const hasValues = availableValues[legacyProperty] && availableValues[legacyProperty].length > 0;
@@ -423,13 +423,13 @@ export default function ProductFilters({
 
               // Create a mock property object for legacy fields
               const mockProperty = {
-                PropertyID: `legacy-${legacyProperty.toLowerCase()}`,
-                Name: legacyProperty,
-                DataType: legacyProperty.toLowerCase() === 'size' || legacyProperty.toLowerCase() === 'model' ? 'select' : 'text' as 'text' | 'select' | 'number'
+                propertyid: `legacy-${legacyProperty.toLowerCase()}`,
+                name: legacyProperty,
+                datatype: legacyProperty.toLowerCase() === 'size' || legacyProperty.toLowerCase() === 'model' ? 'select' : 'text' as 'text' | 'select' | 'number'
               };
 
               return (
-                <div key={mockProperty.PropertyID}>
+                <div key={mockProperty.propertyid}>
                   <label
                     className="block text-sm font-medium mb-2"
                     style={{ color: theme.colors.text }}

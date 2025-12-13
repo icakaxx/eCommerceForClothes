@@ -13,27 +13,27 @@ export async function GET(
     const { data: productTypeProperties, error } = await supabase
       .from('product_type_properties')
       .select(`
-        ProductTypePropertyID,
-        PropertyID,
+        producttypepropertyid,
+        propertyid,
         properties (
-          PropertyID,
-          Name,
-          Description,
-          DataType,
-          CreatedAt,
-          UpdatedAt,
+          propertyid,
+          name,
+          description,
+          datatype,
+          createdat,
+          updatedat,
           property_values (
-            PropertyValueID,
-            PropertyID,
-            Value,
-            DisplayOrder,
-            IsActive,
-            CreatedAt,
-            UpdatedAt
+            propertyvalueid,
+            propertyid,
+            value,
+            displayorder,
+            isactive,
+            createdat,
+            updatedat
           )
         )
       `)
-      .eq('ProductTypeID', id);
+      .eq('producttypeid', id);
 
     if (error) {
       console.error('Error fetching product type properties:', error);
@@ -43,21 +43,21 @@ export async function GET(
       );
     }
 
-    // Transform the data to include Values array properly
-    const propertiesWithValues = (productTypeProperties || []).map((ptp: any) => ({
+    // Transform the data to include values array properly
+    const propertiesWithvalues = (productTypeProperties || []).map((ptp: any) => ({
       ...ptp,
       properties: ptp.properties ? {
         ...ptp.properties,
-        Values: ptp.properties.property_values
-          ?.filter((v: any) => v.IsActive !== false)
-          ?.sort((a: any, b: any) => a.DisplayOrder - b.DisplayOrder)
+        values: ptp.properties.property_values
+          ?.filter((v: any) => v.isactive !== false)
+          ?.sort((a: any, b: any) => a.displayorder - b.displayorder)
           || []
       } : null
     }));
 
     return NextResponse.json({
       success: true,
-      properties: propertiesWithValues
+      properties: propertiesWithvalues
     });
 
   } catch (error) {
@@ -79,11 +79,11 @@ export async function POST(
     const { id } = await params;
     const body = await request.json();
 
-    const { PropertyID } = body;
+    const { propertyid } = body;
 
-    if (!PropertyID) {
+    if (!propertyid) {
       return NextResponse.json(
-        { error: 'Missing required field: PropertyID' },
+        { error: 'Missing required field: propertyid' },
         { status: 400 }
       );
     }
@@ -91,8 +91,8 @@ export async function POST(
     const { data: productTypeProperty, error } = await supabase
       .from('product_type_properties')
       .insert({
-        ProductTypeID: id,
-        PropertyID
+        producttypeid: id,
+        propertyid
       })
       .select()
       .single();
@@ -140,8 +140,8 @@ export async function DELETE(
     const { error } = await supabase
       .from('product_type_properties')
       .delete()
-      .eq('ProductTypeID', id)
-      .eq('PropertyID', propertyId);
+      .eq('producttypeid', id)
+      .eq('propertyid', propertyId);
 
     if (error) {
       console.error('Error removing property from product type:', error);

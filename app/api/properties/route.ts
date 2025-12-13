@@ -12,14 +12,14 @@ export async function GET(request: NextRequest) {
         .select(`
           *,
           property_values (
-            PropertyValueID,
-            Value,
-            DisplayOrder,
-            IsActive,
-            CreatedAt
+            propertyvalueid,
+            value,
+            displayorder,
+            isactive,
+            createdat
           )
         `)
-        .order('Name', { ascending: true });
+        .order('name', { ascending: true });
 
       if (error) {
         // If property_values table doesn't exist, fetch properties without values
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         const { data: fallbackProperties, error: fallbackError } = await supabase
           .from('properties')
           .select('*')
-          .order('Name', { ascending: true });
+          .order('name', { ascending: true });
 
         if (fallbackError) {
           console.error('Error fetching properties:', fallbackError);
@@ -37,30 +37,30 @@ export async function GET(request: NextRequest) {
           );
         }
 
-        // Add empty Values array for compatibility
-        const propertiesWithEmptyValues = (fallbackProperties || []).map(prop => ({
+        // Add empty values array for compatibility
+        const propertiesWithEmptyvalues = (fallbackProperties || []).map(prop => ({
           ...prop,
-          Values: []
+          values: []
         }));
 
         return NextResponse.json({
           success: true,
-          properties: propertiesWithEmptyValues
+          properties: propertiesWithEmptyvalues
         });
       }
 
       // Filter out inactive values and sort them
-      const propertiesWithValues = (properties || []).map(prop => ({
+      const propertiesWithvalues = (properties || []).map(prop => ({
         ...prop,
-        Values: prop.property_values
-          ?.filter((v: any) => v.IsActive !== false) // Allow undefined (new records) to pass
-          ?.sort((a: any, b: any) => a.DisplayOrder - b.DisplayOrder || a.Value.localeCompare(b.Value))
+        values: prop.property_values
+          ?.filter((v: any) => v.isactive !== false) // Allow undefined (new records) to pass
+          ?.sort((a: any, b: any) => a.displayorder - b.displayorder || a.value.localeCompare(b.value))
           || []
       }));
 
       return NextResponse.json({
         success: true,
-        properties: propertiesWithValues
+        properties: propertiesWithvalues
       });
 
     } catch (dbError) {
@@ -70,20 +70,20 @@ export async function GET(request: NextRequest) {
         const { data: minimalProperties, error: minimalError } = await supabase
           .from('properties')
           .select('*')
-          .order('Name', { ascending: true });
+          .order('name', { ascending: true });
 
         if (minimalError) {
           throw minimalError;
         }
 
-        const propertiesWithEmptyValues = (minimalProperties || []).map(prop => ({
+        const propertiesWithEmptyvalues = (minimalProperties || []).map(prop => ({
           ...prop,
-          Values: []
+          values: []
         }));
 
         return NextResponse.json({
           success: true,
-          properties: propertiesWithEmptyValues
+          properties: propertiesWithEmptyvalues
         });
       } catch (minimalError) {
         console.error('Minimal fallback also failed:', minimalError);
@@ -109,11 +109,11 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient();
     const body = await request.json();
 
-    const { Name, Description, DataType } = body;
+    const { name, description, datatype } = body;
 
-    if (!Name) {
+    if (!name) {
       return NextResponse.json(
-        { error: 'Missing required field: Name' },
+        { error: 'Missing required field: name' },
         { status: 400 }
       );
     }
@@ -121,10 +121,10 @@ export async function POST(request: NextRequest) {
     const { data: property, error } = await supabase
       .from('properties')
       .insert({
-        Name,
-        Description: Description || null,
-        DataType: DataType || 'text',
-        UpdatedAt: new Date().toISOString()
+        name,
+        description: description || null,
+        datatype: datatype || 'text',
+        updatedat: new Date().toISOString()
       })
       .select()
       .single();

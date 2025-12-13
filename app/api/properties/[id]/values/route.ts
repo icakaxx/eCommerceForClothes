@@ -14,10 +14,10 @@ export async function GET(
       const { data: values, error } = await supabase
         .from('property_values')
         .select('*')
-        .eq('PropertyID', id)
-        .eq('IsActive', true)
-        .order('DisplayOrder', { ascending: true })
-        .order('Value', { ascending: true });
+        .eq('propertyid', id)
+        .eq('isactive', true)
+        .order('displayorder', { ascending: true })
+        .order('value', { ascending: true });
 
       if (error) {
         // Table doesn't exist, return empty array
@@ -61,23 +61,23 @@ export async function POST(
     const { id: propertyId } = await params;
     const body = await request.json();
 
-    const { Value, DisplayOrder = 0 } = body;
+    const { value, displayorder = 0 } = body;
 
-    if (!Value) {
+    if (!value) {
       return NextResponse.json(
-        { error: 'Value is required' },
+        { error: 'value is required' },
         { status: 400 }
       );
     }
 
     try {
-      const { data: value, error } = await supabase
+      const { data: propertyValue, error } = await supabase
         .from('property_values')
         .insert({
-          PropertyID: propertyId,
-          Value,
-          DisplayOrder,
-          IsActive: true
+          propertyid: propertyId,
+          value,
+          displayorder,
+          isactive: true
         })
         .select()
         .single();
@@ -87,19 +87,19 @@ export async function POST(
         console.warn('property_values table not found, returning mock success:', error.message);
 
         // Generate a temporary ID for frontend compatibility
-        const tempValue = {
-          PropertyValueID: `temp-${Date.now()}-${Math.random()}`,
-          PropertyID: propertyId,
-          Value,
-          DisplayOrder,
-          IsActive: true,
-          CreatedAt: new Date().toISOString(),
-          UpdatedAt: new Date().toISOString()
+        const tempvalue = {
+          PropertyvalueID: `temp-${Date.now()}-${Math.random()}`,
+          propertyid: propertyId,
+          value,
+          displayorder,
+          isactive: true,
+          createdat: new Date().toISOString(),
+          updatedat: new Date().toISOString()
         };
 
         return NextResponse.json({
           success: true,
-          value: tempValue,
+          value: tempvalue,
           warning: 'Database table not available - value stored temporarily'
         });
       }
@@ -113,19 +113,19 @@ export async function POST(
       // Database error, return temporary success
       console.warn('Database error creating property value, returning temporary success:', dbError);
 
-      const tempValue = {
-        PropertyValueID: `temp-${Date.now()}-${Math.random()}`,
-        PropertyID: propertyId,
-        Value,
-        DisplayOrder,
-        IsActive: true,
-        CreatedAt: new Date().toISOString(),
-        UpdatedAt: new Date().toISOString()
+      const tempvalue = {
+        PropertyvalueID: `temp-${Date.now()}-${Math.random()}`,
+        propertyid: propertyId,
+        value,
+        displayorder,
+        isactive: true,
+        createdat: new Date().toISOString(),
+        updatedat: new Date().toISOString()
       };
 
       return NextResponse.json({
         success: true,
-        value: tempValue,
+        value: tempvalue,
         warning: 'Database temporarily unavailable - value stored locally'
       });
     }

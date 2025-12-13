@@ -15,20 +15,20 @@ interface ProductDetailsProps {
 }
 
 interface Variant {
-  ProductVariantID: string;
-  SKU: string;
-  Price: number;
-  Quantity: number;
-  IsVisible: boolean;
+  productvariantid: string;
+  sku: string;
+  price: number;
+  quantity: number;
+  isvisible: boolean;
   ProductVariantPropertyValues?: Array<{
-    PropertyID: string;
+    propertyid: string;
     Property?: {
-      PropertyID: string;
-      Name: string;
+      propertyid: string;
+      name: string;
     };
-    Value: string;
+    value: string;
   }>;
-  ImageURL?: string;
+  imageurl?: string;
   IsPrimaryImage?: boolean;
 }
 
@@ -48,7 +48,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   useEffect(() => {
     // Extract variants from product
     if (product.variants && Array.isArray(product.variants)) {
-      const visibleVariants = product.variants.filter((v: any) => v.IsVisible !== false);
+      const visibleVariants = product.variants.filter((v: any) => v.isvisible !== false);
       setVariants(visibleVariants);
 
       // Build available options map
@@ -56,11 +56,11 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
       visibleVariants.forEach((variant: any) => {
         if (variant.ProductVariantPropertyValues) {
           variant.ProductVariantPropertyValues.forEach((pv: any) => {
-            const propertyName = pv.Property?.Name || pv.PropertyID;
+            const propertyName = pv.Property?.name || pv.propertyid;
             if (!optionsMap[propertyName]) {
               optionsMap[propertyName] = new Set();
             }
-            optionsMap[propertyName].add(pv.Value);
+            optionsMap[propertyName].add(pv.value);
           });
         }
       });
@@ -70,20 +70,20 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
       if (visibleVariants.length > 0) {
         const primaryVariant = visibleVariants.find((v: any) => v.IsPrimaryImage) || visibleVariants[0];
         setSelectedVariant(primaryVariant);
-        
+
         // Set initial selected options
         const initialOptions: Record<string, string> = {};
         if (primaryVariant.ProductVariantPropertyValues) {
           primaryVariant.ProductVariantPropertyValues.forEach((pv: any) => {
-            const propertyName = pv.Property?.Name || pv.PropertyID;
-            initialOptions[propertyName] = pv.Value;
+            const propertyName = pv.Property?.name || pv.propertyid;
+            initialOptions[propertyName] = pv.value;
           });
         }
         setSelectedOptions(initialOptions);
         
         // Notify parent of initial variant image (only once on mount)
-        if (onVariantChange && primaryVariant.ImageURL) {
-          onVariantChange(primaryVariant.ImageURL);
+        if (onVariantChange && primaryVariant.imageurl) {
+          onVariantChange(primaryVariant.imageurl);
         }
       }
     }
@@ -96,11 +96,11 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
     // Find matching variant
     const matchingVariant = variants.find((variant) => {
       if (!variant.ProductVariantPropertyValues) return false;
-      
+
       const variantOptions: Record<string, string> = {};
       variant.ProductVariantPropertyValues.forEach((pv) => {
-        const propName = pv.Property?.Name || pv.PropertyID;
-        variantOptions[propName] = pv.Value;
+        const propName = pv.Property?.name || pv.propertyid;
+        variantOptions[propName] = pv.value;
       });
 
       // Check if all selected options match this variant
@@ -114,14 +114,14 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
       
       // Notify parent component of image change
       if (onVariantChange) {
-        onVariantChange(matchingVariant.ImageURL);
+        onVariantChange(matchingVariant.imageurl);
       }
     }
   };
 
   // Get current price and quantity
-  const currentPrice = selectedVariant?.Price || product.price || 0;
-  const currentQuantity = selectedVariant?.Quantity || product.quantity || 0;
+  const currentPrice = selectedVariant?.price || product.price || 0;
+  const currentQuantity = selectedVariant?.quantity || product.quantity || 0;
 
   const getCategoryLabel = () => {
     if (product.category === 'clothes') return product.type || t.clothes;
@@ -139,7 +139,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
 
     // Add item to cart
     addItem({
-      id: selectedVariant?.ProductVariantID || product.id,
+      id: selectedVariant?.productvariantid || product.id,
       name: `${product.brand} ${product.model}`,
       brand: product.brand,
       model: product.model,
@@ -148,7 +148,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
       size: selectedVariant ? selectedOptions['Size'] || selectedOptions['size'] || product.size : product.size,
       price: currentPrice,
       quantity: 1, // Default to 1, user can adjust in cart
-      imageUrl: selectedVariant?.ImageURL || product.images[0] || '/image.png',
+      imageUrl: selectedVariant?.imageurl || product.images[0] || '/image.png',
       category: product.category,
       propertyValues: product.propertyValues,
     });
@@ -265,7 +265,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
                 color: theme.colors.textSecondary 
               }}
             >
-              SKU: <span style={{ color: theme.colors.text }}>{selectedVariant.SKU}</span>
+              SKU: <span style={{ color: theme.colors.text }}>{selectedVariant.sku}</span>
             </div>
           )}
         </div>

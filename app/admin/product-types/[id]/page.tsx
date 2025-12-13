@@ -56,7 +56,7 @@ export default function ProductTypeDetailsPage() {
       const response = await fetch(`/api/product-types/${id}/properties`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ PropertyID: propertyId })
+        body: JSON.stringify({ propertyid: propertyId })
       });
 
       const result = await response.json();
@@ -93,7 +93,7 @@ export default function ProductTypeDetailsPage() {
   };
 
   const unassignedProperties = availableProperties.filter(
-    prop => !assignedProperties.some(ap => ap.PropertyID === prop.PropertyID)
+    prop => !assignedProperties.some(ap => ap.propertyid === prop.propertyid)
   );
 
   if (loading) {
@@ -115,8 +115,8 @@ export default function ProductTypeDetailsPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold">{productType.Name}</h1>
-            <p className="text-gray-500">Code: {productType.Code}</p>
+            <h1 className="text-3xl font-bold">{productType.name}</h1>
+            <p className="text-gray-500">Code: {productType.code}</p>
           </div>
         </div>
 
@@ -142,14 +142,14 @@ export default function ProductTypeDetailsPage() {
                   className="flex justify-between items-center p-3 border border-gray-200 rounded"
                 >
                   <div>
-                    <div className="font-medium">{ap.properties?.Name}</div>
-                    {ap.properties?.Description && (
-                      <div className="text-sm text-gray-500">{ap.properties.Description}</div>
+                    <div className="font-medium">{ap.properties?.name}</div>
+                    {ap.properties?.description && (
+                      <div className="text-sm text-gray-500">{ap.properties.description}</div>
                     )}
-                    <div className="text-xs text-gray-400">Type: {ap.properties?.DataType}</div>
+                    <div className="text-xs text-gray-400">Type: {ap.properties?.datatype}</div>
                   </div>
                   <button
-                    onClick={() => handleRemoveProperty(ap.PropertyID)}
+                    onClick={() => handleRemoveProperty(ap.propertyid)}
                     className="text-red-600 hover:text-red-900"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -175,15 +175,15 @@ export default function ProductTypeDetailsPage() {
                 ) : (
                   unassignedProperties.map((prop) => (
                     <button
-                      key={prop.PropertyID}
-                      onClick={() => handleAddProperty(prop.PropertyID)}
+                      key={prop.propertyid}
+                      onClick={() => handleAddProperty(prop.propertyid)}
                       className="w-full text-left p-3 border border-gray-200 rounded hover:bg-gray-50"
                     >
-                      <div className="font-medium">{prop.Name}</div>
-                      {prop.Description && (
-                        <div className="text-sm text-gray-500">{prop.Description}</div>
+                      <div className="font-medium">{prop.name}</div>
+                      {prop.description && (
+                        <div className="text-sm text-gray-500">{prop.description}</div>
                       )}
-                      <div className="text-xs text-gray-400">Type: {prop.DataType}</div>
+                      <div className="text-xs text-gray-400">Type: {prop.datatype}</div>
                     </button>
                   ))
                 )}

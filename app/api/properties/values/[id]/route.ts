@@ -13,7 +13,7 @@ export async function GET(
     const { data: value, error } = await supabase
       .from('property_values')
       .select('*')
-      .eq('PropertyValueID', id)
+      .eq('propertyvalueid', id)
       .single();
 
     if (error || !value) {
@@ -47,21 +47,21 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const { Value, DisplayOrder, IsActive } = body;
+    const { value, displayorder, isactive } = body;
 
     try {
       const updateData: any = {
-        UpdatedAt: new Date().toISOString()
+        updatedat: new Date().toISOString()
       };
 
-      if (Value !== undefined) updateData.Value = Value;
-      if (DisplayOrder !== undefined) updateData.DisplayOrder = DisplayOrder;
-      if (IsActive !== undefined) updateData.IsActive = IsActive;
+      if (value !== undefined) updateData.value = value;
+      if (displayorder !== undefined) updateData.displayorder = displayorder;
+      if (isactive !== undefined) updateData.isactive = isactive;
 
-      const { data: value, error } = await supabase
+      const { data: propertyValue, error } = await supabase
         .from('property_values')
         .update(updateData)
-        .eq('PropertyValueID', id)
+        .eq('propertyvalueid', id)
         .select()
         .single();
 
@@ -69,40 +69,40 @@ export async function PUT(
         // Table doesn't exist or record not found, return mock success for temp IDs
         console.warn('property_values table not found or record not found, returning mock success:', error.message);
 
-        const mockValue = {
-          PropertyValueID: id,
-          Value: Value || 'Updated Value',
-          DisplayOrder: DisplayOrder || 0,
-          IsActive: IsActive !== false,
-          UpdatedAt: new Date().toISOString()
+        const mockvalue = {
+          propertyvalueid: id,
+          value: value || 'Updated value',
+          displayorder: displayorder || 0,
+          isactive: isactive !== false,
+          updatedat: new Date().toISOString()
         };
 
         return NextResponse.json({
           success: true,
-          value: mockValue,
+          value: mockvalue,
           warning: 'Database table not available - update stored temporarily'
         });
       }
 
       return NextResponse.json({
         success: true,
-        value
+        value: propertyValue
       });
 
     } catch (dbError) {
       console.warn('Database error updating property value, returning mock success:', dbError);
 
-      const mockValue = {
-        PropertyValueID: id,
-        Value: Value || 'Updated Value',
-        DisplayOrder: DisplayOrder || 0,
-        IsActive: IsActive !== false,
-        UpdatedAt: new Date().toISOString()
+      const mockvalue = {
+        propertyvalueid: id,
+        value: value || 'Updated value',
+        displayorder: displayorder || 0,
+        isactive: isactive !== false,
+        updatedat: new Date().toISOString()
       };
 
       return NextResponse.json({
         success: true,
-        value: mockValue,
+        value: mockvalue,
         warning: 'Database temporarily unavailable - update stored locally'
       });
     }
@@ -126,14 +126,14 @@ export async function DELETE(
     const { id } = await params;
 
     try {
-      // Soft delete by setting IsActive to false
-      const { data: value, error } = await supabase
+      // Soft delete by setting isactive to false
+      const { data: propertyValue, error } = await supabase
         .from('property_values')
         .update({
-          IsActive: false,
-          UpdatedAt: new Date().toISOString()
+          isactive: false,
+          updatedat: new Date().toISOString()
         })
-        .eq('PropertyValueID', id)
+        .eq('propertyvalueid', id)
         .select()
         .single();
 

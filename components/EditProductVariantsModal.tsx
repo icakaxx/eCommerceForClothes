@@ -16,19 +16,19 @@ interface EditProductVariantsModalProps {
 }
 
 interface VariantFormData {
-  ProductVariantID?: string;
-  SKU?: string;
-  Price?: number;
-  CompareAtPrice?: number;
-  Cost?: number;
-  Quantity: number;
-  Weight?: number;
-  WeightUnit: string;
-  Barcode?: string;
-  TrackQuantity: boolean;
-  ContinueSellingWhenOutOfStock: boolean;
-  IsVisible: boolean;
-  propertyValues: Record<string, string>;
+  productvariantid?: string;
+  sku?: string;
+  price?: number;
+  compareatprice?: number;
+  cost?: number;
+  quantity: number;
+  weight?: number;
+  weightunit: string;
+  barcode?: string;
+  trackquantity: boolean;
+  continuesellingwhenoutofstock: boolean;
+  isvisible: boolean;
+  propertyvalues: Record<string, string>;
 }
 
 export default function EditProductVariantsModal({ product, onClose, onSave }: EditProductVariantsModalProps) {
@@ -41,29 +41,29 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
 
   // Form state
   const [productForm, setProductForm] = useState({
-    Name: product?.Name || '',
-    SKU: product?.SKU || '',
-    Description: product?.Description || '',
-    ProductTypeID: product?.ProductTypeID || ''
+    name: product?.name || '',
+    sku: product?.sku || '',
+    description: product?.description || '',
+    producttypeid: product?.producttypeid || ''
   });
 
   const [variants, setVariants] = useState<VariantFormData[]>(
-    product?.Variants?.map(v => ({
-      ProductVariantID: v.ProductVariantID,
-      SKU: v.SKU || '',
-      Price: v.Price || 0,
-      CompareAtPrice: v.CompareAtPrice || undefined,
-      Cost: v.Cost || undefined,
-      Quantity: v.Quantity,
-      Weight: v.Weight || undefined,
-      WeightUnit: v.WeightUnit || 'kg',
-      Barcode: v.Barcode || '',
-      TrackQuantity: v.TrackQuantity,
-      ContinueSellingWhenOutOfStock: v.ContinueSellingWhenOutOfStock,
-      IsVisible: v.IsVisible,
-      propertyValues: v.PropertyValues?.reduce((acc, pv) => {
-        if (pv.Property) {
-          acc[pv.Property.PropertyID] = pv.Value;
+    product?.variants?.map(v => ({
+      productvariantid: v.productvariantid,
+      sku: v.sku || '',
+      price: v.price || 0,
+      compareatprice: v.compareatprice || undefined,
+      cost: v.cost || undefined,
+      quantity: v.quantity,
+      weight: v.weight || undefined,
+      weightunit: v.weightunit || 'kg',
+      barcode: v.barcode || '',
+      trackquantity: v.trackquantity,
+      continuesellingwhenoutofstock: v.continuesellingwhenoutofstock,
+      isvisible: v.isvisible,
+      propertyvalues: v.propertyvalues?.reduce((acc, pv) => {
+        if (pv.property) {
+          acc[pv.property.propertyid] = pv.value;
         }
         return acc;
       }, {} as Record<string, string>) || {}
@@ -76,21 +76,21 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
   const [showVariantModal, setShowVariantModal] = useState(false);
   const [editingVariantIndex, setEditingVariantIndex] = useState<number | null>(null);
   const [variantForm, setVariantForm] = useState<VariantFormData>({
-    Quantity: 0,
-    WeightUnit: 'kg',
-    TrackQuantity: true,
-    ContinueSellingWhenOutOfStock: false,
-    IsVisible: true,
-    propertyValues: {}
+    quantity: 0,
+    weightunit: 'kg',
+    trackquantity: true,
+    continuesellingwhenoutofstock: false,
+    isvisible: true,
+    propertyvalues: {}
   });
 
   // Get available properties for selected product type
   useEffect(() => {
-    if (productForm.ProductTypeID) {
-      const productType = productTypes.find(pt => pt.ProductTypeID === productForm.ProductTypeID);
+    if (productForm.producttypeid) {
+      const productType = productTypes.find(pt => pt.producttypeid === productForm.producttypeid);
       if (productType) {
         // Fetch properties for this product type
-        fetch(`/api/product-types/${productForm.ProductTypeID}/properties`)
+        fetch(`/api/product-types/${productForm.producttypeid}/properties`)
           .then(res => res.json())
           .then(result => {
             if (result.success) {
@@ -125,7 +125,7 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
       setAvailableProperties([]);
       setPropertyValues({});
     }
-  }, [productForm.ProductTypeID, productTypes]);
+  }, [productForm.producttypeid, productTypes]);
 
   const handleProductSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,9 +136,9 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
       Variants: variants.map(v => ({
         ...v,
         // Convert property values to the expected format
-        PropertyValues: Object.entries(v.propertyValues).map(([propertyId, value]) => ({
-          PropertyID: propertyId,
-          Value: value
+        propertyvalues: Object.entries(v.propertyvalues).map(([propertyId, value]) => ({
+          propertyid: propertyId,
+          value: value
         }))
       }))
     };
@@ -148,12 +148,12 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
 
   const addVariant = () => {
     setVariantForm({
-      Quantity: 0,
-      WeightUnit: 'kg',
-      TrackQuantity: true,
-      ContinueSellingWhenOutOfStock: false,
-      IsVisible: true,
-      propertyValues: {}
+      quantity: 0,
+      weightunit: 'kg',
+      trackquantity: true,
+      continuesellingwhenoutofstock: false,
+      isvisible: true,
+      propertyvalues: {}
     });
     setEditingVariantIndex(null);
     setShowVariantModal(true);
@@ -260,8 +260,8 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
                   <input
                     type="text"
                     required
-                    value={productForm.Name}
-                    onChange={(e) => setProductForm(prev => ({ ...prev, Name: e.target.value }))}
+                    value={productForm.name}
+                    onChange={(e) => setProductForm(prev => ({ ...prev, name: e.target.value }))}
                     className="w-full px-3 py-2 border rounded-md"
                     style={{
                       backgroundColor: theme.colors.surface,
@@ -277,8 +277,8 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
                   </label>
                   <select
                     required
-                    value={productForm.ProductTypeID}
-                    onChange={(e) => setProductForm(prev => ({ ...prev, ProductTypeID: e.target.value }))}
+                    value={productForm.producttypeid}
+                    onChange={(e) => setProductForm(prev => ({ ...prev, producttypeid: e.target.value }))}
                     className="w-full px-3 py-2 border rounded-md"
                     style={{
                       backgroundColor: theme.colors.surface,
@@ -290,8 +290,8 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
                       {language === 'bg' ? 'Изберете тип' : 'Select Type'}
                     </option>
                     {productTypes.map(type => (
-                      <option key={type.ProductTypeID} value={type.ProductTypeID}>
-                        {type.Name}
+                      <option key={type.producttypeid} value={type.producttypeid}>
+                        {type.name}
                       </option>
                     ))}
                   </select>
@@ -303,8 +303,8 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
                   </label>
                   <input
                     type="text"
-                    value={productForm.SKU}
-                    onChange={(e) => setProductForm(prev => ({ ...prev, SKU: e.target.value }))}
+                    value={productForm.sku}
+                    onChange={(e) => setProductForm(prev => ({ ...prev, sku: e.target.value }))}
                     className="w-full px-3 py-2 border rounded-md"
                     style={{
                       backgroundColor: theme.colors.surface,
@@ -319,8 +319,8 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
                     {language === 'bg' ? 'Описание' : 'Description'}
                   </label>
                   <textarea
-                    value={productForm.Description}
-                    onChange={(e) => setProductForm(prev => ({ ...prev, Description: e.target.value }))}
+                    value={productForm.description}
+                    onChange={(e) => setProductForm(prev => ({ ...prev, description: e.target.value }))}
                     rows={3}
                     className="w-full px-3 py-2 border rounded-md"
                     style={{
@@ -395,16 +395,16 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
                         <div className="flex-1">
                           <div className="flex items-center gap-4 mb-2">
                             <span className="font-medium">
-                              {variant.SKU || `${language === 'bg' ? 'Вариант' : 'Variant'} ${index + 1}`}
+                              {variant.sku || `${language === 'bg' ? 'Вариант' : 'Variant'} ${index + 1}`}
                             </span>
                             <span
                               className={`px-2 py-1 text-xs rounded ${
-                                variant.IsVisible
+                                variant.isvisible
                                   ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                                   : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
                               }`}
                             >
-                              {variant.IsVisible
+                              {variant.isvisible
                                 ? (language === 'bg' ? 'Видим' : 'Visible')
                                 : (language === 'bg' ? 'Скрит' : 'Hidden')
                               }
@@ -413,16 +413,16 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
 
                           <div className="flex items-center gap-4 text-sm">
                             <span>
-                              {language === 'bg' ? 'Количество:' : 'Qty:'} {variant.Quantity}
+                              {language === 'bg' ? 'Количество:' : 'Qty:'} {variant.quantity}
                             </span>
-                            {variant.Price && (
+                            {variant.price && (
                               <span>
-                                {language === 'bg' ? 'Цена:' : 'Price:'} ${variant.Price}
+                                {language === 'bg' ? 'Цена:' : 'Price:'} ${variant.price}
                               </span>
                             )}
-                            {Object.keys(variant.propertyValues).length > 0 && (
+                            {Object.keys(variant.propertyvalues).length > 0 && (
                               <span>
-                                {language === 'bg' ? 'Свойства:' : 'Properties:'} {Object.keys(variant.propertyValues).length}
+                                {language === 'bg' ? 'Свойства:' : 'Properties:'} {Object.keys(variant.propertyvalues).length}
                               </span>
                             )}
                           </div>
@@ -497,13 +497,13 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {availableProperties
-                  .filter(prop => prop.DataType === 'select')
+                  .filter(prop => prop.datatype === 'select')
                   .map(property => {
-                    const availableValues = propertyValues[property.PropertyID] || [];
+                    const availableValues = propertyValues[property.propertyid] || [];
 
                     return (
-                      <div key={property.PropertyID} className="space-y-3">
-                        <h4 className="font-medium">{property.Name}</h4>
+                      <div key={property.propertyid} className="space-y-3">
+                        <h4 className="font-medium">{property.name}</h4>
 
                         {availableValues.length === 0 ? (
                           <p className="text-sm text-gray-500 italic">
@@ -513,17 +513,17 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
                           <div className="space-y-2 max-h-40 overflow-y-auto border rounded p-3"
                                style={{ borderColor: theme.colors.border }}>
                             {availableValues.map(value => {
-                              const isSelected = isPropertyValueSelected(property.PropertyID, value.PropertyValueID);
+                              const isSelected = isPropertyValueSelected(property.propertyid, value.propertyvalueid);
 
                               return (
-                                <label key={value.PropertyValueID} className="flex items-center gap-2 cursor-pointer">
+                                <label key={value.propertyvalueid} className="flex items-center gap-2 cursor-pointer">
                                   <input
                                     type="checkbox"
                                     checked={isSelected}
-                                    onChange={() => togglePropertyValueSelection(property.PropertyID, value.PropertyValueID)}
+                                    onChange={() => togglePropertyValueSelection(property.propertyid, value.propertyvalueid)}
                                     className="rounded"
                                   />
-                                  <span className="text-sm">{value.Value}</span>
+                                  <span className="text-sm">{value.value}</span>
                                 </label>
                               );
                             })}
@@ -531,14 +531,14 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
                         )}
 
                         <div className="text-xs opacity-75">
-                          {language === 'bg' ? 'Избрани:' : 'Selected:'} {(selectedPropertyValues[property.PropertyID] || []).length} / {availableValues.length}
+                          {language === 'bg' ? 'Избрани:' : 'Selected:'} {(selectedPropertyValues[property.propertyid] || []).length} / {availableValues.length}
                         </div>
                       </div>
                     );
                   })}
               </div>
 
-              {availableProperties.filter(prop => prop.DataType === 'select').length === 0 && (
+              {availableProperties.filter(prop => prop.datatype === 'select').length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   {language === 'bg'
                     ? 'Няма select свойства за този тип продукт'
@@ -599,8 +599,8 @@ function VariantModal({
   const updatePropertyValue = (propertyId: string, value: string) => {
     onChange({
       ...variant,
-      propertyValues: {
-        ...variant.propertyValues,
+      propertyvalues: {
+        ...variant.propertyvalues,
         [propertyId]: value
       }
     });
@@ -637,8 +637,8 @@ function VariantModal({
               <label className="block text-sm font-medium mb-1">SKU</label>
               <input
                 type="text"
-                value={variant.SKU || ''}
-                onChange={(e) => updateVariant('SKU', e.target.value)}
+                value={variant.sku || ''}
+                onChange={(e) => updateVariant('sku', e.target.value)}
                 className="w-full px-3 py-2 border rounded-md"
                 style={{
                   backgroundColor: theme.colors.surface,
@@ -656,8 +656,8 @@ function VariantModal({
                 type="number"
                 required
                 min="0"
-                value={variant.Quantity}
-                onChange={(e) => updateVariant('Quantity', parseInt(e.target.value) || 0)}
+                value={variant.quantity}
+                onChange={(e) => updateVariant('quantity', parseInt(e.target.value) || 0)}
                 className="w-full px-3 py-2 border rounded-md"
                 style={{
                   backgroundColor: theme.colors.surface,
@@ -675,8 +675,8 @@ function VariantModal({
                 type="number"
                 step="0.01"
                 min="0"
-                value={variant.Price || ''}
-                onChange={(e) => updateVariant('Price', e.target.value ? parseFloat(e.target.value) : undefined)}
+                value={variant.price || ''}
+                onChange={(e) => updateVariant('price', e.target.value ? parseFloat(e.target.value) : undefined)}
                 className="w-full px-3 py-2 border rounded-md"
                 style={{
                   backgroundColor: theme.colors.surface,
@@ -694,8 +694,8 @@ function VariantModal({
                 type="number"
                 step="0.01"
                 min="0"
-                value={variant.CompareAtPrice || ''}
-                onChange={(e) => updateVariant('CompareAtPrice', e.target.value ? parseFloat(e.target.value) : undefined)}
+                value={variant.compareatprice || ''}
+                onChange={(e) => updateVariant('compareatprice', e.target.value ? parseFloat(e.target.value) : undefined)}
                 className="w-full px-3 py-2 border rounded-md"
                 style={{
                   backgroundColor: theme.colors.surface,
@@ -715,18 +715,18 @@ function VariantModal({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {availableProperties.map(property => {
-                  const availableValues = propertyValues[property.PropertyID] || [];
+                  const availableValues = propertyValues[property.propertyid] || [];
 
                   return (
-                    <div key={property.PropertyID}>
+                    <div key={property.propertyid}>
                       <label className="block text-sm font-medium mb-1">
-                        {property.Name}
+                        {property.name}
                       </label>
 
-                      {property.DataType === 'select' ? (
+                      {property.datatype === 'select' ? (
                         <select
-                          value={variant.propertyValues[property.PropertyID] || ''}
-                          onChange={(e) => updatePropertyValue(property.PropertyID, e.target.value)}
+                          value={variant.propertyvalues[property.propertyid] || ''}
+                          onChange={(e) => updatePropertyValue(property.propertyid, e.target.value)}
                           className="w-full px-3 py-2 border rounded-md"
                           style={{
                             backgroundColor: theme.colors.surface,
@@ -739,20 +739,20 @@ function VariantModal({
                           </option>
                           {availableValues
                             .filter(value => {
-                              const selectedIds = selectedPropertyValues[property.PropertyID] || [];
-                              return selectedIds.includes(value.PropertyValueID);
+                              const selectedIds = selectedPropertyValues[property.propertyid] || [];
+                              return selectedIds.includes(value.propertyvalueid);
                             })
                             .map(value => (
-                              <option key={value.PropertyValueID} value={value.Value}>
-                                {value.Value}
+                              <option key={value.propertyvalueid} value={value.value}>
+                                {value.value}
                               </option>
                             ))}
                         </select>
                       ) : (
                         <input
-                          type={property.DataType === 'number' ? 'number' : 'text'}
-                          value={variant.propertyValues[property.PropertyID] || ''}
-                          onChange={(e) => updatePropertyValue(property.PropertyID, e.target.value)}
+                          type={property.datatype === 'number' ? 'number' : 'text'}
+                          value={variant.propertyvalues[property.propertyid] || ''}
+                          onChange={(e) => updatePropertyValue(property.propertyid, e.target.value)}
                           className="w-full px-3 py-2 border rounded-md"
                           style={{
                             backgroundColor: theme.colors.surface,
@@ -774,8 +774,8 @@ function VariantModal({
               <input
                 type="checkbox"
                 id="trackQuantity"
-                checked={variant.TrackQuantity}
-                onChange={(e) => updateVariant('TrackQuantity', e.target.checked)}
+                checked={variant.trackquantity}
+                onChange={(e) => updateVariant('trackquantity', e.target.checked)}
               />
               <label htmlFor="trackQuantity" className="text-sm">
                 {language === 'bg' ? 'Проследявай количеството' : 'Track quantity'}
@@ -786,8 +786,8 @@ function VariantModal({
               <input
                 type="checkbox"
                 id="continueSelling"
-                checked={variant.ContinueSellingWhenOutOfStock}
-                onChange={(e) => updateVariant('ContinueSellingWhenOutOfStock', e.target.checked)}
+                checked={variant.continuesellingwhenoutofstock}
+                onChange={(e) => updateVariant('continuesellingwhenoutofstock', e.target.checked)}
               />
               <label htmlFor="continueSelling" className="text-sm">
                 {language === 'bg' ? 'Продължавай да продаваш когато свърши' : 'Continue selling when out of stock'}
@@ -798,8 +798,8 @@ function VariantModal({
               <input
                 type="checkbox"
                 id="isVisible"
-                checked={variant.IsVisible}
-                onChange={(e) => updateVariant('IsVisible', e.target.checked)}
+                checked={variant.isvisible}
+                onChange={(e) => updateVariant('isvisible', e.target.checked)}
               />
               <label htmlFor="isVisible" className="text-sm">
                 {language === 'bg' ? 'Видим' : 'Visible'}

@@ -9,33 +9,33 @@ import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
 
 interface Product {
-  ProductID: string;
-  Name: string;
-  SKU?: string;
-  Description?: string;
-  ProductTypeID: string;
+  productid: string;
+  name: string;
+  sku?: string;
+  description?: string;
+  producttypeid: string;
   ProductType?: ProductType;
-  PropertyValues?: Record<string, string>;
+  propertyvalues?: Record<string, string>;
 }
 
 interface Variant {
-  ProductVariantID?: string;
-  SKU?: string;
-  Price: number;
-  CompareAtPrice?: number;
-  Cost?: number;
-  Quantity: number;
-  Weight?: number;
-  WeightUnit: string;
-  Barcode?: string;
-  TrackQuantity: boolean;
-  ContinueSellingWhenOutOfStock: boolean;
-  IsVisible: boolean;
-  PropertyValues: Array<{
-    PropertyID: string;
-    Value: string;
+  productvariantid?: string;
+  sku?: string;
+  price: number;
+  compareatprice?: number;
+  cost?: number;
+  quantity: number;
+  weight?: number;
+  weightunit: string;
+  barcode?: string;
+  trackquantity: boolean;
+  continuesellingwhenoutofstock: boolean;
+  isvisible: boolean;
+  propertyvalues: Array<{
+    propertyid: string;
+    value: string;
   }>;
-  ImageURL?: string;
+  imageurl?: string;
   IsPrimaryImage?: boolean;
 }
 
@@ -48,12 +48,12 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [formData, setFormData] = useState({ 
-    Name: '', 
-    SKU: '', 
-    Description: '', 
-    ProductTypeID: '',
-    PropertyValues: {} as Record<string, string>
+  const [formData, setFormData] = useState({
+    name: '',
+    sku: '',
+    description: '',
+    producttypeid: '',
+    propertyvalues: {} as Record<string, string>
   });
   const [availableProperties, setAvailableProperties] = useState<Property[]>([]);
   const [selectedPropertyValues, setSelectedPropertyValues] = useState<Record<string, string[]>>({});
@@ -88,13 +88,13 @@ export default function ProductsPage() {
       if (result.success) {
         // Map API response to Product interface
         setProducts(result.products.map((p: any) => ({
-          ProductID: p.ProductID,
-          Name: p.Name,
-          SKU: p.SKU || '',
-          Description: p.Description || '',
-          ProductTypeID: p.ProductTypeID || '',
-          ProductType: p.ProductType,
-          PropertyValues: p.propertyValues || {}
+          productid: p.productid,
+          name: p.name,
+          sku: p.sku || '',
+          description: p.description || '',
+          producttypeid: p.producttypeid || '',
+          ProductType: p.producttype,
+          propertyvalues: p.propertyvalues || {}
         })));
       }
     } catch (error) {
@@ -151,16 +151,16 @@ export default function ProductsPage() {
 
     try {
       const url = editingProduct 
-        ? `/api/products/${editingProduct.ProductID}`
+        ? `/api/products/${editingProduct.productid}`
         : '/api/products';
       const method = editingProduct ? 'PUT' : 'POST';
 
       const payload = {
-        Name: formData.Name,
-        SKU: formData.SKU || null,
-        Description: formData.Description || null,
-        ProductTypeID: formData.ProductTypeID,
-        Variants: variants
+        name: formData.name,
+        sku: formData.sku || null,
+        description: formData.description || null,
+        producttypeid: formData.producttypeid,
+        variants: variants
       };
 
       console.log('Submitting product with payload:', JSON.stringify(payload, null, 2));
@@ -176,7 +176,7 @@ export default function ProductsPage() {
       
       if (result.success) {
         setShowModal(false);
-        setFormData({ Name: '', SKU: '', Description: '', ProductTypeID: '', PropertyValues: {} });
+        setFormData({ name: '', sku: '', description: '', producttypeid: '', propertyvalues: {} });
         setEditingProduct(null);
         setVariants([]);
         setSelectedPropertyValues({});
@@ -195,46 +195,46 @@ export default function ProductsPage() {
     
     // Fetch full product details including variants
     try {
-      const response = await fetch(`/api/products/${product.ProductID}`);
+      const response = await fetch(`/api/products/${product.productid}`);
       const result = await response.json();
       
       if (result.success && result.product) {
         const fullProduct = result.product;
         console.log('Loaded product for editing:', fullProduct);
         
-        setFormData({ 
-          Name: fullProduct.Name,
-          SKU: fullProduct.SKU || '',
-          Description: fullProduct.Description || '',
-          ProductTypeID: fullProduct.ProductTypeID,
-          PropertyValues: {}
+        setFormData({
+          name: fullProduct.name,
+          sku: fullProduct.sku || '',
+          description: fullProduct.description || '',
+          producttypeid: fullProduct.producttypeid,
+          propertyvalues: {}
         });
-        
+
         // Load properties for this product type
-        if (fullProduct.ProductTypeID) {
+        if (fullProduct.producttypeid) {
           const props = await loadPropertiesForProductType(fullProduct.ProductTypeID);
           setProductTypeProperties(props);
           
           // Load existing variants if they exist
           if (fullProduct.Variants && fullProduct.Variants.length > 0) {
             const loadedVariants: Variant[] = fullProduct.Variants.map((v: any) => ({
-              ProductVariantID: v.ProductVariantID,
-              SKU: v.SKU,
-              Price: v.Price || 0,
-              CompareAtPrice: v.CompareAtPrice,
-              Cost: v.Cost,
-              Quantity: v.Quantity || 0,
-              Weight: v.Weight,
-              WeightUnit: v.WeightUnit || 'kg',
-              Barcode: v.Barcode,
-              TrackQuantity: v.TrackQuantity ?? true,
-              ContinueSellingWhenOutOfStock: v.ContinueSellingWhenOutOfStock ?? false,
-              IsVisible: v.IsVisible ?? true,
-              ImageURL: v.ImageURL, // Load variant image
+              ProductVariantID: v.productvariantid,
+              SKU: v.sku,
+              Price: v.price || 0,
+              CompareAtPrice: v.compareatprice,
+              Cost: v.cost,
+              Quantity: v.quantity || 0,
+              Weight: v.weight,
+              WeightUnit: v.weightunit || 'kg',
+              Barcode: v.barcode,
+              TrackQuantity: v.trackquantity ?? true,
+              ContinueSellingWhenOutOfStock: v.continuesellingwhenoutofstock ?? false,
+              IsVisible: v.isvisible ?? true,
+              ImageURL: v.imageurl, // Load variant image
               IsPrimaryImage: v.IsPrimaryImage || false, // Load primary flag
               PropertyValues: (v.ProductVariantPropertyValues || []).map((pv: any) => ({
-                PropertyID: pv.PropertyID,
-                Value: pv.Value
+                PropertyID: pv.propertyid,
+                Value: pv.value
               }))
             }));
             
@@ -244,12 +244,12 @@ export default function ProductsPage() {
             // Set selected property values from existing variants
             const selected: Record<string, string[]> = {};
             loadedVariants.forEach(variant => {
-              variant.PropertyValues.forEach(pv => {
-                if (!selected[pv.PropertyID]) {
-                  selected[pv.PropertyID] = [];
+              variant.propertyvalues.forEach(pv => {
+                if (!selected[pv.propertyid]) {
+                  selected[pv.propertyid] = [];
                 }
-                if (!selected[pv.PropertyID].includes(pv.Value)) {
-                  selected[pv.PropertyID].push(pv.Value);
+                if (!selected[pv.propertyid].includes(pv.value)) {
+                  selected[pv.propertyid].push(pv.value);
                 }
               });
             });
@@ -288,23 +288,23 @@ export default function ProductsPage() {
   const [productTypeProperties, setProductTypeProperties] = useState<Property[]>([]);
 
   const handleProductTypeChange = async (productTypeId: string) => {
-    setFormData(prev => ({ ...prev, ProductTypeID: productTypeId }));
-    
+    setFormData(prev => ({ ...prev, producttypeid: productTypeId }));
+
     // Load properties for selected product type
     if (productTypeId) {
       const props = await loadPropertiesForProductType(productTypeId);
       setProductTypeProperties(props);
       const newPropertyValues: Record<string, string> = {};
       props.forEach((prop: Property) => {
-        newPropertyValues[prop.PropertyID] = formData.PropertyValues[prop.PropertyID] || '';
+        newPropertyValues[prop.propertyid] = formData.propertyvalues[prop.propertyid] || '';
       });
-      setFormData(prev => ({ ...prev, PropertyValues: newPropertyValues }));
+      setFormData(prev => ({ ...prev, propertyvalues: newPropertyValues }));
       // Reset selected property values for variant generation
       setSelectedPropertyValues({});
       setVariants([]);
     } else {
       setProductTypeProperties([]);
-      setFormData(prev => ({ ...prev, PropertyValues: {} }));
+      setFormData(prev => ({ ...prev, propertyvalues: {} }));
       setSelectedPropertyValues({});
       setVariants([]);
     }
@@ -331,19 +331,19 @@ export default function ProductsPage() {
 
     const newVariants: Variant[] = combinations.map(combination => {
       const propertyValues = propertyIds.map((propId, index) => ({
-        PropertyID: propId,
-        Value: combination[index]
+        propertyid: propId,
+        value: combination[index]
       }));
 
       // Generate SKU from combination
-      const variantSKU = `${formData.SKU || 'PROD'}-${combination.join('-').replace(/\s+/g, '')}`;
+      const variantSKU = `${formData.sku || 'PROD'}-${combination.join('-').replace(/\s+/g, '')}`;
 
       // Check if this variant already exists (same property values)
       const existingVariant = variants.find(v => {
-        if (v.PropertyValues.length !== propertyValues.length) return false;
-        return propertyValues.every(pv => 
-          v.PropertyValues.some(epv => 
-            epv.PropertyID === pv.PropertyID && epv.Value === pv.Value
+        if (v.propertyvalues.length !== propertyValues.length) return false;
+        return propertyValues.every(pv =>
+          v.propertyvalues.some(epv =>
+            epv.propertyid === pv.propertyid && epv.value === pv.value
           )
         );
       });
@@ -352,19 +352,19 @@ export default function ProductsPage() {
       if (existingVariant) {
         return {
           ...existingVariant,
-          SKU: existingVariant.SKU || variantSKU, // Keep existing SKU if present
+          sku: existingVariant.sku || variantSKU, // Keep existing SKU if present
         };
       } else {
         return {
-          SKU: variantSKU,
-          Price: 0,
-          Quantity: 0,
-          Weight: 0,
-          WeightUnit: 'kg',
-          TrackQuantity: true,
-          ContinueSellingWhenOutOfStock: false,
-          IsVisible: true,
-          PropertyValues: propertyValues
+          sku: variantSKU,
+          price: 0,
+          quantity: 0,
+          weight: 0,
+          weightunit: 'kg',
+          trackquantity: true,
+          continuesellingwhenoutofstock: false,
+          isvisible: true,
+          propertyvalues: propertyValues
         };
       }
     });
@@ -428,7 +428,7 @@ export default function ProductsPage() {
       const result = await response.json();
 
       if (result.success && result.url) {
-        updateVariant(index, 'ImageURL', result.url);
+        updateVariant(index, 'imageurl', result.url);
       } else {
         alert('Failed to upload image: ' + (result.error || 'Unknown error'));
       }
@@ -455,7 +455,7 @@ export default function ProductsPage() {
           <button
             onClick={() => {
               setEditingProduct(null);
-              setFormData({ Name: '', SKU: '', Description: '', ProductTypeID: '', PropertyValues: {} });
+              setFormData({ name: '', sku: '', description: '', producttypeid: '', propertyvalues: {} });
               setProductTypeProperties([]);
               setSelectedPropertyValues({});
               setVariants([]);
@@ -492,15 +492,15 @@ export default function ProductsPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentProducts.map((product) => (
-                  <tr key={product.ProductID}>
+                  <tr key={product.productid}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {product.Name}
+                      {product.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {product.SKU || '-'}
+                      {product.sku || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {productTypes.find(pt => pt.ProductTypeID === product.ProductTypeID)?.Name || '-'}
+                      {productTypes.find(pt => pt.producttypeid === product.producttypeid)?.name || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
@@ -511,7 +511,7 @@ export default function ProductsPage() {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(product.ProductID)}
+                          onClick={() => handleDelete(product.productid)}
                           className="text-red-600 hover:text-red-900"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -531,13 +531,13 @@ export default function ProductsPage() {
             {/* Mobile Card Layout */}
             <div className="block md:hidden space-y-4 mt-4">
             {currentProducts.map((product) => (
-              <div key={product.ProductID} className="bg-white p-4 rounded-lg shadow border">
+              <div key={product.productid} className="bg-white p-4 rounded-lg shadow border">
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="font-medium text-gray-900">{product.Name}</h3>
-                    <p className="text-sm text-gray-500">SKU: {product.SKU || '-'}</p>
+                    <h3 className="font-medium text-gray-900">{product.name}</h3>
+                    <p className="text-sm text-gray-500">SKU: {product.sku || '-'}</p>
                     <p className="text-sm text-gray-500">
-                      {t.productType}: {productTypes.find(pt => pt.ProductTypeID === product.ProductTypeID)?.Name || '-'}
+                      {t.productType}: {productTypes.find(pt => pt.producttypeid === product.producttypeid)?.name || '-'}
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -548,7 +548,7 @@ export default function ProductsPage() {
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(product.ProductID)}
+                      onClick={() => handleDelete(product.productid)}
                       className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -634,8 +634,8 @@ export default function ProductsPage() {
                   </label>
                   <input
                     type="text"
-                    value={formData.Name}
-                    onChange={(e) => setFormData({ ...formData, Name: e.target.value })}
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     required
                   />
@@ -646,8 +646,8 @@ export default function ProductsPage() {
                   </label>
                   <input
                     type="text"
-                    value={formData.SKU}
-                    onChange={(e) => setFormData({ ...formData, SKU: e.target.value })}
+                    value={formData.sku}
+                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
                 </div>
@@ -656,8 +656,8 @@ export default function ProductsPage() {
                     Description
                   </label>
                   <textarea
-                    value={formData.Description}
-                    onChange={(e) => setFormData({ ...formData, Description: e.target.value })}
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     rows={3}
                   />
@@ -667,21 +667,21 @@ export default function ProductsPage() {
                     Product Type
                   </label>
                   <select
-                    value={formData.ProductTypeID}
+                    value={formData.producttypeid}
                     onChange={(e) => handleProductTypeChange(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     required
                   >
                     <option value="">Select a product type</option>
                     {productTypes.map((pt) => (
-                      <option key={pt.ProductTypeID} value={pt.ProductTypeID}>
-                        {pt.Name}
+                      <option key={pt.producttypeid} value={pt.producttypeid}>
+                        {pt.name}
                       </option>
                     ))}
                   </select>
                 </div>
 
-                {formData.ProductTypeID && productTypeProperties.length > 0 && (
+                {formData.producttypeid && productTypeProperties.length > 0 && (
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Variant Properties
@@ -691,36 +691,36 @@ export default function ProductsPage() {
                     </p>
                     <div className="space-y-3">
                       {productTypeProperties.map((property) => (
-                        <div key={property.PropertyID} className="border rounded-md p-3">
+                        <div key={property.propertyid} className="border rounded-md p-3">
                           <label className="block text-xs font-medium text-gray-700 mb-2">
-                            {property.Name}
-                            {property.Description && (
-                              <span className="text-gray-400 ml-1">({property.Description})</span>
+                            {property.name}
+                            {property.description && (
+                              <span className="text-gray-400 ml-1">({property.description})</span>
                             )}
                           </label>
-                          {property.DataType === 'select' && property.Values && property.Values.length > 0 ? (
+                          {property.datatype === 'select' && property.values && property.values.length > 0 ? (
                             <div className="space-y-1">
-                              {property.Values
-                                .filter(v => v.IsActive)
-                                .sort((a, b) => a.DisplayOrder - b.DisplayOrder)
+                              {property.values
+                                .filter(v => v.isactive)
+                                .sort((a, b) => a.displayorder - b.displayorder)
                                 .map((value) => (
-                                  <label key={value.PropertyValueID} className="flex items-center">
+                                  <label key={value.propertyvalueid} className="flex items-center">
                                     <input
                                       type="checkbox"
-                                      checked={selectedPropertyValues[property.PropertyID]?.includes(value.Value) || false}
+                                      checked={selectedPropertyValues[property.propertyid]?.includes(value.value) || false}
                                       onChange={(e) => {
-                                        const currentValues = selectedPropertyValues[property.PropertyID] || [];
+                                        const currentValues = selectedPropertyValues[property.propertyid] || [];
                                         const newValues = e.target.checked
-                                          ? [...currentValues, value.Value]
-                                          : currentValues.filter(v => v !== value.Value);
+                                          ? [...currentValues, value.value]
+                                          : currentValues.filter(v => v !== value.value);
                                         setSelectedPropertyValues({
                                           ...selectedPropertyValues,
-                                          [property.PropertyID]: newValues
+                                          [property.propertyid]: newValues
                                         });
                                       }}
                                       className="mr-2"
                                     />
-                                    <span className="text-sm">{value.Value}</span>
+                                    <span className="text-sm">{value.value}</span>
                                   </label>
                                 ))}
                             </div>
@@ -764,16 +764,16 @@ export default function ProductsPage() {
                           {variants.map((variant, index) => (
                             <tr key={index}>
                               <td className="px-3 py-2 text-xs">
-                                {variant.PropertyValues.map(pv => {
-                                  const prop = productTypeProperties.find(p => p.PropertyID === pv.PropertyID);
-                                  return `${prop?.Name}: ${pv.Value}`;
+                                {variant.propertyvalues.map(pv => {
+                                  const prop = productTypeProperties.find(p => p.propertyid === pv.propertyid);
+                                  return `${prop?.name}: ${pv.value}`;
                                 }).join(', ')}
                               </td>
                               <td className="px-3 py-2">
                                 <input
                                   type="text"
-                                  value={variant.SKU || ''}
-                                  onChange={(e) => updateVariant(index, 'SKU', e.target.value)}
+                                  value={variant.sku || ''}
+                                  onChange={(e) => updateVariant(index, 'sku', e.target.value)}
                                   className="w-full px-2 py-1 text-xs border rounded"
                                 />
                               </td>
@@ -781,31 +781,31 @@ export default function ProductsPage() {
                                 <input
                                   type="number"
                                   step="0.01"
-                                  value={variant.Price}
-                                  onChange={(e) => updateVariant(index, 'Price', parseFloat(e.target.value) || 0)}
+                                  value={variant.price}
+                                  onChange={(e) => updateVariant(index, 'price', parseFloat(e.target.value) || 0)}
                                   className="w-20 px-2 py-1 text-xs border rounded"
                                 />
                               </td>
                               <td className="px-3 py-2">
                                 <input
                                   type="number"
-                                  value={variant.Quantity}
-                                  onChange={(e) => updateVariant(index, 'Quantity', parseInt(e.target.value) || 0)}
+                                  value={variant.quantity}
+                                  onChange={(e) => updateVariant(index, 'quantity', parseInt(e.target.value) || 0)}
                                   className="w-20 px-2 py-1 text-xs border rounded"
                                 />
                               </td>
                               <td className="px-3 py-2">
                                 <div className="flex items-center gap-2">
-                                  {variant.ImageURL ? (
+                                  {variant.imageurl ? (
                                     <div className="relative group">
                                       <img 
-                                        src={variant.ImageURL} 
+                                        src={variant.imageurl} 
                                         alt="Variant" 
                                         className="w-12 h-12 object-cover rounded border"
                                       />
                                       <button
                                         type="button"
-                                        onClick={() => updateVariant(index, 'ImageURL', undefined)}
+                                        onClick={() => updateVariant(index, 'imageurl', undefined)}
                                         className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                                         title="Remove image"
                                       >

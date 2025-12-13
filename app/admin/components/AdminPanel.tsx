@@ -65,29 +65,8 @@ export default function AdminPanel() {
           return;
         }
         
-        // Test database connection
-        console.log('📊 Testing database connection...');
-        const { data, error } = await supabase
-          .from('products')
-          .select('ProductID')
-          .limit(1);
-
-        if (error) {
-          console.error('❌ AdminPanel: Database connection error:', error);
-          console.error('Error details:', {
-            message: error.message,
-            code: error.code,
-            details: error.details,
-            hint: error.hint
-          });
-        } else {
-          console.log('✅ AdminPanel: Database connection successful!');
-          console.log('Connection info:', {
-            url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-            hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-            productsFound: data?.length || 0
-          });
-        }
+        // Database connection testing is now done server-side only
+        console.log('✅ AdminPanel: Browser client ready for auth and public reads');
 
         // Test Storage bucket connection and create if needed
         console.log('📦 Testing Storage bucket connection...');

@@ -97,9 +97,9 @@ export default function CheckoutPage() {
     updateFormData({ deliveryType });
   };
 
-  const calculateDeliveryCost = () => {
+  const getDeliveryCost = (deliveryType: DeliveryType) => {
     // Simple delivery cost calculation based on type
-    switch (formData.deliveryType) {
+    switch (deliveryType) {
       case 'office':
         return 4.50;
       case 'address':
@@ -111,7 +111,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const deliveryCost = calculateDeliveryCost();
+  const deliveryCost = getDeliveryCost(formData.deliveryType);
   const finalTotal = totalPrice + deliveryCost;
 
   const handleSubmitOrder = async () => {
@@ -152,6 +152,8 @@ export default function CheckoutPage() {
         },
       };
 
+      console.log('Submitting order data:', orderData);
+
       // Submit order
       const orderResponse = await fetch('/api/orders', {
         method: 'POST',
@@ -161,9 +163,35 @@ export default function CheckoutPage() {
         body: JSON.stringify(orderData),
       });
 
-      const orderResult = await orderResponse.json();
+      console.log('Order response status:', orderResponse.status);
+      console.log('Order response headers:', Object.fromEntries(orderResponse.headers.entries()));
+
+      let orderResult;
+      const responseText = await orderResponse.text();
+      console.log('Raw response text:', responseText);
+
+      try {
+        orderResult = JSON.parse(responseText);
+        console.log('Parsed response JSON:', orderResult);
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        console.error('Response was not JSON. Raw response:', responseText);
+        throw new Error(`Server returned non-JSON response: ${responseText.substring(0, 200)}...`);
+      }
+
+      if (!orderResponse.ok) {
+        console.error('HTTP error response:', {
+          status: orderResponse.status,
+          statusText: orderResponse.statusText,
+          result: orderResult
+        });
+        const errorMessage = orderResult?.error || `HTTP ${orderResponse.status}: ${orderResponse.statusText}`;
+        const errorDetails = orderResult?.details ? ` (${orderResult.details})` : '';
+        throw new Error(`${errorMessage}${errorDetails}`);
+      }
 
       if (!orderResult.success) {
+        console.error('API returned success=false:', orderResult);
         throw new Error(orderResult.error || 'Failed to place order');
       }
 
@@ -178,6 +206,11 @@ export default function CheckoutPage() {
 
     } catch (err) {
       console.error('Order submission error:', err);
+      console.error('Error details:', {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : undefined,
+        name: err instanceof Error ? err.name : undefined
+      });
       setError(err instanceof Error ? err.message : 'Failed to place order. Please try again.');
     } finally {
       setValidatingStock(false);
@@ -365,7 +398,7 @@ export default function CheckoutPage() {
                                 {deliveryTypeLabels[type]}
                               </div>
                               <div className="text-sm text-gray-600">
-                                €{calculateDeliveryCost().toFixed(2)}
+                                €{getDeliveryCost(type).toFixed(2)}
                               </div>
                             </div>
                           </label>

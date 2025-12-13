@@ -1,101 +1,101 @@
 // TypeScript interfaces for the new product type system
-// All field names match the PascalCase database column names
+// All field names match the lowercase database column names
 
 export interface ProductType {
-  ProductTypeID: string;
-  Name: string;
-  Code: string;
-  CreatedAt: string;
-  UpdatedAt: string;
+  producttypeid: string;
+  name: string;
+  code: string;
+  createdat: string;
+  updatedat: string;
 }
 
 export interface Property {
-  PropertyID: string;
-  Name: string;
-  Description?: string;
-  DataType: 'text' | 'select' | 'number';
-  CreatedAt: string;
-  UpdatedAt: string;
+  propertyid: string;
+  name: string;
+  description?: string;
+  datatype: 'text' | 'select' | 'number';
+  createdat: string;
+  updatedat: string;
   // Extended data
-  Values?: PropertyValue[];
+  values?: PropertyValue[];
 }
 
 export interface PropertyValue {
-  PropertyValueID: string;
-  PropertyID: string;
-  Value: string;
-  DisplayOrder: number;
-  IsActive: boolean;
-  CreatedAt: string;
-  UpdatedAt: string;
+  propertyvalueid: string;
+  propertyid: string;
+  value: string;
+  displayorder: number;
+  isactive: boolean;
+  createdat: string;
+  updatedat: string;
 }
 
 export interface ProductTypeProperty {
-  ProductTypePropertyID: string;
-  ProductTypeID: string;
-  PropertyID: string;
-  CreatedAt: string;
+  producttypepropertyid: string;
+  producttypeid: string;
+  propertyid: string;
+  createdat: string;
 }
 
 export interface Product {
-  ProductID: string;
-  Name: string;
-  SKU?: string;
-  Description?: string;
-  ProductTypeID: string;
-  CreatedAt: string;
-  UpdatedAt: string;
+  productid: string;
+  name: string;
+  sku?: string;
+  description?: string;
+  producttypeid: string;
+  createdat: string;
+  updatedat: string;
 }
 
 export interface ProductPropertyValue {
-  ProductPropertyValueID: string;
-  ProductID: string;
-  PropertyID: string;
-  Value: string;
-  CreatedAt: string;
-  UpdatedAt: string;
+  productpropertyvalueid: string;
+  productid: string;
+  propertyid: string;
+  value: string;
+  createdat: string;
+  updatedat: string;
 }
 
 // New Variant System Interfaces
 export interface ProductVariant {
-  ProductVariantID: string;
-  ProductID: string;
-  SKU?: string;
-  Price?: number;
-  CompareAtPrice?: number;
-  Cost?: number;
-  Quantity: number;
-  Weight?: number;
-  WeightUnit: string;
-  Barcode?: string;
-  TrackQuantity: boolean;
-  ContinueSellingWhenOutOfStock: boolean;
-  IsVisible: boolean;
-  CreatedAt: string;
-  UpdatedAt: string;
+  productvariantid: string;
+  productid: string;
+  sku?: string;
+  price?: number;
+  compareatprice?: number;
+  cost?: number;
+  quantity: number;
+  weight?: number;
+  weightunit: string;
+  barcode?: string;
+  trackquantity: boolean;
+  continuesellingwhenoutofstock: boolean;
+  isvisible: boolean;
+  createdat: string;
+  updatedat: string;
   // Joined data
-  PropertyValues?: ProductVariantPropertyValue[];
+  propertyvalues?: ProductVariantPropertyValue[];
 }
 
 export interface ProductVariantPropertyValue {
-  ProductVariantPropertyValueID: string;
-  ProductVariantID: string;
-  PropertyID: string;
-  Value: string;
-  CreatedAt: string;
+  productvariantpropertyvalueid: string;
+  productvariantid: string;
+  propertyid: string;
+  value: string;
+  createdat: string;
   // Joined data
-  Property?: Property;
+  property?: Property;
 }
 
 export interface ProductImage {
-  ProductImageID: string;
-  ProductID: string;
-  ProductVariantID?: string;
-  ImageURL: string;
-  AltText?: string;
-  SortOrder: number;
-  IsPrimary: boolean;
-  CreatedAt: string;
+  productimageid: string;
+  productid: string;
+  productvariantid?: string;
+  imageurl: string;
+  alttext?: string;
+  sortorder: number;
+  isprimary: boolean;
+  createdat: string;
 }
 
 // Extended interfaces for API responses with joins
@@ -104,15 +104,15 @@ export interface ProductTypeWithProperties extends ProductType {
 }
 
 export interface ProductWithDetails extends Product {
-  ProductType?: ProductType;
-  PropertyValues?: Array<ProductPropertyValue & { Property?: Property }>;
-  Variants?: ProductVariant[];
-  Images?: ProductImage[];
+  producttype?: ProductType;
+  propertyvalues?: Array<ProductPropertyValue & { property?: Property }>;
+  variants?: ProductVariant[];
+  images?: ProductImage[];
 }
 
 export interface ProductVariantWithDetails extends ProductVariant {
-  PropertyValues?: Array<ProductVariantPropertyValue & { Property?: Property }>;
-  Images?: ProductImage[];
+  propertyvalues?: Array<ProductVariantPropertyValue & { property?: Property }>;
+  images?: ProductImage[];
 }
 
 export interface PropertyWithProductTypes extends Property {

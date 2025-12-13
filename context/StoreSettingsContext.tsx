@@ -1,7 +1,6 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/lib/supabase';
 
 interface StoreSettings {
   storesettingsid: string;
@@ -30,42 +29,43 @@ export function StoreSettingsProvider({ children }: { children: ReactNode }) {
   const loadSettings = async () => {
     try {
       setError(null);
-      const { data, error } = await supabase
-        .from('store_settings')
-        .select('*')
-        .limit(1)
-        .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-        console.error('Error loading store settings:', error);
+      // Fetch settings via API route
+      const response = await fetch('/api/store-settings');
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('Error loading store settings:', result.error);
         setError('Failed to load store settings');
         return;
       }
 
-      if (data) {
-        setSettings(data);
+      if (result.settings) {
+        setSettings(result.settings);
       } else {
         // Create default settings if none exist
         const defaultSettings = {
           storename: 'ModaBox',
           logourl: null,
           themeid: 'default',
-          language: 'en' as const
+          language: 'en'
         };
 
-        const { data: newSettings, error: insertError } = await supabase
-          .from('store_settings')
-          .insert(defaultSettings)
-          .select()
-          .single();
+        const createResponse = await fetch('/api/store-settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(defaultSettings)
+        });
 
-        if (insertError) {
-          console.error('Error creating default store settings:', insertError);
+        const createResult = await createResponse.json();
+
+        if (!createResponse.ok || !createResult.success) {
+          console.error('Error creating default store settings:', createResult.error);
           setError('Failed to create default settings');
           return;
         }
 
-        setSettings(newSettings);
+        setSettings(createResult.settings);
       }
     } catch (err) {
       console.error('Error loading store settings:', err);

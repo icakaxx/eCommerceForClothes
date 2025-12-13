@@ -31,3 +31,5 @@ export interface CartState {
   totalItems: () => number;
   totalPrice: () => number;
 }
+
+

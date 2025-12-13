@@ -16,17 +16,17 @@ export async function GET(
       .select(`
         *,
         product_type_properties (
-          ProductTypePropertyID,
-          PropertyID,
+          ProductTypepropertyid,
+          propertyid,
           properties (
-            PropertyID,
-            Name,
-            Description,
-            DataType
+            propertyid,
+            name,
+            description,
+            datatype
           )
         )
       `)
-      .eq('ProductTypeID', id)
+      .eq('producttypeid', id)
       .single();
 
     if (productTypeError || !productType) {
@@ -60,16 +60,16 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const { Name, Code } = body;
+    const { name, code } = body;
 
     const { data: productType, error } = await supabase
       .from('product_types')
       .update({
-        Name,
-        Code,
-        UpdatedAt: new Date().toISOString()
+        name,
+        code,
+        updatedat: new Date().toISOString()
       })
-      .eq('ProductTypeID', id)
+      .eq('producttypeid', id)
       .select()
       .single();
 
@@ -107,7 +107,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('product_types')
       .delete()
-      .eq('ProductTypeID', id);
+      .eq('producttypeid', id);
 
     if (error) {
       console.error('Error deleting product type:', error);

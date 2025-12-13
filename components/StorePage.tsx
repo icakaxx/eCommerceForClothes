@@ -28,16 +28,16 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
     return products.some(p =>
       p.visible &&
       p.quantity > 0 &&
-      p.productTypeID === type.ProductTypeID
+      p.productTypeID === type.producttypeid
     );
   });
 
   const categories = [
     { id: 'all', label: t.all },
     ...availableCategories.map(type => ({
-      id: type.ProductTypeID,
-      label: type.Name,
-      code: type.Code.toLowerCase()
+      id: type.producttypeid,
+      label: type.name,
+      code: type.code.toLowerCase()
     }))
   ];
 
@@ -51,7 +51,7 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
       // Show all products
     } else {
       // Check if we're filtering by product type ID (new system)
-      const productType = productTypes.find(type => type.ProductTypeID === activeCategoryFilter);
+      const productType = productTypes.find(type => type.producttypeid === activeCategoryFilter);
       if (productType) {
         if (p.productTypeID !== activeCategoryFilter) return false;
       } else {
@@ -118,11 +118,11 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
     if (currentPage === 'home') return t.ourCurrentStock;
 
     // Check if currentPage matches a product type ID
-    const productType = productTypes.find(type => type.ProductTypeID === currentPage);
+    const productType = productTypes.find(type => type.producttypeid === currentPage);
     if (productType) {
       return language === 'bg'
-        ? `${productType.Name} в наличност`
-        : `${productType.Name} in Stock`;
+        ? `${productType.name} в наличност`
+        : `${productType.name} in Stock`;
     }
 
     // Fallback to legacy categories
