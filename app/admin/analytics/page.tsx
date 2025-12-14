@@ -9,7 +9,10 @@ interface AnalyticsData {
   totalOrders?: number;
   totalRevenue?: number;
   totalCustomers?: number;
-  totalProducts?: number;
+  averageOrderValue?: number;
+  salesByDay?: any[];
+  topProducts?: any[];
+  salesByStatus?: any[];
 }
 
 export default function AnalyticsPage() {
@@ -77,36 +80,90 @@ export default function AnalyticsPage() {
         </div>
 
         {analyticsData ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Analytics cards would go here */}
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-semibold text-gray-900">Total Orders</h3>
-              <p className="text-3xl font-bold text-blue-600 mt-2">
-                {analyticsData.totalOrders || 0}
-              </p>
+          <div className="space-y-6">
+            {/* Key Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-lg font-semibold text-gray-900">Общо поръчки</h3>
+                <p className="text-3xl font-bold text-blue-600 mt-2">
+                  {analyticsData.totalOrders || 0}
+                </p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-lg font-semibold text-gray-900">Общо приходи</h3>
+                <p className="text-3xl font-bold text-green-600 mt-2">
+                  ${(analyticsData.totalRevenue || 0).toFixed(2)}
+                </p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-lg font-semibold text-gray-900">Общо клиенти</h3>
+                <p className="text-3xl font-bold text-purple-600 mt-2">
+                  {analyticsData.totalCustomers || 0}
+                </p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-lg font-semibold text-gray-900">Средна стойност на поръчка</h3>
+                <p className="text-3xl font-bold text-orange-600 mt-2">
+                  ${(analyticsData.averageOrderValue || 0).toFixed(2)}
+                </p>
+              </div>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-semibold text-gray-900">Total Revenue</h3>
-              <p className="text-3xl font-bold text-green-600 mt-2">
-                ${(analyticsData.totalRevenue || 0).toFixed(2)}
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-semibold text-gray-900">Total Customers</h3>
-              <p className="text-3xl font-bold text-purple-600 mt-2">
-                {analyticsData.totalCustomers || 0}
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-semibold text-gray-900">Total Products</h3>
-              <p className="text-3xl font-bold text-orange-600 mt-2">
-                {analyticsData.totalProducts || 0}
-              </p>
-            </div>
+
+            {/* Sales by Status */}
+            {analyticsData.salesByStatus && analyticsData.salesByStatus.length > 0 && (
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Sales by Status</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {analyticsData.salesByStatus.map((status, index) => (
+                    <div key={index} className="p-4 border rounded-lg">
+                      <h4 className="font-medium text-gray-900 capitalize">{status.status}</h4>
+                      <p className="text-2xl font-bold text-blue-600">{status.count}</p>
+                      <p className="text-sm text-gray-500">{status.revenue.toFixed(2)} лв</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Top Products */}
+            {analyticsData.topProducts && analyticsData.topProducts.length > 0 && (
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Топ продукти</h3>
+                <div className="space-y-3">
+                  {analyticsData.topProducts.map((product, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900">{product.name}</p>
+                        <p className="text-sm text-gray-500">{product.quantity} продадени</p>
+                      </div>
+                      <p className="font-semibold text-green-600">{product.revenue.toFixed(2)} лв</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sales by Day (last 30 days) */}
+            {analyticsData.salesByDay && analyticsData.salesByDay.length > 0 && (
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Последни продажби</h3>
+                <div className="space-y-2">
+                  {analyticsData.salesByDay.slice(-7).map((day, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 border-b last:border-b-0">
+                      <span className="text-sm text-gray-600">{new Date(day.date).toLocaleDateString()}</span>
+                      <div className="text-right">
+                        <span className="text-sm font-medium">{day.orders} поръчки</span>
+                        <span className="text-sm text-gray-500 ml-4">{day.sales.toFixed(2)} лв</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="bg-white p-8 rounded-lg shadow text-center">
-            <p className="text-gray-500">Loading analytics data...</p>
+            <p className="text-gray-500">Зареждане на аналитични данни...</p>
           </div>
         )}
       </div>

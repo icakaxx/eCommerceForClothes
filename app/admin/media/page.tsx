@@ -52,10 +52,17 @@ export default function MediaPage() {
   const loadMediaFiles = async () => {
     try {
       setLoading(true);
+      console.log('🔍 DEBUG: Loading media files for folder:', selectedFolder);
       const response = await fetch(`/api/storage/list?folders=${selectedFolder}&limit=200`);
       const result = await response.json();
+      console.log('🔍 DEBUG: Media API response:', result);
+
       if (result.success) {
+        console.log('🔍 DEBUG: Setting media files:', result.files?.length || 0, 'files');
+        console.log('🔍 DEBUG: Media files data:', result.files);
         setMediaFiles(result.files || []);
+      } else {
+        console.error('🔍 DEBUG: API returned error:', result.error);
       }
     } catch (error) {
       console.error('Failed to load media files:', error);
@@ -131,7 +138,14 @@ export default function MediaPage() {
   }
 
   const folders = ['images', 'logos', 'hero-images'];
-  const folderFiles = mediaFiles.filter(file => file.folder === selectedFolder);
+  const folderFiles = mediaFiles.filter(file => {
+    const fileFolder = file.path.split('/')[0]; // Extract folder from path like "images/filename.jpg"
+    const matches = fileFolder === selectedFolder;
+    console.log('🔍 DEBUG: Filtering file:', file.name, 'folder:', fileFolder, 'selected:', selectedFolder, 'matches:', matches);
+    return matches;
+  });
+
+  console.log('🔍 DEBUG: Total media files:', mediaFiles.length, 'filtered to:', folderFiles.length, 'for folder:', selectedFolder);
 
   return (
     <AdminLayout currentPath="/admin/media">

@@ -77,17 +77,17 @@ export async function GET(request: NextRequest) {
         try {
           if (item.productvariantid) {
             // Get variant details with product info
-            const { data: variant } = await supabaseAdmin
+            const { data: variant, error: variantError } = await supabaseAdmin
               .from('product_variants')
               .select(`
                 sku,
                 productid,
-                products (
+                products!inner (
                   name
                 ),
                 product_variant_property_values (
                   value,
-                  properties (
+                  properties!inner (
                     name
                   )
                 )
@@ -95,19 +95,27 @@ export async function GET(request: NextRequest) {
               .eq('productvariantid', item.productvariantid)
               .single();
 
-            if (variant) {
-              // Set product name
-              const products = variant.products as any;
-              const productName = Array.isArray(products)
-                ? products[0]?.name
-                : products?.name;
-              productInfo.name = productName || variant.sku || 'Unknown Product';
+            if (variant && !variantError) {
+              // Set product name - handle different possible structures
+              const productData = variant.products;
+              let productName = 'Unknown Product';
+
+              if (productData) {
+                if (Array.isArray(productData)) {
+                  productName = productData[0]?.name || variant.sku || 'Unknown Product';
+                } else {
+                  productName = (productData as any).name || variant.sku || 'Unknown Product';
+                }
+              }
+
+              productInfo.name = productName;
 
               // Extract property values
-              if (variant.product_variant_property_values) {
+              if (variant.product_variant_property_values && Array.isArray(variant.product_variant_property_values)) {
                 variant.product_variant_property_values.forEach((pvv: any) => {
                   const propName = pvv.properties?.name?.toLowerCase();
                   const value = pvv.value;
+
                   // Handle both English and Bulgarian property names
                   if (propName?.includes('color') || propName?.includes('цвят') || propName === 'цвят') {
                     productInfo.color = value;
@@ -123,13 +131,13 @@ export async function GET(request: NextRequest) {
             }
           } else if (item.productid) {
             // Get product details directly
-            const { data: product } = await supabaseAdmin
+            const { data: product, error: productError } = await supabaseAdmin
               .from('products')
               .select('name')
               .eq('productid', item.productid)
               .single();
 
-            if (product) {
+            if (product && !productError) {
               productInfo.name = product.name || 'Unknown Product';
             }
           }

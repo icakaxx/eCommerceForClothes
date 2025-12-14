@@ -13,6 +13,7 @@ export interface Product {
   visible: boolean;
   images: string[];
   description?: string;
+  isfeatured?: boolean; // Whether the product is featured on the home page
   // New fields for product type system
   productTypeID?: string;
   propertyValues?: Record<string, string>; // property name -> value mapping

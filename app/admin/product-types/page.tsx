@@ -93,7 +93,7 @@ export default function ProductTypesPage() {
     <AdminLayout currentPath="/admin/product-types">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Product Types</h1>
+          <h1 className="text-3xl font-bold">Типове продукти</h1>
           <button
             onClick={() => {
               setEditingProductType(null);
@@ -108,7 +108,7 @@ export default function ProductTypesPage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-12">Loading...</div>
+          <div className="text-center py-12">Зареждане...</div>
         ) : (
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">

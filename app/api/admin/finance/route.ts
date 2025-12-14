@@ -102,16 +102,18 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      summary: {
-        total_revenue,
-        total_orders,
-        average_order_value,
-        total_delivery_cost,
-        net_revenue,
-        revenue_change,
-        orders_change
-      },
-      transactions
+      data: {
+        totalRevenue: total_revenue,
+        totalOrders: total_orders,
+        averageOrderValue: average_order_value,
+        monthlyRevenue: total_revenue, // For now, showing current period as monthly
+        pendingPayments: 0, // TODO: Calculate actual pending payments
+        totalDeliveryCost: total_delivery_cost,
+        netRevenue: net_revenue,
+        revenueChange: revenue_change,
+        ordersChange: orders_change,
+        transactions
+      }
     });
 
   } catch (error) {

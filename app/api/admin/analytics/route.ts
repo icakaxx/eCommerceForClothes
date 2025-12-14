@@ -130,14 +130,14 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      analytics: {
-        total_sales,
-        total_orders,
-        total_customers,
-        average_order_value,
-        sales_by_day,
-        top_products,
-        sales_by_status
+      data: {
+        totalOrders: total_orders,
+        totalRevenue: total_sales,
+        totalCustomers: total_customers,
+        averageOrderValue: average_order_value,
+        salesByDay: sales_by_day,
+        topProducts: top_products,
+        salesByStatus: sales_by_status
       }
     });
 

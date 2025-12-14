@@ -21,44 +21,47 @@ export async function GET(request: NextRequest) {
 
     // Group orders by customer email to get customer statistics
     const customerMap = new Map<string, {
-      customeremail: string;
-      customerfirstname: string;
-      customerlastname: string;
-      customertelephone: string;
-      customercountry: string;
-      customercity: string;
-      total_orders: number;
-      total_spent: number;
-      last_order_date: string;
+      customerid: string;
+      email: string;
+      name: string;
+      createdat: string;
+      lastorder: string;
+      totalorders: number;
+      totalspent: number;
     }>();
 
     orders.forEach(order => {
       const email = order.customeremail;
       if (customerMap.has(email)) {
         const customer = customerMap.get(email)!;
-        customer.total_orders += 1;
-        customer.total_spent += parseFloat(order.total);
-        if (new Date(order.createdat) > new Date(customer.last_order_date)) {
-          customer.last_order_date = order.createdat;
+        customer.totalorders += 1;
+        customer.totalspent += parseFloat(order.total);
+        if (new Date(order.createdat) > new Date(customer.lastorder)) {
+          customer.lastorder = order.createdat;
+        }
+        // Update createdat to the earliest order date
+        if (new Date(order.createdat) < new Date(customer.createdat)) {
+          customer.createdat = order.createdat;
         }
       } else {
         customerMap.set(email, {
-          customeremail: order.customeremail,
-          customerfirstname: order.customerfirstname,
-          customerlastname: order.customerlastname,
-          customertelephone: order.customertelephone,
-          customercountry: order.customercountry,
-          customercity: order.customercity,
-          total_orders: 1,
-          total_spent: parseFloat(order.total),
-          last_order_date: order.createdat
+          customerid: email, // Use email as ID since we don't have a separate customer ID
+          email: order.customeremail,
+          name: `${order.customerfirstname} ${order.customerlastname}`.trim(),
+          createdat: order.createdat, // First order date
+          lastorder: order.createdat,
+          totalorders: 1,
+          totalspent: parseFloat(order.total)
         });
       }
     });
 
-    const customers = Array.from(customerMap.values()).sort((a, b) => 
-      new Date(b.last_order_date).getTime() - new Date(a.last_order_date).getTime()
+    const customers = Array.from(customerMap.values()).sort((a, b) =>
+      new Date(b.lastorder).getTime() - new Date(a.lastorder).getTime()
     );
+
+    console.log('🔍 DEBUG: Customers API returning:', customers.length, 'customers');
+    console.log('🔍 DEBUG: Sample customer:', customers[0]);
 
     return NextResponse.json({
       success: true,

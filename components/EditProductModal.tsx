@@ -27,6 +27,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
       price: 0,
       visible: true,
       images: [],
+      isfeatured: false,
       productTypeID: '',
       propertyValues: {}
     }
@@ -474,7 +475,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
       }}
     >
       <div
-        className="rounded-xl max-w-2xl w-full my-4 sm:my-8 max-h-[90vh] overflow-y-auto transition-colors duration-300"
+        className="rounded-xl max-w-4xl w-full my-4 sm:my-8 max-h-[90vh] overflow-y-auto transition-colors duration-300"
         style={{
           backgroundColor: theme.colors.surface,
           boxShadow: theme.effects.shadowHover
@@ -1072,13 +1073,49 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                   accentColor: theme.colors.primary
                 }}
               />
-              <span 
+              <span
                 className="text-xs sm:text-sm transition-colors duration-300"
                 style={{ color: theme.colors.text }}
               >
                 {t.visibleOnWebsite}
               </span>
             </label>
+          </div>
+
+          <div>
+            <h3
+              className="font-medium mb-3 sm:mb-4 text-sm sm:text-base transition-colors duration-300"
+              style={{ color: theme.colors.text }}
+            >
+              {language === 'bg' ? 'Избран продукт' : 'Featured Product'}
+            </h3>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.isfeatured || false}
+                onChange={(e) => setFormData({ ...formData, isfeatured: e.target.checked })}
+                className="w-4 h-4 sm:w-5 sm:h-5 rounded focus:ring-2 transition-colors duration-300"
+                style={{
+                  accentColor: theme.colors.primary
+                }}
+              />
+              <span
+                className="text-xs sm:text-sm transition-colors duration-300"
+                style={{ color: theme.colors.text }}
+              >
+                {language === 'bg'
+                  ? 'Показва се на началната страница'
+                  : 'Displayed on home page'
+                }
+              </span>
+            </label>
+            <p className="text-xs transition-colors duration-300 mt-1 ml-8"
+               style={{ color: theme.colors.textSecondary }}>
+              {language === 'bg'
+                ? 'Максимум 4 избрани продукта ще се покажат на началната страница'
+                : 'Maximum 4 featured products will be displayed on the home page'
+              }
+            </p>
           </div>
 
           <div 

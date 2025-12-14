@@ -373,7 +373,7 @@ export default function PropertiesPage() {
     <AdminLayout currentPath="/admin/properties">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Properties</h1>
+          <h1 className="text-3xl font-bold">Свойства</h1>
           <button
             onClick={() => {
               setEditingProperty(null);
@@ -388,7 +388,7 @@ export default function PropertiesPage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-12">Loading...</div>
+          <div className="text-center py-12">Зареждане...</div>
         ) : (
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
@@ -481,14 +481,14 @@ export default function PropertiesPage() {
                           <div className="bg-gray-50 rounded-md p-4 m-2">
                             <div className="flex items-center justify-between mb-3">
                               <h4 className="text-sm font-medium text-gray-700">
-                                Property Values
+                                Стойности на свойство
                               </h4>
                               <button
                                 onClick={() => handleAddValue(prop)}
                                 className="flex items-center gap-1 text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
                               >
                                 <Plus className="w-3 h-3" />
-                                Add Value
+                                Добавяне на стойност
                               </button>
                             </div>
 
@@ -521,7 +521,7 @@ export default function PropertiesPage() {
                               </div>
                             ) : (
                               <div className="text-center py-4 text-gray-500 text-sm">
-                                No values defined. Click "Add Value" to create options for this property.
+                                Не са дефинирани стойности. Натиснете "Добавяне на стойност", за да създадете опции за този свойство.
                               </div>
                             )}
                           </div>
@@ -534,7 +534,7 @@ export default function PropertiesPage() {
             </table>
             {properties.length === 0 && (
               <div className="text-center py-12 text-gray-500">
-                No properties found. Create one to get started.
+                Не са намерили свойства. Създайте едно, за да започнете.
               </div>
             )}
           </div>
