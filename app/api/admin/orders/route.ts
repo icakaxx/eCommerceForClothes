@@ -26,10 +26,10 @@ interface OrderWithItems {
     createdat: string;
     product?: {
       name: string;
-      brand?: string;
-      model?: string;
-      color?: string;
-      size?: string;
+      brand: string | undefined;
+      model: string | undefined;
+      color: string | undefined;
+      size: string | undefined;
       images?: string[];
     };
   }>;
@@ -37,44 +37,18 @@ interface OrderWithItems {
 
 export async function GET(request: NextRequest) {
   try {
-    // Fetch all orders with their items
+    // Fetch all orders with their items (simplified)
     const { data: orders, error: ordersError } = await supabaseAdmin
       .from('orders')
       .select(`
         *,
         order_items (
-          OrderItemID,
+          orderitemid,
           quantity,
           price,
           createdat,
           productid,
-          ProductVariantID,
-          product_variants (
-            ProductVariantID,
-            SKU,
-            Price,
-            Quantity,
-            products (
-              ProductID,
-              Name,
-              product_property_values (
-                Value,
-                properties (
-                  Name
-                )
-              )
-            ),
-            product_variant_property_values (
-              Value,
-              properties (
-                Name
-              )
-            ),
-            product_images (
-              ImageURL,
-              IsPrimary
-            )
-          )
+          productvariantid
         )
       `)
       .order('createdat', { ascending: false });
@@ -88,61 +62,99 @@ export async function GET(request: NextRequest) {
     }
 
     // Process the orders data to format it nicely
-    const processedOrders: OrderWithItems[] = orders.map(order => {
-      const orderItems = order.order_items.map((item: any) => {
+    const processedOrdersPromises = orders.map(async (order) => {
+      const orderItems = await Promise.all(order.order_items.map(async (item: any) => {
         let productInfo = {
           name: 'Unknown Product',
-          brand: undefined,
-          model: undefined,
-          color: undefined,
-          size: undefined,
+          brand: undefined as string | undefined,
+          model: undefined as string | undefined,
+          color: undefined as string | undefined,
+          size: undefined as string | undefined,
           images: []
         };
 
-        if (item.product_variants) {
-          const variant = item.product_variants;
-          const product = variant.products;
+        // Fetch product and variant details separately
+        try {
+          if (item.productvariantid) {
+            // Get variant details with product info
+            const { data: variant } = await supabaseAdmin
+              .from('product_variants')
+              .select(`
+                sku,
+                productid,
+                products (
+                  name
+                ),
+                product_variant_property_values (
+                  value,
+                  properties (
+                    name
+                  )
+                )
+              `)
+              .eq('productvariantid', item.productvariantid)
+              .single();
 
-          // Extract brand, model, color from product properties
-          const properties = product?.product_property_values || [];
-          const variantProperties = variant?.product_variant_property_values || [];
+            if (variant) {
+              // Set product name
+              const products = variant.products as any;
+              const productName = Array.isArray(products)
+                ? products[0]?.name
+                : products?.name;
+              productInfo.name = productName || variant.sku || 'Unknown Product';
 
-          const allProperties = [...properties, ...variantProperties];
+              // Extract property values
+              if (variant.product_variant_property_values) {
+                variant.product_variant_property_values.forEach((pvv: any) => {
+                  const propName = pvv.properties?.name?.toLowerCase();
+                  const value = pvv.value;
+                  // Handle both English and Bulgarian property names
+                  if (propName?.includes('color') || propName?.includes('цвят') || propName === 'цвят') {
+                    productInfo.color = value;
+                  } else if (propName?.includes('size') || propName?.includes('размер') || propName === 'размер') {
+                    productInfo.size = value;
+                  } else if (propName?.includes('brand') || propName?.includes('марка') || propName === 'марка') {
+                    productInfo.brand = value;
+                  } else if (propName?.includes('model') || propName?.includes('модел') || propName === 'модел') {
+                    productInfo.model = value;
+                  }
+                });
+              }
+            }
+          } else if (item.productid) {
+            // Get product details directly
+            const { data: product } = await supabaseAdmin
+              .from('products')
+              .select('name')
+              .eq('productid', item.productid)
+              .single();
 
-          productInfo = {
-            name: product?.Name || 'Unknown Product',
-            brand: allProperties.find((p: any) => p.properties?.Name?.toLowerCase() === 'brand')?.Value,
-            model: allProperties.find((p: any) => p.properties?.Name?.toLowerCase() === 'model')?.Value,
-            color: allProperties.find((p: any) => p.properties?.Name?.toLowerCase() === 'color')?.Value,
-            size: allProperties.find((p: any) => p.properties?.Name?.toLowerCase() === 'size')?.Value,
-            images: variant.product_images?.filter((img: any) => img.IsPrimary).map((img: any) => img.ImageURL) || []
-          };
-        } else if (item.productid) {
-          // Fallback for items without variants (though this might not work due to schema mismatch)
-          productInfo = {
-            name: `Product ID: ${item.productid}`,
-            brand: undefined,
-            model: undefined,
-            color: undefined,
-            size: undefined,
-            images: []
-          };
+            if (product) {
+              productInfo.name = product.name || 'Unknown Product';
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching product details for item:', item, error);
+          // Keep default productInfo
         }
 
         return {
-          OrderItemID: item.OrderItemID,
+          OrderItemID: item.orderitemid,
           quantity: item.quantity,
           price: item.price,
           createdat: item.createdat,
+          productvariantid: item.productvariantid, // Debug: include variant ID
           product: productInfo
         };
-      });
+      }));
 
       return {
         ...order,
         order_items: orderItems
       };
     });
+
+    const processedOrders: OrderWithItems[] = await Promise.all(processedOrdersPromises);
 
     return NextResponse.json({
       success: true,

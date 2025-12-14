@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Package, ShoppingCart, Users, DollarSign, Eye, Star, EuroIcon } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
+
+type DateFilter = 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear';
 
 // Mock data for the dashboard
 const mockData = {
@@ -49,6 +51,54 @@ export default function Dashboard() {
   const { theme } = useTheme();
   const { language } = useLanguage();
   const t = translations[language || 'en'];
+  const [dateFilter, setDateFilter] = useState<DateFilter>('thisMonth');
+  const [dashboardData, setDashboardData] = useState({
+    totalSales: 0,
+    totalOrders: 0,
+    totalProducts: 0,
+    totalCustomers: 0,
+    salesGrowth: 0,
+    ordersGrowth: 0,
+    productsGrowth: 0,
+    customersGrowth: 0,
+    weeklySales: [
+      { day: 'Mon', sales: 0 },
+      { day: 'Tue', sales: 0 },
+      { day: 'Wed', sales: 0 },
+      { day: 'Thu', sales: 0 },
+      { day: 'Fri', sales: 0 },
+      { day: 'Sat', sales: 0 },
+      { day: 'Sun', sales: 0 }
+    ],
+    categoryPerformance: [
+      { category: 'Clothes', percentage: 0, orders: 0, sales: 0, color: 'bg-blue-500' },
+      { category: 'Shoes', percentage: 0, orders: 0, sales: 0, color: 'bg-green-500' },
+      { category: 'Accessories', percentage: 0, orders: 0, sales: 0, color: 'bg-yellow-500' }
+    ],
+    recentOrders: [] as Array<{ id: string; customer: string; amount: number; status: string; date: string }>,
+    topProducts: [] as Array<{ name: string; sales: number; revenue: number; growth: number }>
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/admin/dashboard?filter=${dateFilter}`);
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          setDashboardData(result.data);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [dateFilter]);
 
   const MetricCard = ({ title, value, growth, icon: Icon, prefix = '', suffix = '' }: {
     title: string;
@@ -59,7 +109,7 @@ export default function Dashboard() {
     suffix?: string;
   }) => (
     <div
-      className="p-6 rounded-lg shadow-sm border"
+      className="p-4 sm:p-5 lg:p-6 rounded-lg shadow-sm border"
       style={{
         backgroundColor: theme.colors.surface,
         borderColor: theme.colors.border,
@@ -67,37 +117,37 @@ export default function Dashboard() {
       }}
     >
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex-1 min-w-0">
           <p
-            className="text-sm font-medium opacity-75"
+            className="text-xs sm:text-sm font-medium opacity-75 truncate"
             style={{ color: theme.colors.textSecondary }}
           >
             {title}
           </p>
-          <p className="text-2xl font-bold mt-2">
+          <p className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2 truncate">
             {prefix}{typeof value === 'number' ? value.toLocaleString() : value}{suffix}
           </p>
         </div>
         <div
-          className="p-3 rounded-full"
+          className="p-2 sm:p-3 rounded-full flex-shrink-0 ml-2"
           style={{ backgroundColor: theme.colors.secondary }}
         >
-          <Icon size={24} style={{ color: theme.colors.primary }} />
+          <Icon size={20} className="sm:w-6 sm:h-6" style={{ color: theme.colors.primary }} />
         </div>
       </div>
-      <div className="flex items-center mt-4">
+      <div className="flex items-center mt-3 sm:mt-4 flex-wrap gap-1">
         {growth >= 0 ? (
-          <TrendingUp size={16} className="text-green-500 mr-1" />
+          <TrendingUp size={14} className="sm:w-4 sm:h-4 text-green-500" />
         ) : (
-          <TrendingDown size={16} className="text-red-500 mr-1" />
+          <TrendingDown size={14} className="sm:w-4 sm:h-4 text-red-500" />
         )}
         <span
-          className={`text-sm font-medium ${growth >= 0 ? 'text-green-500' : 'text-red-500'}`}
+          className={`text-xs sm:text-sm font-medium ${growth >= 0 ? 'text-green-500' : 'text-red-500'}`}
         >
           {growth >= 0 ? '+' : ''}{growth}%
         </span>
         <span
-          className="text-sm opacity-75 ml-2"
+          className="text-xs sm:text-sm opacity-75 ml-1 sm:ml-2"
           style={{ color: theme.colors.textSecondary }}
         >
           {t.fromLastMonth}
@@ -107,109 +157,182 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1
-          className="text-3xl font-bold"
-          style={{ color: theme.colors.text }}
-        >
-          {t.dashboard}
-        </h1>
-        <p
-          className="mt-2"
-          style={{ color: theme.colors.textSecondary }}
-        >
-          {t.welcomeToAdmin}
-        </p>
+      <div className="mb-4 sm:mb-6 lg:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1
+            className="text-2xl sm:text-3xl font-bold"
+            style={{ color: theme.colors.text }}
+          >
+            {t.dashboard}
+          </h1>
+          <p
+            className="mt-1 sm:mt-2 text-sm sm:text-base"
+            style={{ color: theme.colors.textSecondary }}
+          >
+            {t.welcomeToAdmin}
+          </p>
+        </div>
+        <div className="w-full sm:w-auto">
+          <label
+            className="block text-xs sm:text-sm font-medium mb-2"
+            style={{ color: theme.colors.text }}
+          >
+            {language === 'bg' ? 'Период' : 'Period'}
+          </label>
+          <select
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+            className="w-full sm:w-auto px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border text-sm sm:text-base touch-manipulation min-h-[44px] sm:min-h-[auto]"
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+              color: theme.colors.text
+            }}
+          >
+            <option value="thisWeek">{language === 'bg' ? 'Тази седмица' : 'This Week'}</option>
+            <option value="lastWeek">{language === 'bg' ? 'Миналата седмица' : 'Last Week'}</option>
+            <option value="thisMonth">{language === 'bg' ? 'Този месец' : 'This Month'}</option>
+            <option value="lastMonth">{language === 'bg' ? 'Миналия месец' : 'Last Month'}</option>
+            <option value="thisYear">{language === 'bg' ? 'Тази година' : 'This Year'}</option>
+            <option value="lastYear">{language === 'bg' ? 'Миналата година' : 'Last Year'}</option>
+          </select>
+        </div>
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title={t.totalSales}
-          value={mockData.totalSales}
-          growth={mockData.salesGrowth}
-          icon={EuroIcon}
-          suffix="€"
-        />
-        <MetricCard
-          title={t.totalOrders}
-          value={mockData.totalOrders}
-          growth={mockData.ordersGrowth}
-          icon={ShoppingCart}
-        />
-        <MetricCard
-          title={t.products}
-          value={mockData.totalProducts}
-          growth={mockData.productsGrowth}
-          icon={Package}
-        />
-        <MetricCard
-          title={t.customers}
-          value={mockData.totalCustomers}
-          growth={mockData.customersGrowth}
-          icon={Users}
-        />
-      </div>
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="p-4 sm:p-6 rounded-lg shadow-sm border animate-pulse"
+              style={{
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border
+              }}
+            >
+              <div className="h-3 sm:h-4 bg-gray-300 rounded w-3/4 mb-3 sm:mb-4"></div>
+              <div className="h-6 sm:h-8 bg-gray-300 rounded w-1/2"></div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+          <MetricCard
+            title={t.totalSales}
+            value={dashboardData.totalSales}
+            growth={dashboardData.salesGrowth}
+            icon={EuroIcon}
+            suffix="€"
+          />
+          <MetricCard
+            title={t.totalOrders}
+            value={dashboardData.totalOrders}
+            growth={dashboardData.ordersGrowth}
+            icon={ShoppingCart}
+          />
+          <MetricCard
+            title={t.products}
+            value={dashboardData.totalProducts}
+            growth={dashboardData.productsGrowth}
+            icon={Package}
+          />
+          <MetricCard
+            title={t.customers}
+            value={dashboardData.totalCustomers}
+            growth={dashboardData.customersGrowth}
+            icon={Users}
+          />
+        </div>
+      )}
 
       {/* Charts and Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Sales Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {/* Weekly Orders Chart */}
         <div
-          className="p-6 rounded-lg shadow-sm border"
+          className="p-4 sm:p-5 lg:p-6 rounded-lg shadow-sm border overflow-x-auto"
           style={{
             backgroundColor: theme.colors.surface,
             borderColor: theme.colors.border,
             color: theme.colors.text
           }}
         >
-          <h3 className="text-lg font-semibold mb-4">
-            {t.weeklySales}
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
+            {language === 'bg' ? 'Поръчки за миналата седмица' : 'Orders Last Week'}
           </h3>
-          <div className="h-64 flex items-end justify-between space-x-2">
-            {mockData.weeklySales.map((day, index) => (
-              <div key={day.day} className="flex flex-col items-center flex-1">
-                <div
-                  className="w-full bg-blue-500 rounded-t mb-2 transition-all hover:bg-blue-600"
-                  style={{
-                    height: `€{(day.sales / 3000) * 100}%`,
-                    minHeight: '20px'
-                  }}
-                ></div>
-                <span
-                  className="text-xs"
-                  style={{ color: theme.colors.textSecondary }}
-                >
-                  {day.day}
-                </span>
-              </div>
-            ))}
+          <div className="h-48 sm:h-56 lg:h-64 flex items-end justify-between gap-1 sm:gap-2 min-w-[280px]">
+            {dashboardData.weeklySales.map((day, index) => {
+              const maxOrders = Math.max(...dashboardData.weeklySales.map(d => d.sales), 1);
+              const heightPercentage = maxOrders > 0 ? (day.sales / maxOrders) * 100 : 0;
+              
+              return (
+                <div key={day.day} className="flex flex-col items-center flex-1 min-w-[32px] sm:min-w-[40px]">
+                  <div
+                    className="w-full bg-blue-500 rounded-t mb-1 sm:mb-2 transition-all hover:bg-blue-600 relative group"
+                    style={{
+                      height: `${heightPercentage}%`,
+                      minHeight: day.sales > 0 ? '16px' : '4px'
+                    }}
+                    title={`${day.sales} ${language === 'bg' ? 'поръчки' : 'orders'}`}
+                  >
+                    {day.sales > 0 && (
+                      <span className="absolute -top-5 sm:-top-6 left-1/2 transform -translate-x-1/2 text-[10px] sm:text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                        {day.sales}
+                      </span>
+                    )}
+                  </div>
+                  <span
+                    className="text-[10px] sm:text-xs"
+                    style={{ color: theme.colors.textSecondary }}
+                  >
+                    {day.day}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* Category Performance */}
         <div
-          className="p-6 rounded-lg shadow-sm border"
+          className="p-4 sm:p-5 lg:p-6 rounded-lg shadow-sm border"
           style={{
             backgroundColor: theme.colors.surface,
             borderColor: theme.colors.border,
             color: theme.colors.text
           }}
         >
-          <h3 className="text-lg font-semibold mb-4">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
             {t.salesByCategory}
           </h3>
-          <div className="space-y-4">
-            {mockData.categoryPerformance.map((category) => (
+          <div className="space-y-3 sm:space-y-4">
+            {dashboardData.categoryPerformance.map((category) => (
               <div key={category.category}>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-medium">{category.category}</span>
-                  <span className="text-sm">{category.percentage}%</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0 mb-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                    <span className="text-xs sm:text-sm font-medium">{category.category}</span>
+                    <span
+                      className="text-[10px] sm:text-xs"
+                      style={{ color: theme.colors.textSecondary }}
+                    >
+                      ({category.orders} {language === 'bg' ? 'поръчки' : 'orders'})
+                    </span>
+                  </div>
+                  <div className="text-left sm:text-right">
+                    <span className="text-xs sm:text-sm font-medium">{category.percentage}%</span>
+                    <span
+                      className="text-[10px] sm:text-xs ml-1 sm:block"
+                      style={{ color: theme.colors.textSecondary }}
+                    >
+                      €{category.sales.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 sm:h-2">
                   <div
-                    className={`h-2 rounded-full ${category.color}`}
+                    className={`h-1.5 sm:h-2 rounded-full ${category.color}`}
                     style={{ width: `${category.percentage}%` }}
                   ></div>
                 </div>
@@ -220,111 +343,149 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Orders and Top Products */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Recent Orders */}
         <div
-          className="p-6 rounded-lg shadow-sm border"
+          className="p-4 sm:p-5 lg:p-6 rounded-lg shadow-sm border"
           style={{
             backgroundColor: theme.colors.surface,
             borderColor: theme.colors.border,
             color: theme.colors.text
           }}
         >
-          <h3 className="text-lg font-semibold mb-4">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
             {t.recentOrders}
           </h3>
-          <div className="space-y-3">
-            {mockData.recentOrders.map((order) => (
-              <div
-                key={order.id}
-                className="flex items-center justify-between p-3 rounded border"
-                style={{
-                  backgroundColor: theme.colors.background,
-                  borderColor: theme.colors.border
-                }}
-              >
-                <div>
-                  <p className="font-medium">{order.id}</p>
-                  <p
-                    className="text-sm"
-                    style={{ color: theme.colors.textSecondary }}
-                  >
-                    {order.customer}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium">€{order.amount}</p>
-                  <span
-                    className={`text-xs px-2 py-1 rounded ${
-                      order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-blue-100 text-blue-800'
-                    }`}
-                  >
-                    {order.status}
-                  </span>
-                </div>
+          <div className="space-y-2 sm:space-y-3">
+            {loading ? (
+              <div className="space-y-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="h-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
+                  ></div>
+                ))}
               </div>
-            ))}
+            ) : dashboardData.recentOrders.length > 0 ? (
+              dashboardData.recentOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 p-2.5 sm:p-3 rounded border"
+                  style={{
+                    backgroundColor: theme.colors.background,
+                    borderColor: theme.colors.border
+                  }}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm sm:text-base truncate">{order.id}</p>
+                    <p
+                      className="text-xs sm:text-sm truncate"
+                      style={{ color: theme.colors.textSecondary }}
+                    >
+                      {order.customer}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between sm:flex-col sm:items-end sm:justify-start gap-2">
+                    <p className="font-medium text-sm sm:text-base">€{order.amount.toFixed(2)}</p>
+                    <span
+                      className={`text-[10px] sm:text-xs px-2 py-0.5 sm:py-1 rounded whitespace-nowrap ${
+                        order.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                        order.status === 'processing' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                        'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                      }`}
+                    >
+                      {order.status}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div
+                className="text-center py-6 sm:py-8 text-xs sm:text-sm"
+                style={{ color: theme.colors.textSecondary }}
+              >
+                {language === 'bg' ? 'Няма поръчки' : 'No orders yet'}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Top Products */}
         <div
-          className="p-6 rounded-lg shadow-sm border"
+          className="p-4 sm:p-5 lg:p-6 rounded-lg shadow-sm border"
           style={{
             backgroundColor: theme.colors.surface,
             borderColor: theme.colors.border,
             color: theme.colors.text
           }}
         >
-          <h3 className="text-lg font-semibold mb-4">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
             {t.topProducts}
           </h3>
-          <div className="space-y-3">
-            {mockData.topProducts.map((product, index) => (
-              <div
-                key={product.name}
-                className="flex items-center justify-between p-3 rounded border"
-                style={{
-                  backgroundColor: theme.colors.background,
-                  borderColor: theme.colors.border
-                }}
-              >
-                <div className="flex items-center space-x-3">
+          <div className="space-y-2 sm:space-y-3">
+            {loading ? (
+              <div className="space-y-2">
+                {[1, 2, 3, 4, 5].map((i) => (
                   <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                    style={{ backgroundColor: theme.colors.secondary }}
-                  >
-                    {index + 1}
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">{product.name}</p>
-                    <p
-                      className="text-xs"
-                      style={{ color: theme.colors.textSecondary }}
-                    >
-                      {product.sales} {t.sales}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium">${product.revenue.toLocaleString()}</p>
-                  <div className="flex items-center">
-                    {product.growth >= 0 ? (
-                      <TrendingUp size={12} className="text-green-500 mr-1" />
-                    ) : (
-                      <TrendingDown size={12} className="text-red-500 mr-1" />
-                    )}
-                    <span
-                      className={`text-xs ${product.growth >= 0 ? 'text-green-500' : 'text-red-500'}`}
-                    >
-                      {product.growth >= 0 ? '+' : ''}{product.growth}%
-                    </span>
-                  </div>
-                </div>
+                    key={i}
+                    className="h-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
+                  ></div>
+                ))}
               </div>
-            ))}
+            ) : dashboardData.topProducts.length > 0 ? (
+              dashboardData.topProducts.map((product, index) => (
+                <div
+                  key={product.name}
+                  className="flex items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3 rounded border"
+                  style={{
+                    backgroundColor: theme.colors.background,
+                    borderColor: theme.colors.border
+                  }}
+                >
+                  <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                    <div
+                      className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0"
+                      style={{ backgroundColor: theme.colors.secondary }}
+                    >
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-xs sm:text-sm truncate">{product.name}</p>
+                      <p
+                        className="text-[10px] sm:text-xs"
+                        style={{ color: theme.colors.textSecondary }}
+                      >
+                        {product.sales} {t.sales}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-medium text-xs sm:text-sm">€{product.revenue.toFixed(2)}</p>
+                    {product.growth !== 0 && (
+                      <div className="flex items-center justify-end mt-0.5">
+                        {product.growth >= 0 ? (
+                          <TrendingUp size={10} className="sm:w-3 sm:h-3 text-green-500 mr-0.5 sm:mr-1" />
+                        ) : (
+                          <TrendingDown size={10} className="sm:w-3 sm:h-3 text-red-500 mr-0.5 sm:mr-1" />
+                        )}
+                        <span
+                          className={`text-[10px] sm:text-xs ${product.growth >= 0 ? 'text-green-500' : 'text-red-500'}`}
+                        >
+                          {product.growth >= 0 ? '+' : ''}{product.growth}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div
+                className="text-center py-6 sm:py-8 text-xs sm:text-sm"
+                style={{ color: theme.colors.textSecondary }}
+              >
+                {language === 'bg' ? 'Няма продажби' : 'No sales yet'}
+              </div>
+            )}
           </div>
         </div>
       </div>

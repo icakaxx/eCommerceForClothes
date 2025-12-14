@@ -49,7 +49,7 @@ CREATE TABLE public.product_variant_property_values (
   Value text NOT NULL,
   CreatedAt timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT product_variant_property_values_pkey PRIMARY KEY (ProductVariantPropertyValueID),
-  CONSTRAINT product_variant_property_values_variantid_fkey FOREIGN KEY (ProductVariantID) REFERENCES public.product_variants(ProductVariantID),
+  CONSTRAINT product_variant_property_values_variantid_fkey FOREIGN KEY (ProductVariantID) REFERENCES public.product_variants(ProductVariantID) ON DELETE CASCADE,
   CONSTRAINT product_variant_property_values_propertyid_fkey FOREIGN KEY (PropertyID) REFERENCES public.properties(PropertyID)
 );
 CREATE TABLE public.product_variants (

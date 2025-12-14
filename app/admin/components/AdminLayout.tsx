@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { useStoreSettings } from '@/context/StoreSettingsContext';
+import { translations } from '@/lib/translations';
 import AdminSidebar from './AdminSidebar';
 
 interface AdminLayoutProps {
@@ -12,6 +15,9 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children, currentPath }: AdminLayoutProps) {
   const { theme } = useTheme();
+  const { language } = useLanguage();
+  const { settings } = useStoreSettings();
+  const t = translations[language || 'en'];
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -62,7 +68,7 @@ export default function AdminLayout({ children, currentPath }: AdminLayoutProps)
             className="text-lg font-semibold"
             style={{ color: theme.colors.text }}
           >
-            Admin Panel
+            {settings?.storename || 'Store'}
           </div>
 
           <div className="w-10" /> {/* Spacer for centering */}

@@ -58,22 +58,43 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
   const handleAddToCart = () => {
     if (!validateForm()) return;
 
-    // Find the variant ID if we have a selected size
+    // Find the variant and its properties if we have a selected size
     let itemId = product.id;
+    let variantPropertyValues: Record<string, string> = {};
+
     if (selectedSize && product.variants) {
       const variant = product.variants.find((v: any) => {
         // Check if variant has property values with matching size
-        const sizeProperty = v.ProductVariantPropertyValues?.find((pv: any) =>
-          (pv.Property?.Name?.toLowerCase() === 'size' ||
-           pv.Property?.Name?.toLowerCase() === 'размер') &&
-          pv.Value === selectedSize
-        );
+        // Handle both naming conventions and case variations
+        const propertyValues = v.ProductVariantPropertyvalues || v.ProductVariantPropertyValues || [];
+        const sizeProperty = propertyValues.find((pv: any) => {
+          const propName = (pv.Property?.name || pv.Property?.Name || '').toLowerCase();
+          const propValue = pv.value || pv.Value || '';
+          return (propName === 'size' || propName === 'размер') && propValue === selectedSize;
+        });
         return sizeProperty !== undefined;
       });
       if (variant) {
         itemId = variant.ProductVariantID;
+
+        // Extract all property values from the variant
+        // Handle both naming conventions and case variations
+        const variantProps = variant.ProductVariantPropertyvalues || variant.ProductVariantPropertyValues || [];
+        variantProps.forEach((pv: any) => {
+          const propName = (pv.Property?.name || pv.Property?.Name || '').toLowerCase();
+          const propValue = pv.value || pv.Value || '';
+          if (propName && propValue) {
+            variantPropertyValues[propName] = propValue;
+          }
+        });
       }
     }
+
+    // Merge base product properties with variant properties (variant takes precedence)
+    const mergedPropertyValues = {
+      ...product.propertyValues,
+      ...variantPropertyValues,
+    };
 
     // Add item to cart
     addItem({
@@ -88,7 +109,7 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
       quantity: quantity,
       imageUrl: product.images[0] || '/placeholder-image.jpg',
       category: product.category,
-      propertyValues: product.propertyValues,
+      propertyValues: Object.keys(mergedPropertyValues).length > 0 ? mergedPropertyValues : undefined,
     });
 
     // Open cart drawer
@@ -121,15 +142,38 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
   const needsSize = availableSizes.length > 0;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <div 
+      className="fixed inset-0 z-[9999] overflow-hidden"
+      style={{ 
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 9999
+      }}
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 transition-opacity"
         onClick={handleClose}
       />
 
-      {/* Modal */}
-      <div className="absolute inset-0 flex items-center justify-center p-4" onClick={handleClose}>
+      {/* Modal - Centered in the middle of the screen */}
+      <div 
+        className="absolute inset-0 flex items-center justify-center p-4" 
+        onClick={handleClose}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
         <div
           className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}

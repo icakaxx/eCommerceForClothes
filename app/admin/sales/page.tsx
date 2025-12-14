@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Package, DollarSign, Calendar, User, Phone, MapPin } from 'lucide-react';
+import { Search, Package, DollarSign, Calendar, User, Phone, MapPin, Edit, X } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
@@ -49,6 +49,9 @@ export default function SalesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -113,6 +116,49 @@ export default function SalesPage() {
     return order.order_items.reduce((total, item) => total + item.quantity, 0);
   };
 
+  const handleUpdateOrder = (order: Order) => {
+    setSelectedOrder(order);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedOrder(null);
+  };
+
+  const handleStatusUpdate = async (newStatus: string) => {
+    if (!selectedOrder) return;
+
+    setUpdatingStatus(true);
+    try {
+      const response = await fetch(`/api/admin/orders/${selectedOrder.orderid}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Update the order in the local state
+        setOrders(orders.map(order => 
+          order.orderid === selectedOrder.orderid 
+            ? { ...order, status: newStatus.toLowerCase() }
+            : order
+        ));
+        handleCloseModal();
+      } else {
+        console.error('Failed to update order:', result.error);
+        alert(language === 'bg' ? 'Грешка при обновяване на поръчката' : 'Error updating order');
+      }
+    } catch (error) {
+      console.error('Error updating order:', error);
+      alert(language === 'bg' ? 'Грешка при обновяване на поръчката' : 'Error updating order');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   if (loading) {
     return (
       <AdminLayout currentPath="/admin/sales">
@@ -132,13 +178,13 @@ export default function SalesPage() {
               className="text-2xl sm:text-3xl font-semibold transition-colors duration-300"
               style={{ color: theme.colors.text }}
             >
-              Sales
+              {t.sales}
             </h1>
             <p
               className="text-sm sm:text-base transition-colors duration-300 mt-1"
               style={{ color: theme.colors.textSecondary }}
             >
-              View and manage all orders
+              {t.viewAndManageOrders}
             </p>
           </div>
 
@@ -159,7 +205,7 @@ export default function SalesPage() {
                   />
                   <input
                     type="text"
-                    placeholder="Search orders..."
+                    placeholder={t.searchOrders}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:border-transparent transition-colors duration-300"
@@ -190,12 +236,12 @@ export default function SalesPage() {
                   color: theme.colors.text
                 }}
               >
-                <option value="all">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="shipped">Shipped</option>
-                <option value="delivered">Delivered</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="all">{t.allStatuses}</option>
+                <option value="pending">{t.pending}</option>
+                <option value="confirmed">{t.confirmed}</option>
+                <option value="shipped">{t.shipped}</option>
+                <option value="delivered">{t.delivered}</option>
+                <option value="cancelled">{t.cancelled}</option>
               </select>
             </div>
           </div>
@@ -254,15 +300,15 @@ export default function SalesPage() {
                         <span style={{ color: theme.colors.text }}>{getTotalItems(order)}</span>
                       </div>
                       <div>
-                        <span style={{ color: theme.colors.textSecondary }}>Total: </span>
+                        <span style={{ color: theme.colors.textSecondary }}>{t.total}: </span>
                         <span style={{ color: theme.colors.text }} className="font-semibold">€{order.total.toFixed(2)}</span>
                       </div>
                       <div>
-                        <span style={{ color: theme.colors.textSecondary }}>Delivery: </span>
+                        <span style={{ color: theme.colors.textSecondary }}>{t.delivery}: </span>
                         <span style={{ color: theme.colors.text }}>{order.deliverytype}</span>
                       </div>
                       <div>
-                        <span style={{ color: theme.colors.textSecondary }}>Country: </span>
+                        <span style={{ color: theme.colors.textSecondary }}>{t.country}: </span>
                         <span style={{ color: theme.colors.text }}>{order.customercountry}</span>
                       </div>
                     </div>
@@ -274,7 +320,7 @@ export default function SalesPage() {
                           <div key={item.OrderItemID} className="flex items-center justify-between text-xs">
                             <div className="flex-1 min-w-0">
                               <span style={{ color: theme.colors.text }}>
-                                {item.product?.name || 'Unknown Product'}
+                                {item.product?.name || t.unknownProduct}
                               </span>
                               {item.product?.color && (
                                 <span style={{ color: theme.colors.textSecondary }}>
@@ -296,10 +342,31 @@ export default function SalesPage() {
                         ))}
                         {order.order_items.length > 2 && (
                           <div className="text-xs" style={{ color: theme.colors.textSecondary }}>
-                            +{order.order_items.length - 2} more items
+                            +{order.order_items.length - 2} {t.moreItems}
                           </div>
                         )}
                       </div>
+                    </div>
+
+                    {/* Update Button */}
+                    <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.colors.border }}>
+                      <button
+                        onClick={() => handleUpdateOrder(order)}
+                        className="w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-300 flex items-center justify-center gap-2"
+                        style={{
+                          backgroundColor: theme.colors.primary,
+                          color: '#ffffff'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.opacity = '0.9';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.opacity = '1';
+                        }}
+                      >
+                        <Edit size={16} />
+                        {t.updateOrder}
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -337,6 +404,9 @@ export default function SalesPage() {
                     </th>
                     <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium uppercase transition-colors duration-300" style={{ color: theme.colors.textSecondary }}>
                       Delivery
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium uppercase transition-colors duration-300" style={{ color: theme.colors.textSecondary }}>
+                      Actions
                     </th>
                   </tr>
                 </thead>
@@ -422,6 +492,25 @@ export default function SalesPage() {
                           {order.customercountry}, {order.customercity}
                         </div>
                       </td>
+                      <td className="px-4 lg:px-6 py-4">
+                        <button
+                          onClick={() => handleUpdateOrder(order)}
+                          className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-300 flex items-center gap-2"
+                          style={{
+                            backgroundColor: theme.colors.primary,
+                            color: '#ffffff'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.opacity = '0.9';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.opacity = '1';
+                          }}
+                        >
+                          <Edit size={14} />
+                          {t.update}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -439,13 +528,302 @@ export default function SalesPage() {
                   className="text-sm sm:text-base transition-colors duration-300"
                   style={{ color: theme.colors.textSecondary }}
                 >
-                  {filteredOrders.length === orders.length ? 'No orders found' : 'No orders match your search'}
+                  {filteredOrders.length === orders.length ? t.noOrdersFound : t.noOrdersMatchSearch}
                 </p>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Update Order Modal */}
+      {isModalOpen && selectedOrder && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          onClick={handleCloseModal}
+        >
+          <div
+            className="rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+            style={{
+              backgroundColor: theme.colors.surface,
+              boxShadow: theme.effects.shadow
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div
+              className="px-4 sm:px-6 py-4 border-b flex items-center justify-between"
+              style={{ borderColor: theme.colors.border }}
+            >
+              <h2
+                className="text-xl sm:text-2xl font-semibold"
+                style={{ color: theme.colors.text }}
+              >
+                {t.updateOrderTitle} {selectedOrder.orderid}
+              </h2>
+              <button
+                onClick={handleCloseModal}
+                className="p-2 rounded-lg transition-colors duration-300"
+                style={{
+                  color: theme.colors.textSecondary,
+                  backgroundColor: 'transparent'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.colors.secondary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6">
+              {/* Order Details */}
+              <div className="mb-6">
+                <h3
+                  className="text-lg font-medium mb-4"
+                  style={{ color: theme.colors.text }}
+                >
+                  {t.orderDetails}
+                </h3>
+                <div
+                  className="rounded-lg p-4 space-y-3"
+                  style={{
+                    backgroundColor: theme.colors.cardBg,
+                    borderColor: theme.colors.border,
+                    borderWidth: '1px'
+                  }}
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span style={{ color: theme.colors.textSecondary }}>Customer: </span>
+                      <span style={{ color: theme.colors.text }}>
+                        {selectedOrder.customerfirstname} {selectedOrder.customerlastname}
+                      </span>
+                    </div>
+                    <div>
+                      <span style={{ color: theme.colors.textSecondary }}>Email: </span>
+                      <span style={{ color: theme.colors.text }}>{selectedOrder.customeremail}</span>
+                    </div>
+                    <div>
+                      <span style={{ color: theme.colors.textSecondary }}>Phone: </span>
+                      <span style={{ color: theme.colors.text }}>{selectedOrder.customertelephone}</span>
+                    </div>
+                    <div>
+                      <span style={{ color: theme.colors.textSecondary }}>Location: </span>
+                      <span style={{ color: theme.colors.text }}>
+                        {selectedOrder.customercity}, {selectedOrder.customercountry}
+                      </span>
+                    </div>
+                    <div>
+                      <span style={{ color: theme.colors.textSecondary }}>Delivery Type: </span>
+                      <span style={{ color: theme.colors.text }}>{selectedOrder.deliverytype}</span>
+                    </div>
+                    <div>
+                      <span style={{ color: theme.colors.textSecondary }}>Date: </span>
+                      <span style={{ color: theme.colors.text }}>{formatDate(selectedOrder.createdat)}</span>
+                    </div>
+                    <div>
+                      <span style={{ color: theme.colors.textSecondary }}>Subtotal: </span>
+                      <span style={{ color: theme.colors.text }}>€{selectedOrder.subtotal.toFixed(2)}</span>
+                    </div>
+                    <div>
+                      <span style={{ color: theme.colors.textSecondary }}>Delivery Cost: </span>
+                      <span style={{ color: theme.colors.text }}>€{selectedOrder.deliverycost.toFixed(2)}</span>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <span style={{ color: theme.colors.textSecondary }}>Total: </span>
+                      <span
+                        className="text-lg font-semibold"
+                        style={{ color: theme.colors.text }}
+                      >
+                        €{selectedOrder.total.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Order Items */}
+              <div className="mb-6">
+                <h3
+                  className="text-lg font-medium mb-4"
+                  style={{ color: theme.colors.text }}
+                >
+                  {t.orderItems} ({selectedOrder.order_items.length})
+                </h3>
+                <div
+                  className="rounded-lg overflow-hidden"
+                  style={{
+                    backgroundColor: theme.colors.cardBg,
+                    borderColor: theme.colors.border,
+                    borderWidth: '1px'
+                  }}
+                >
+                  <div className="divide-y" style={{ borderColor: theme.colors.border }}>
+                    {selectedOrder.order_items.map((item) => (
+                      <div
+                        key={item.OrderItemID}
+                        className="p-4 flex items-start justify-between gap-4"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div
+                            className="font-medium text-sm mb-1"
+                            style={{ color: theme.colors.text }}
+                          >
+                            {item.product?.name || 'Unknown Product'}
+                          </div>
+                          <div className="flex flex-wrap gap-2 text-xs" style={{ color: theme.colors.textSecondary }}>
+                            {item.product?.brand && (
+                              <span>Brand: {item.product.brand}</span>
+                            )}
+                            {item.product?.model && (
+                              <span>Model: {item.product.model}</span>
+                            )}
+                            {item.product?.color && (
+                              <span>Color: {item.product.color}</span>
+                            )}
+                            {item.product?.size && (
+                              <span>Size: {item.product.size}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div
+                            className="font-medium text-sm"
+                            style={{ color: theme.colors.text }}
+                          >
+                            {item.quantity} × €{item.price.toFixed(2)}
+                          </div>
+                          <div
+                            className="text-sm font-semibold mt-1"
+                            style={{ color: theme.colors.text }}
+                          >
+                            €{(item.quantity * item.price).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Update */}
+              <div>
+                <h3
+                  className="text-lg font-medium mb-4"
+                  style={{ color: theme.colors.text }}
+                >
+                  {t.updateStatus}
+                </h3>
+                <div
+                  className="rounded-lg p-4"
+                  style={{
+                    backgroundColor: theme.colors.cardBg,
+                    borderColor: theme.colors.border,
+                    borderWidth: '1px'
+                  }}
+                >
+                  <div className="mb-3">
+                    <label
+                      className="block text-sm font-medium mb-2"
+                      style={{ color: theme.colors.text }}
+                    >
+                      {t.currentStatus}
+                    </label>
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusColor(selectedOrder.status)}`}>
+                      {selectedOrder.status}
+                    </span>
+                  </div>
+                  <div>
+                    <label
+                      className="block text-sm font-medium mb-2"
+                      style={{ color: theme.colors.text }}
+                    >
+                      {t.newStatus}
+                    </label>
+                    <select
+                      id="status-select"
+                      className="w-full px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:border-transparent transition-colors duration-300"
+                      style={{
+                        backgroundColor: theme.colors.surface,
+                        borderColor: theme.colors.border,
+                        color: theme.colors.text
+                      }}
+                      defaultValue={selectedOrder.status}
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="shipped">Shipped</option>
+                      <option value="delivered">Delivered</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              className="px-4 sm:px-6 py-4 border-t flex items-center justify-end gap-3"
+              style={{ borderColor: theme.colors.border }}
+            >
+              <button
+                onClick={handleCloseModal}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-300"
+                style={{
+                  backgroundColor: theme.colors.secondary,
+                  color: theme.colors.text
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '0.8';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
+                disabled={updatingStatus}
+              >
+                {t.cancel}
+              </button>
+              <button
+                onClick={() => {
+                  const select = document.getElementById('status-select') as HTMLSelectElement;
+                  if (select) {
+                    handleStatusUpdate(select.value);
+                  }
+                }}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-300 flex items-center gap-2"
+                style={{
+                  backgroundColor: theme.colors.primary,
+                  color: '#ffffff'
+                }}
+                onMouseEnter={(e) => {
+                  if (!updatingStatus) {
+                    e.currentTarget.style.opacity = '0.9';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
+                disabled={updatingStatus}
+              >
+                {updatingStatus ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    {t.updating}
+                  </>
+                ) : (
+                  t.saveChanges
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

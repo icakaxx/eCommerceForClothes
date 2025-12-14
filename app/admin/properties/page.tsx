@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Edit2, Trash2, X, List, ChevronDown, ChevronRight } from 'lucide-react';
 import { Property, PropertyValue } from '@/lib/types/product-types';
@@ -104,11 +104,11 @@ export default function PropertiesPage() {
         setEditingProperty(null);
         loadProperties();
       } else {
-        alert('Error: ' + result.error);
+        alert(t.errorPrefix + result.error);
       }
     } catch (error) {
       console.error('Failed to save property:', error);
-      alert('Failed to save property');
+      alert(t.failedToSaveProperty);
     }
   };
 
@@ -123,7 +123,7 @@ export default function PropertiesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this property?')) return;
+    if (!confirm(t.confirmDeleteProperty)) return;
 
     try {
       const response = await fetch(`/api/properties/${id}`, { method: 'DELETE' });
@@ -131,11 +131,11 @@ export default function PropertiesPage() {
       if (result.success) {
         loadProperties();
       } else {
-        alert('Error: ' + result.error);
+        alert(t.errorPrefix + result.error);
       }
     } catch (error) {
       console.error('Failed to delete property:', error);
-      alert('Failed to delete property');
+      alert(t.failedToDeleteProperty);
     }
   };
 
@@ -164,7 +164,7 @@ export default function PropertiesPage() {
   };
 
   const handleDeleteValue = async (valueId: string) => {
-    if (!confirm('Are you sure you want to delete this property value?')) return;
+    if (!confirm(t.confirmDeletePropertyValue)) return;
 
     try {
       const response = await fetch(`/api/properties/values/${valueId}`, { method: 'DELETE' });
@@ -186,10 +186,10 @@ export default function PropertiesPage() {
         loadProperties();
 
         if (result.warning) {
-          alert('Property value deleted locally. Database migration needed for persistence.');
+          alert(t.propertyValueDeletedLocally);
         }
       } else {
-        alert('Error: ' + result.error);
+        alert(t.errorPrefix + result.error);
       }
     } catch (error) {
       console.error('Failed to delete property value via API, using local storage:', error);
@@ -201,12 +201,12 @@ export default function PropertiesPage() {
         if (valueIndex !== -1) {
           PropertyValuesStorage.deletePropertyValue(propertyId, valueId);
           loadProperties();
-          alert('Property value deleted locally. Database migration needed for full functionality.');
+          alert(t.propertyValueDeletedLocally);
           return;
         }
       }
 
-      alert('Failed to delete property value');
+      alert(t.failedToDeletePropertyValue);
     }
   };
 
@@ -254,10 +254,10 @@ export default function PropertiesPage() {
         loadProperties();
 
         if (result.warning) {
-          alert('Property value saved locally. Database migration needed for persistence.');
+          alert('{t.propertyValueSavedLocally}');
         }
       } else {
-        alert('Error: ' + result.error);
+        alert(t.errorPrefix + result.error);
       }
     } catch (error) {
       console.error('Failed to save property value via API, using local storage:', error);
@@ -286,7 +286,7 @@ export default function PropertiesPage() {
       });
       loadProperties();
 
-      alert('Property value saved locally. Database migration needed for full functionality.');
+      alert(t.propertyValueSavedLocallyFull);
     }
   };
 
@@ -334,10 +334,10 @@ export default function PropertiesPage() {
         loadProperties();
 
         if (result.warning) {
-          alert('Property value saved locally. Database migration needed for persistence.');
+          alert('{t.propertyValueSavedLocally}');
         }
       } else {
-        alert('Error: ' + result.error);
+        alert(t.errorPrefix + result.error);
       }
     } catch (error) {
       console.error('Failed to save property value via API, using local storage:', error);
@@ -365,7 +365,7 @@ export default function PropertiesPage() {
       setCurrentProperty(null);
       loadProperties();
 
-      alert('Property value saved locally. Database migration needed for full functionality.');
+      alert(t.propertyValueSavedLocallyFull);
     }
   };
 
@@ -373,7 +373,7 @@ export default function PropertiesPage() {
     <AdminLayout currentPath="/admin/properties">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Properties</h1>
+          <h1 className="text-3xl font-bold">{t.properties}</h1>
           <button
             onClick={() => {
               setEditingProperty(null);
@@ -388,9 +388,10 @@ export default function PropertiesPage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-12">Loading...</div>
+          <div className="text-center py-12">{t.loading}</div>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <>
+            <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -413,8 +414,8 @@ export default function PropertiesPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentProperties.map((prop) => (
-                  <>
-                    <tr key={prop.propertyid} className="hover:bg-gray-50">
+                  <React.Fragment key={prop.propertyid}>
+                    <tr className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         <div className="flex items-center gap-2">
                           {prop.datatype === 'select' && (
@@ -481,14 +482,14 @@ export default function PropertiesPage() {
                           <div className="bg-gray-50 rounded-md p-4 m-2">
                             <div className="flex items-center justify-between mb-3">
                               <h4 className="text-sm font-medium text-gray-700">
-                                Property Values
+                                {t.propertyValues}
                               </h4>
                               <button
                                 onClick={() => handleAddValue(prop)}
                                 className="flex items-center gap-1 text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
                               >
                                 <Plus className="w-3 h-3" />
-                                Add Value
+                                {t.addValue}
                               </button>
                             </div>
 
@@ -521,28 +522,27 @@ export default function PropertiesPage() {
                               </div>
                             ) : (
                               <div className="text-center py-4 text-gray-500 text-sm">
-                                No values defined. Click "Add Value" to create options for this property.
+{t.noValuesDefined}
                               </div>
                             )}
                           </div>
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
             {properties.length === 0 && (
               <div className="text-center py-12 text-gray-500">
-                No properties found. Create one to get started.
+{t.noPropertiesFound}
               </div>
             )}
           </div>
-        )}
 
-        {/* Mobile Card Layout */}
-        {!loading && (
-          <div className="block md:hidden space-y-4">
+          {/* Mobile Card Layout */}
+          {!loading && (
+            <div className="block md:hidden space-y-4">
             {currentProperties.map((prop) => (
               <div key={prop.propertyid} className="bg-white p-4 rounded-lg shadow border">
                 <div className="flex justify-between items-start mb-3">
@@ -606,10 +606,9 @@ export default function PropertiesPage() {
               </div>
             ))}
           </div>
-        )}
-
-        {/* Pagination */}
-        {!loading && totalPages > 1 && (
+)}
+          {/* Pagination */}
+          {!loading && totalPages > 1 && (
           <div className="mt-6 flex items-center justify-between">
             <div className="text-sm text-gray-700">
               {language === 'bg'
@@ -655,6 +654,8 @@ export default function PropertiesPage() {
               </button>
             </div>
           </div>
+          )}
+          </>
         )}
 
         {showModal && (
@@ -671,7 +672,7 @@ export default function PropertiesPage() {
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name
+                    {t.name}
                   </label>
                   <input
                     type="text"
@@ -683,7 +684,7 @@ export default function PropertiesPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
+                    {t.description}
                   </label>
                   <textarea
                     value={formData.description}
@@ -694,16 +695,16 @@ export default function PropertiesPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Data Type
+                    {t.dataType}
                   </label>
                   <select
                     value={formData.datatype}
                     onChange={(e) => setFormData({ ...formData, datatype: e.target.value as 'text' | 'select' | 'number' })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   >
-                    <option value="text">Text</option>
-                    <option value="select">Select</option>
-                    <option value="number">Number</option>
+                    <option value="text">{t.text}</option>
+                    <option value="select">{t.select}</option>
+                    <option value="number">{t.number}</option>
                   </select>
                 </div>
                 <div className="flex justify-end gap-2">
@@ -718,7 +719,7 @@ export default function PropertiesPage() {
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
-                    {editingProperty ? 'Update' : 'Create'}
+{editingProperty ? t.update : t.create}
                   </button>
                 </div>
               </form>
@@ -738,14 +739,14 @@ export default function PropertiesPage() {
                 </button>
               </div>
               <div className="mb-4 p-3 bg-gray-50 rounded">
-                <p className="text-sm text-gray-600">
-                  Property: <strong>{currentProperty.name}</strong>
-                </p>
+                  <p className="text-sm text-gray-600">
+                    {t.propertyColon}<strong>{currentProperty.name}</strong>
+                  </p>
               </div>
               <form onSubmit={handleValueSubmit}>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Value *
+                    {t.valueRequired}
                   </label>
                   <input
                     type="text"
@@ -758,7 +759,7 @@ export default function PropertiesPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Display Order
+                    {t.displayOrder}
                   </label>
                   <input
                     type="number"
@@ -768,7 +769,7 @@ export default function PropertiesPage() {
                     min="0"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Lower numbers appear first in the list
+{t.lowerNumbersFirst}
                   </p>
                 </div>
                 <div className="flex justify-end gap-2">
@@ -785,14 +786,14 @@ export default function PropertiesPage() {
                       onClick={handleNextValue}
                       className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                     >
-                      Next
+{t.next}
                     </button>
                   )}
                   <button
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
-                    {editingValue ? 'Update' : 'Add'} Value
+{editingValue ? t.updateValue : t.addValueBtn}
                   </button>
                 </div>
               </form>

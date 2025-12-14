@@ -7,10 +7,14 @@ import Footer from '@/components/Footer';
 import ProductView from '@/components/ProductView';
 import CartDrawer from '@/components/CartDrawer';
 import { Product } from '@/lib/data';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/lib/translations';
 
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { language } = useLanguage();
+  const t = translations[language];
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -30,7 +34,6 @@ export default function ProductDetailPage() {
           throw new Error('Product not found');
         }
         const data = await response.json();
-        console.log('Fetched product:', data);
         
         // API returns { success: true, product: {...} }
         if (data.success && data.product) {
@@ -38,9 +41,12 @@ export default function ProductDetailPage() {
           const productData = {
             ...data.product,
             // Map Variants to variants for compatibility with ProductDetails component
-            variants: data.product.Variants || [],
+            variants: data.product.Variants || data.product.variants || [],
+            Variants: data.product.Variants || data.product.variants || [],
             images: data.product.images && data.product.images.length > 0
               ? data.product.images
+              : data.product.Images && data.product.Images.length > 0
+              ? data.product.Images.map((img: any) => img.imageurl || img.url)
               : ['/image.png'], // Fallback image
             brand: data.product.brand || 'Unknown',
             model: data.product.model || data.product.Name || 'Product'
@@ -74,7 +80,7 @@ export default function ProductDetailPage() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading product...</p>
+            <p className="text-gray-600">{t.loadingProduct}</p>
           </div>
         </div>
         <Footer />

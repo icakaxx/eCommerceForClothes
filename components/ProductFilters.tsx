@@ -31,19 +31,50 @@ export default function ProductFilters({
   const [dropdownStates, setDropdownStates] = useState<Record<string, { isOpen: boolean; searchTerm: string }>>({});
   const dropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Extract available values for each property from products
+  // Load available values from property_values table (via properties context)
+  // Fallback to extracting from products for legacy compatibility
   useEffect(() => {
-    const values: Record<string, Set<string>> = {};
+    const values: Record<string, string[]> = {};
 
+    // First, use values from property_values table (via properties context)
+    properties.forEach(property => {
+      const propertyName = property.name;
+      if (property.values && property.values.length > 0) {
+        // Get all active values from property_values table
+        const activeValues = property.values
+          .filter((pv: any) => pv.isactive !== false)
+          .map((pv: any) => pv.value)
+          .sort((a: string, b: string) => {
+            // Sort by displayorder if available, otherwise alphabetically
+            const pvA = property.values?.find((pv: any) => pv.value === a);
+            const pvB = property.values?.find((pv: any) => pv.value === b);
+            if (pvA?.displayorder !== undefined && pvB?.displayorder !== undefined) {
+              return pvA.displayorder - pvB.displayorder;
+            }
+            return a.localeCompare(b);
+          });
+        
+        if (activeValues.length > 0) {
+          values[propertyName] = activeValues;
+        }
+      }
+    });
+
+    // Fallback: Extract values from products for properties that don't have values in the database
+    // or for legacy properties
+    const propertiesWithValues = new Set(Object.keys(values));
     products.forEach(product => {
       // First try to get values from propertyValues (new system)
       if (product.propertyValues) {
         Object.entries(product.propertyValues).forEach(([propertyName, value]) => {
-          if (!values[propertyName]) {
-            values[propertyName] = new Set();
-          }
-          if (value) {
-            values[propertyName].add(value);
+          // Only add if property doesn't already have values from database
+          if (!propertiesWithValues.has(propertyName) && value) {
+            if (!values[propertyName]) {
+              values[propertyName] = [];
+            }
+            if (!values[propertyName].includes(value)) {
+              values[propertyName].push(value);
+            }
           }
         });
       }
@@ -54,22 +85,26 @@ export default function ProductFilters({
         const value = (product as any)[field];
         if (value && typeof value === 'string') {
           const propertyName = field.charAt(0).toUpperCase() + field.slice(1); // Capitalize first letter
-          if (!values[propertyName]) {
-            values[propertyName] = new Set();
+          // Only add if property doesn't already have values from database
+          if (!propertiesWithValues.has(propertyName)) {
+            if (!values[propertyName]) {
+              values[propertyName] = [];
+            }
+            if (!values[propertyName].includes(value)) {
+              values[propertyName].push(value);
+            }
           }
-          values[propertyName].add(value);
         }
       });
     });
 
-    // Convert sets to arrays and sort
-    const available: Record<string, string[]> = {};
-    Object.entries(values).forEach(([propertyName, valueSet]) => {
-      available[propertyName] = Array.from(valueSet).sort();
+    // Sort all arrays
+    Object.keys(values).forEach(propertyName => {
+      values[propertyName] = values[propertyName].sort();
     });
 
-    setAvailableValues(available);
-  }, [products]);
+    setAvailableValues(values);
+  }, [properties, products]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -109,9 +144,12 @@ export default function ProductFilters({
   };
 
   const renderFilterInput = (property: any) => {
-    const propertyId = property.PropertyID;
-    const propertyName = property.Name;
-    const dataType = property.DataType || 'text';
+    // Handle both propertyid (lowercase) and PropertyID (uppercase) for compatibility
+    const propertyId = property.propertyid || property.PropertyID || property.id;
+    // Handle both name (lowercase) and Name (uppercase) for compatibility
+    const propertyName = property.name || property.Name;
+    // Handle both datatype (lowercase) and DataType (uppercase) for compatibility
+    const dataType = property.datatype || property.DataType || 'text';
     const currentValue = selectedFilters[propertyId] || '';
     const values = availableValues[propertyName] || [];
     const dropdownState = dropdownStates[propertyId] || { isOpen: false, searchTerm: '' };
@@ -407,7 +445,7 @@ export default function ProductFilters({
                 className="block text-sm font-medium mb-2"
                 style={{ color: theme.colors.text }}
               >
-                {propertyName}
+                {property.description || propertyName}
               </label>
               {renderFilterInput(property)}
             </div>

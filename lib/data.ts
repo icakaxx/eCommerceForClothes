@@ -17,6 +17,7 @@ export interface Product {
   productTypeID?: string;
   propertyValues?: Record<string, string>; // property name -> value mapping
   variants?: any[]; // Product variants from database
+  Variants?: any[]; // Product variants from database (alternative naming)
 }
 
 export const initialProducts: Product[] = [

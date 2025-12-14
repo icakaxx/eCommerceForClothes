@@ -26,13 +26,18 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
   const { productTypes } = useProductTypes();
   const t = translations[language];
 
-  // Create nav items with only Home
+  // Create nav items
   const navItems = [
-    { id: 'home', label: t.home, path: '/' }
+    { id: 'home', label: t.home, path: '/' },
+    { id: 'products', label: t.products, path: '/products' },
+    { id: 'about', label: t.about, path: '/about' }
   ];
 
   const getCurrentPage = () => {
-    return pathname === '/' ? 'home' : '';
+    if (pathname === '/') return 'home';
+    if (pathname === '/products') return 'products';
+    if (pathname === '/about') return 'about';
+    return '';
   };
 
   const currentPage = getCurrentPage();
@@ -245,7 +250,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
           <div className="p-6 border-t"
                style={{ borderColor: theme.colors.border }}>
             <Link
-              href="/"
+              href="/products"
               onClick={() => setMobileMenuOpen(false)}
               className="block w-full text-center py-3 px-6 rounded-lg font-medium transition-all duration-300"
               style={{

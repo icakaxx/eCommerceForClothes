@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { X, Upload, Image as ImageIcon, Trash2, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { X, Upload, Image as ImageIcon, Trash2, Loader2, Check } from 'lucide-react';
 import { Product } from '@/lib/data';
+import { Property, PropertyValue } from '@/lib/types/product-types';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { translations } from '@/lib/translations';
@@ -25,7 +26,9 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
       quantity: 0,
       price: 0,
       visible: true,
-      images: []
+      images: [],
+      productTypeID: '',
+      propertyValues: {}
     }
   );
   const { language } = useLanguage();
@@ -35,9 +38,267 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
   const [uploadingImages, setUploadingImages] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);
 
+  // Property values state
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [propertyValuesMap, setPropertyValuesMap] = useState<Record<string, PropertyValue[]>>({});
+  const [selectedPropertyValues, setSelectedPropertyValues] = useState<Record<string, string[]>>({});
+  const [loadingProperties, setLoadingProperties] = useState(false);
+  const [productTypes, setProductTypes] = useState<Array<{producttypeid: string, name: string}>>([]);
+
+  // Load product types
+  const loadProductTypes = async () => {
+    try {
+      const response = await fetch('/api/product-types');
+      const result = await response.json();
+      if (response.ok && result.productTypes) {
+        setProductTypes(result.productTypes);
+      }
+    } catch (error) {
+      console.error('Error loading product types:', error);
+    }
+  };
+
+  // Load properties for the selected product type
+  const loadPropertiesForProductType = async (productTypeId: string) => {
+    if (!productTypeId) {
+      setProperties([]);
+      setSelectedPropertyValues({});
+      return;
+    }
+
+    try {
+      setLoadingProperties(true);
+      const response = await fetch(`/api/product-types/${productTypeId}/properties`);
+      const result = await response.json();
+
+      if (response.ok && result.properties) {
+        // Extract properties from nested structure
+        const properties = (result.properties || [])
+          .map((ptp: any) => ptp.properties)
+          .filter((p: any) => p !== null && p !== undefined);
+        
+        console.log('🔍 DEBUG EditProductModal: Raw API response:', result);
+        console.log('🔍 DEBUG EditProductModal: Extracted properties:', properties);
+        
+        setProperties(properties);
+        
+        // Extract property values from the nested structure
+        const propertyValuesMap: Record<string, PropertyValue[]> = {};
+        for (const property of properties) {
+          if (property.datatype === 'select' && property.values) {
+            propertyValuesMap[property.propertyid] = property.values;
+            console.log(`🔍 DEBUG EditProductModal: Property "${property.name}" (${property.propertyid}) has values:`, 
+              property.values.map((pv: PropertyValue) => ({
+                id: pv.propertyvalueid,
+                value: pv.value,
+                isactive: pv.isactive
+              }))
+            );
+          }
+        }
+        setPropertyValuesMap(propertyValuesMap);
+        
+        // Initialize selected values from existing product property values
+        const initialSelected: Record<string, string[]> = {};
+        properties.forEach((prop: Property) => {
+          initialSelected[prop.propertyid] = [];
+        });
+
+        console.log('🔍 DEBUG EditProductModal: Product propertyValues:', product?.propertyValues);
+        console.log('🔍 DEBUG EditProductModal: Product variants:', product?.variants || product?.Variants);
+        
+        // Extract property values from ALL variants (not just the first one)
+        const variants = product?.variants || product?.Variants || [];
+        const propertyValueMap: Record<string, Set<string>> = {}; // propertyid -> Set of value strings
+        
+        variants.forEach((variant: any) => {
+          // Handle different possible field names for property values
+          const variantPropertyValues = 
+            variant.product_variant_property_values || 
+            variant.ProductVariantPropertyvalues || 
+            variant.ProductVariantPropertyValues || 
+            variant.propertyvalues || 
+            [];
+          
+          console.log(`🔍 DEBUG EditProductModal: Processing variant ${variant.productvariantid || variant.ProductVariantID}, has ${variantPropertyValues.length} property values`);
+          
+          variantPropertyValues.forEach((pvv: any) => {
+            // Get property info - could be nested or direct
+            const property = pvv.properties || pvv.Property || pvv.property;
+            if (!property) {
+              console.log('🔍 DEBUG EditProductModal: No property found in pvv:', pvv);
+              return;
+            }
+            
+            // Handle different possible field names for property ID
+            const propertyId = property.propertyid || property.PropertyID || property.property_id;
+            // Handle different possible field names for value
+            const value = pvv.value || pvv.Value;
+            
+            if (propertyId && value) {
+              if (!propertyValueMap[propertyId]) {
+                propertyValueMap[propertyId] = new Set();
+              }
+              propertyValueMap[propertyId].add(value);
+              console.log(`🔍 DEBUG EditProductModal: Added property "${property.name || propertyId}" value "${value}"`);
+            } else {
+              console.log('🔍 DEBUG EditProductModal: Missing propertyId or value:', { propertyId, value, property, pvv });
+            }
+          });
+        });
+        
+        console.log('🔍 DEBUG EditProductModal: Extracted property values from variants:', propertyValueMap);
+        
+        // If editing existing product, populate selected values from variants
+        if (Object.keys(propertyValueMap).length > 0) {
+          Object.entries(propertyValueMap).forEach(([propertyId, valueSet]) => {
+            const prop = properties.find((p: Property) => p.propertyid === propertyId);
+            if (prop) {
+              console.log(`🔍 DEBUG EditProductModal: Processing property "${prop.name}" (${prop.propertyid})`);
+              
+              // For select properties, find the propertyvalueids that match the value strings
+              if (prop.datatype === 'select' && propertyValuesMap[prop.propertyid]) {
+                const matchingIds: string[] = [];
+                valueSet.forEach(valueStr => {
+                  const matchingValue = propertyValuesMap[prop.propertyid].find(
+                    pv => pv.value === valueStr && pv.isactive
+                  );
+                  if (matchingValue) {
+                    matchingIds.push(matchingValue.propertyvalueid);
+                    console.log(`🔍 DEBUG EditProductModal: Matched value "${valueStr}" to ID: ${matchingValue.propertyvalueid}`);
+                  } else {
+                    console.log(`🔍 DEBUG EditProductModal: ❌ No matching propertyvalueid found for "${valueStr}"`);
+                    console.log(`  Available values:`, propertyValuesMap[prop.propertyid].map(pv => ({ id: pv.propertyvalueid, value: pv.value })));
+                  }
+                });
+                if (matchingIds.length > 0) {
+                  initialSelected[prop.propertyid] = matchingIds;
+                }
+              } else {
+                // For non-select properties, use the values directly
+                initialSelected[prop.propertyid] = Array.from(valueSet);
+              }
+            } else {
+              console.log(`🔍 DEBUG EditProductModal: ❌ Property with ID "${propertyId}" not found in available properties`);
+            }
+          });
+        } else if (product?.propertyValues) {
+          // Fallback to old propertyValues format (for backwards compatibility)
+          Object.entries(product.propertyValues).forEach(([propName, value]) => {
+            console.log(`🔍 DEBUG EditProductModal: Looking for property "${propName}" with value "${value}"`);
+            // Find property by name and add value to selection
+            const prop = properties.find((p: Property) => p.name.toLowerCase() === propName.toLowerCase());
+            if (prop) {
+              console.log(`🔍 DEBUG EditProductModal: Found property "${prop.name}" (${prop.propertyid})`);
+              
+              // For select properties, find the propertyvalueid that matches the value string
+              if (prop.datatype === 'select' && propertyValuesMap[prop.propertyid]) {
+                const matchingValue = propertyValuesMap[prop.propertyid].find(
+                  pv => pv.value === value && pv.isactive
+                );
+                if (matchingValue) {
+                  initialSelected[prop.propertyid] = [matchingValue.propertyvalueid];
+                  console.log(`🔍 DEBUG EditProductModal: Matched value "${value}" to ID: ${matchingValue.propertyvalueid}`);
+                } else {
+                  console.log(`🔍 DEBUG EditProductModal: ❌ No matching propertyvalueid found for "${value}"`);
+                  console.log(`  Available values:`, propertyValuesMap[prop.propertyid].map(pv => ({ id: pv.propertyvalueid, value: pv.value })));
+                  // Fallback: use the value string directly (for non-select or if ID not found)
+                  initialSelected[prop.propertyid] = [value];
+                }
+              } else {
+                // For non-select properties, use the value directly
+                initialSelected[prop.propertyid] = [value];
+              }
+            } else {
+              console.log(`🔍 DEBUG EditProductModal: ❌ Property "${propName}" not found in available properties`);
+            }
+          });
+        }
+
+        console.log('🔍 DEBUG EditProductModal: Initial selected property values:', initialSelected);
+        setSelectedPropertyValues(initialSelected);
+      }
+    } catch (error) {
+      console.error('Error loading properties:', error);
+    } finally {
+      setLoadingProperties(false);
+    }
+  };
+
+  // Handle property value selection (using propertyvalueid)
+  const togglePropertyValue = (propertyId: string, propertyValueId: string) => {
+    setSelectedPropertyValues(prev => {
+      const current = prev[propertyId] || [];
+      const isSelected = current.includes(propertyValueId);
+
+      console.log(`🔍 DEBUG EditProductModal: Toggling property "${propertyId}" value ID "${propertyValueId}"`);
+      console.log(`  Current selection:`, current);
+      console.log(`  Is selected:`, isSelected);
+
+      if (isSelected) {
+        const newSelection = current.filter(v => v !== propertyValueId);
+        console.log(`  Removing, new selection:`, newSelection);
+        return {
+          ...prev,
+          [propertyId]: newSelection
+        };
+      } else {
+        const newSelection = [...current, propertyValueId];
+        console.log(`  Adding, new selection:`, newSelection);
+        return {
+          ...prev,
+          [propertyId]: newSelection
+        };
+      }
+    });
+  };
+
+  // Load product types on mount
+  useEffect(() => {
+    loadProductTypes();
+  }, []);
+
+  // Update properties when product type changes
+  useEffect(() => {
+    if (formData.productTypeID) {
+      loadPropertiesForProductType(formData.productTypeID);
+    }
+  }, [formData.productTypeID]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+
+    console.log('🔍 DEBUG EditProductModal: Submitting form');
+    console.log('  Selected property values (IDs):', selectedPropertyValues);
+    console.log('  Available properties:', properties);
+
+    // Convert selected property values (IDs) to propertyValues format (value strings)
+    const propertyValues: Record<string, string> = {};
+    Object.entries(selectedPropertyValues).forEach(([propertyId, valueIds]) => {
+      const property = properties.find(p => p.propertyid === propertyId);
+      if (property && valueIds.length > 0) {
+        // For select properties, find the value string from the propertyvalueid
+        if (property.datatype === 'select' && property.values) {
+          const matchingValue = property.values.find(pv => pv.propertyvalueid === valueIds[0]);
+          if (matchingValue) {
+            propertyValues[property.name.toLowerCase()] = matchingValue.value;
+            console.log(`  Property "${property.name}": ID ${valueIds[0]} -> value "${matchingValue.value}"`);
+          }
+        } else {
+          // For non-select properties, use the value directly
+          propertyValues[property.name.toLowerCase()] = valueIds[0];
+        }
+      }
+    });
+
+    console.log('  Final propertyValues:', propertyValues);
+
+    const productToSave = {
+      ...formData,
+      propertyValues
+    };
+
+    onSave(productToSave);
   };
 
   const handleImageUpload = async (file: File) => {
@@ -212,8 +473,8 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
         }
       }}
     >
-      <div 
-        className="rounded-xl max-w-2xl w-full my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto transition-colors duration-300"
+      <div
+        className="rounded-xl max-w-2xl w-full my-4 sm:my-8 max-h-[90vh] overflow-y-auto transition-colors duration-300"
         style={{
           backgroundColor: theme.colors.surface,
           boxShadow: theme.effects.shadowHover
@@ -287,6 +548,34 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                   <option value="clothes">{t.clothes}</option>
                   <option value="shoes">{t.shoes}</option>
                   <option value="accessories">{t.accessories}</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  className="block text-xs sm:text-sm font-medium mb-1.5 transition-colors duration-300"
+                  style={{ color: theme.colors.text }}
+                >
+                  {language === 'bg' ? 'Тип продукт' : 'Product Type'}
+                </label>
+                <select
+                  value={formData.productTypeID || ''}
+                  onChange={(e) => setFormData({ ...formData, productTypeID: e.target.value })}
+                  className="w-full px-3 py-2.5 sm:py-2 text-sm border rounded-lg focus:ring-2 focus:border-transparent transition-colors duration-300 touch-manipulation"
+                  style={{
+                    backgroundColor: theme.colors.cardBg,
+                    borderColor: theme.colors.border,
+                    color: theme.colors.text
+                  }}
+                >
+                  <option value="">
+                    {language === 'bg' ? 'Изберете тип' : 'Select type'}
+                  </option>
+                  {productTypes.map((type) => (
+                    <option key={type.producttypeid} value={type.producttypeid}>
+                      {type.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -455,8 +744,163 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
             </div>
           </div>
 
+          {/* Property Values Section */}
+          {properties.length > 0 && (
+            <div className="space-y-3 sm:space-y-4">
+              <h3
+                className="font-medium text-sm sm:text-base transition-colors duration-300"
+                style={{ color: theme.colors.text }}
+              >
+                {language === 'bg' ? 'Свойства' : 'Properties'}
+              </h3>
+
+              {loadingProperties ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 size={20} className="animate-spin" style={{ color: theme.colors.primary }} />
+                  <span className="ml-2 text-sm" style={{ color: theme.colors.textSecondary }}>
+                    {language === 'bg' ? 'Зареждане...' : 'Loading...'}
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-3 sm:space-y-4">
+                  {properties.map((property) => (
+                    <div key={property.propertyid}>
+                      <label
+                        className="block text-xs sm:text-sm font-medium mb-2 transition-colors duration-300"
+                        style={{ color: theme.colors.text }}
+                      >
+                        {property.name}
+                        {property.description && (
+                          <span className="text-xs ml-1" style={{ color: theme.colors.textSecondary }}>
+                            ({property.description})
+                          </span>
+                        )}
+                      </label>
+
+                      {property.datatype === 'select' && property.values ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {property.values
+                            .filter(value => value.isactive)
+                            .sort((a, b) => a.displayorder - b.displayorder)
+                            .map((value) => {
+                              const isSelected = selectedPropertyValues[property.propertyid]?.includes(value.propertyvalueid) || false;
+                              return (
+                                <button
+                                  key={value.propertyvalueid}
+                                  type="button"
+                                  onClick={() => togglePropertyValue(property.propertyid, value.propertyvalueid)}
+                                  className={`px-3 py-2 text-sm border rounded-lg transition-all duration-300 flex items-center justify-center gap-2 touch-manipulation ${
+                                    isSelected
+                                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                                  }`}
+                                  style={{
+                                    backgroundColor: isSelected ? 'transparent' : theme.colors.cardBg,
+                                    color: theme.colors.text
+                                  }}
+                                >
+                                  {isSelected && <Check size={14} />}
+                                  <span>{value.value}</span>
+                                </button>
+                              );
+                            })}
+                        </div>
+                      ) : (
+                        <input
+                          type={property.datatype === 'number' ? 'number' : 'text'}
+                          value={selectedPropertyValues[property.propertyid]?.[0] || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setSelectedPropertyValues(prev => ({
+                              ...prev,
+                              [property.propertyid]: value ? [value] : []
+                            }));
+                          }}
+                          placeholder={language === 'bg' ? `Въведете ${property.name.toLowerCase()}` : `Enter ${property.name.toLowerCase()}`}
+                          className="w-full px-3 py-2.5 sm:py-2 text-sm border rounded-lg focus:ring-2 focus:border-transparent transition-colors duration-300"
+                          style={{
+                            backgroundColor: theme.colors.cardBg,
+                            borderColor: theme.colors.border,
+                            color: theme.colors.text
+                          }}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* DEBUG INFO */}
+          {properties.length > 0 && (
+            <div className="mt-4 p-4 border-2 border-yellow-500 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+              <h4 className="font-bold text-sm mb-2">🔍 DEBUG INFO - EditProductModal</h4>
+              <div className="space-y-2 text-xs font-mono">
+                <div>
+                  <strong>Product Data:</strong>
+                  <pre className="mt-1 p-2 bg-white dark:bg-gray-800 rounded overflow-auto max-h-40">
+                    {JSON.stringify({
+                      id: product?.id,
+                      brand: product?.brand,
+                      model: product?.model,
+                      productTypeID: product?.productTypeID || formData.productTypeID,
+                      propertyValues: product?.propertyValues
+                    }, null, 2)}
+                  </pre>
+                </div>
+                <div>
+                  <strong>Available Properties:</strong>
+                  <pre className="mt-1 p-2 bg-white dark:bg-gray-800 rounded overflow-auto max-h-40">
+                    {JSON.stringify(
+                      properties.map(p => ({
+                        propertyid: p.propertyid,
+                        name: p.name,
+                        datatype: p.datatype,
+                        valuesCount: p.values?.length || 0,
+                        values: p.values?.map(v => ({
+                          propertyvalueid: v.propertyvalueid,
+                          value: v.value,
+                          isactive: v.isactive
+                        })) || []
+                      })),
+                      null,
+                      2
+                    )}
+                  </pre>
+                </div>
+                <div>
+                  <strong>Selected Property Values (IDs):</strong>
+                  <pre className="mt-1 p-2 bg-white dark:bg-gray-800 rounded overflow-auto max-h-40">
+                    {JSON.stringify(selectedPropertyValues, null, 2)}
+                  </pre>
+                </div>
+                <div>
+                  <strong>Selected Property Values (Mapped to Names):</strong>
+                  <pre className="mt-1 p-2 bg-white dark:bg-gray-800 rounded overflow-auto max-h-40">
+                    {JSON.stringify(
+                      Object.entries(selectedPropertyValues).reduce((acc, [propId, valueIds]) => {
+                        const prop = properties.find(p => p.propertyid === propId);
+                        if (prop) {
+                          const valueNames = valueIds.map(id => {
+                            const value = prop.values?.find(v => v.propertyvalueid === id);
+                            return value ? value.value : id;
+                          });
+                          acc[prop.name] = valueNames;
+                        }
+                        return acc;
+                      }, {} as Record<string, string[]>),
+                      null,
+                      2
+                    )}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-3 sm:space-y-4">
-            <h3 
+            <h3
               className="font-medium text-sm sm:text-base transition-colors duration-300"
               style={{ color: theme.colors.text }}
             >

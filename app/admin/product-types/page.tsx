@@ -73,11 +73,11 @@ export default function ProductTypesPage() {
         setEditingProductType(null);
         loadProductTypes();
       } else {
-        alert('Error: ' + result.error);
+        alert(t.errorPrefix + result.error);
       }
     } catch (error) {
       console.error('Failed to save product type:', error);
-      alert('Failed to save product type');
+      alert(t.failedToSaveProductType);
     }
   };
 
@@ -88,7 +88,7 @@ export default function ProductTypesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product type?')) return;
+    if (!confirm(t.confirmDeleteProductType)) return;
 
     try {
       const response = await fetch(`/api/product-types/${id}`, { method: 'DELETE' });
@@ -96,11 +96,11 @@ export default function ProductTypesPage() {
       if (result.success) {
         loadProductTypes();
       } else {
-        alert('Error: ' + result.error);
+        alert(t.errorPrefix + result.error);
       }
     } catch (error) {
       console.error('Failed to delete product type:', error);
-      alert('Failed to delete product type');
+      alert(t.failedToDeleteProductType);
     }
   };
 
@@ -112,7 +112,7 @@ export default function ProductTypesPage() {
     <AdminLayout currentPath="/admin/product-types">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Product Types</h1>
+          <h1 className="text-3xl font-bold">{t.productTypes}</h1>
           <button
             onClick={() => {
               setEditingProductType(null);
@@ -127,9 +127,10 @@ export default function ProductTypesPage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-12">Loading...</div>
+          <div className="text-center py-12">{t.loading}</div>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <>
+            <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -181,14 +182,12 @@ export default function ProductTypesPage() {
             </table>
             {productTypes.length === 0 && (
               <div className="text-center py-12 text-gray-500">
-                No product types found. Create one to get started.
+{t.noProductTypesFound}
               </div>
             )}
           </div>
-        )}
 
-        {/* Mobile Card Layout */}
-        {!loading && (
+          {/* Mobile Card Layout */}
           <div className="block md:hidden space-y-4">
             {currentProductTypes.map((pt) => (
               <div key={pt.producttypeid} className="bg-white p-4 rounded-lg shadow border">
@@ -222,10 +221,9 @@ export default function ProductTypesPage() {
               </div>
             ))}
           </div>
-        )}
 
-        {/* Pagination */}
-        {!loading && totalPages > 1 && (
+          {/* Pagination */}
+          {!loading && totalPages > 1 && (
           <div className="mt-6 flex items-center justify-between">
             <div className="text-sm text-gray-700">
               {language === 'bg'
@@ -271,6 +269,8 @@ export default function ProductTypesPage() {
               </button>
             </div>
           </div>
+          )}
+          </>
         )}
 
         {showModal && (
@@ -287,7 +287,7 @@ export default function ProductTypesPage() {
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name
+                    {t.name}
                   </label>
                   <input
                     type="text"
@@ -299,7 +299,7 @@ export default function ProductTypesPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Code
+                    {t.code}
                   </label>
                   <input
                     type="text"
@@ -315,13 +315,13 @@ export default function ProductTypesPage() {
                     onClick={() => setShowModal(false)}
                     className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
                   >
-                    Cancel
+{t.cancel}
                   </button>
                   <button
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
-                    {editingProductType ? 'Update' : 'Create'}
+{editingProductType ? t.update : t.create}
                   </button>
                 </div>
               </form>

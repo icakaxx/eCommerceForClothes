@@ -16,10 +16,18 @@ interface ProductDetailsProps {
 
 interface Variant {
   productvariantid: string;
-  sku: string;
-  price: number;
+  sku?: string;
+  price?: number;
   quantity: number;
   isvisible: boolean;
+  ProductVariantPropertyvalues?: Array<{
+    propertyid: string;
+    Property?: {
+      propertyid: string;
+      name: string;
+    };
+    value: string;
+  }>;
   ProductVariantPropertyValues?: Array<{
     propertyid: string;
     Property?: {
@@ -46,39 +54,57 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   const [availableOptions, setAvailableOptions] = useState<Record<string, Set<string>>>({});
 
   useEffect(() => {
-    // Extract variants from product
-    if (product.variants && Array.isArray(product.variants)) {
-      const visibleVariants = product.variants.filter((v: any) => v.isvisible !== false);
+    // Extract variants from product - handle both Variants and variants
+    const productVariants = product.variants || product.Variants || [];
+    
+    if (Array.isArray(productVariants) && productVariants.length > 0) {
+      console.log('🔍 ProductDetails: Found variants:', productVariants);
+      const visibleVariants = productVariants.filter((v: any) => v.isvisible !== false);
+      console.log('🔍 ProductDetails: Visible variants:', visibleVariants);
       setVariants(visibleVariants);
 
       // Build available options map
       const optionsMap: Record<string, Set<string>> = {};
       visibleVariants.forEach((variant: any) => {
-        if (variant.ProductVariantPropertyValues) {
-          variant.ProductVariantPropertyValues.forEach((pv: any) => {
-            const propertyName = pv.Property?.name || pv.propertyid;
+        // Handle both naming conventions
+        const propertyValues = variant.ProductVariantPropertyvalues || variant.ProductVariantPropertyValues || [];
+        console.log(`🔍 ProductDetails: Variant ${variant.productvariantid} property values:`, propertyValues);
+        
+        propertyValues.forEach((pv: any) => {
+          // Handle both lowercase and uppercase property name
+          const propertyName = (pv.Property?.name || pv.Property?.Name || pv.propertyid || '').toLowerCase();
+          const propertyValue = pv.value || pv.Value || '';
+          
+          if (propertyName && propertyValue) {
             if (!optionsMap[propertyName]) {
               optionsMap[propertyName] = new Set();
             }
-            optionsMap[propertyName].add(pv.value);
-          });
-        }
+            optionsMap[propertyName].add(propertyValue);
+          }
+        });
       });
+      console.log('🔍 ProductDetails: Available options map:', optionsMap);
       setAvailableOptions(optionsMap);
 
       // Select first variant by default (or primary variant if available)
       if (visibleVariants.length > 0) {
         const primaryVariant = visibleVariants.find((v: any) => v.IsPrimaryImage) || visibleVariants[0];
+        console.log('🔍 ProductDetails: Selected primary variant:', primaryVariant);
         setSelectedVariant(primaryVariant);
 
         // Set initial selected options
         const initialOptions: Record<string, string> = {};
-        if (primaryVariant.ProductVariantPropertyValues) {
-          primaryVariant.ProductVariantPropertyValues.forEach((pv: any) => {
-            const propertyName = pv.Property?.name || pv.propertyid;
-            initialOptions[propertyName] = pv.value;
-          });
-        }
+        const primaryPropertyValues = primaryVariant.ProductVariantPropertyvalues || primaryVariant.ProductVariantPropertyValues || [];
+        primaryPropertyValues.forEach((pv: any) => {
+          // Handle both lowercase and uppercase property name
+          const propertyName = (pv.Property?.name || pv.Property?.Name || pv.propertyid || '').toLowerCase();
+          const propertyValue = pv.value || pv.Value || '';
+          
+          if (propertyName && propertyValue) {
+            initialOptions[propertyName] = propertyValue;
+          }
+        });
+        console.log('🔍 ProductDetails: Initial selected options:', initialOptions);
         setSelectedOptions(initialOptions);
         
         // Notify parent of initial variant image (only once on mount)
@@ -86,36 +112,57 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
           onVariantChange(primaryVariant.imageurl);
         }
       }
+    } else {
+      console.log('🔍 ProductDetails: No variants found. Product:', product);
     }
-  }, [product.variants]); // Removed onVariantChange from dependencies
+  }, [product.variants, product.Variants]); // Removed onVariantChange from dependencies
 
   const handleOptionChange = (propertyName: string, value: string) => {
+    console.log(`🔍 ProductDetails: Option changed - ${propertyName}: ${value}`);
     const newOptions = { ...selectedOptions, [propertyName]: value };
     setSelectedOptions(newOptions);
 
     // Find matching variant
     const matchingVariant = variants.find((variant) => {
-      if (!variant.ProductVariantPropertyValues) return false;
+      // Handle both naming conventions
+      const propertyValues = variant.ProductVariantPropertyvalues || variant.ProductVariantPropertyValues || [];
+      if (propertyValues.length === 0) return false;
 
       const variantOptions: Record<string, string> = {};
-      variant.ProductVariantPropertyValues.forEach((pv) => {
-        const propName = pv.Property?.name || pv.propertyid;
-        variantOptions[propName] = pv.value;
+      propertyValues.forEach((pv: any) => {
+        // Handle both lowercase and uppercase property name
+        const propName = (pv.Property?.name || pv.Property?.Name || pv.propertyid || '').toLowerCase();
+        const propValue = pv.value || pv.Value || '';
+        
+        if (propName && propValue) {
+          variantOptions[propName] = propValue;
+        }
       });
 
       // Check if all selected options match this variant
-      return Object.keys(newOptions).every(
+      const matches = Object.keys(newOptions).every(
         (key) => variantOptions[key] === newOptions[key]
       );
+      
+      console.log(`🔍 ProductDetails: Checking variant ${variant.productvariantid}:`, {
+        variantOptions,
+        newOptions,
+        matches
+      });
+      
+      return matches;
     });
 
     if (matchingVariant) {
+      console.log('🔍 ProductDetails: Matched variant:', matchingVariant);
       setSelectedVariant(matchingVariant);
       
       // Notify parent component of image change
       if (onVariantChange) {
         onVariantChange(matchingVariant.imageurl);
       }
+    } else {
+      console.log('🔍 ProductDetails: No matching variant found for options:', newOptions);
     }
   };
 
@@ -131,7 +178,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   };
 
   const handleBackToStore = () => {
-    router.push(`/${product.category}`);
+    router.push(`/`);
   };
 
   const handleAddToCart = () => {
@@ -178,7 +225,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         >
           <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
-        Back to {getCategoryLabel()}
+        {t.backTo} {getCategoryLabel()}
       </button>
 
       {/* Product Name */}
@@ -226,7 +273,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
             className="text-lg font-semibold mb-4 transition-colors duration-300"
             style={{ color: theme.colors.text }}
           >
-            Select Options
+            {t.selectOptions}
           </h3>
           {Object.entries(availableOptions).map(([propertyName, values]) => (
             <div key={propertyName} className="mb-4">
@@ -265,7 +312,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
                 color: theme.colors.textSecondary 
               }}
             >
-              SKU: <span style={{ color: theme.colors.text }}>{selectedVariant.sku}</span>
+              {t.sku}: <span style={{ color: theme.colors.text }}>{selectedVariant.sku || t.notAvailable}</span>
             </div>
           )}
         </div>
@@ -277,18 +324,18 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
           className="text-lg font-semibold mb-4 transition-colors duration-300"
           style={{ color: theme.colors.text }}
         >
-          Product Details
+          {t.productDetails}
         </h3>
         <ul 
           className="space-y-3 transition-colors duration-300"
           style={{ color: theme.colors.textSecondary }}
         >
           <li className="flex">
-            <span className="font-medium w-32" style={{ color: theme.colors.text }}>Brand:</span>
+            <span className="font-medium w-32" style={{ color: theme.colors.text }}>{t.brand}:</span>
             <span>{product.brand}</span>
           </li>
           <li className="flex">
-            <span className="font-medium w-32" style={{ color: theme.colors.text }}>Model:</span>
+            <span className="font-medium w-32" style={{ color: theme.colors.text }}>{t.model}:</span>
             <span>{product.model}</span>
           </li>
           <li className="flex">
@@ -302,7 +349,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
             </li>
           )}
           <li className="flex">
-            <span className="font-medium w-32" style={{ color: theme.colors.text }}>Category:</span>
+            <span className="font-medium w-32" style={{ color: theme.colors.text }}>{t.category}:</span>
             <span className="capitalize">{getCategoryLabel()}</span>
           </li>
           {/* Display property values from new schema */}
@@ -351,7 +398,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
                 className="font-semibold"
                 style={{ color: '#10b981' }}
               >
-                In Stock
+                {t.inStock}
               </span>
             </>
           ) : (
@@ -376,7 +423,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
                 className="font-semibold"
                 style={{ color: '#ef4444' }}
               >
-                Out of Stock
+                {t.outOfStock}
               </span>
             </>
           )}
@@ -404,63 +451,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         </div>
       )}
 
-      {/* Quick Info */}
-      <div 
-        className="grid grid-cols-2 gap-4 p-4 rounded-lg"
-        style={{ 
-          backgroundColor: theme.colors.cardBg,
-          border: `1px solid ${theme.colors.border}`
-        }}
-      >
-        <div className="text-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mx-auto mb-2"
-            style={{ color: theme.colors.primary }}
-          >
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-            <circle cx="12" cy="10" r="3"></circle>
-          </svg>
-          <p 
-            className="text-xs transition-colors duration-300"
-            style={{ color: theme.colors.textSecondary }}
-          >
-            Free Shipping
-          </p>
-        </div>
-        <div className="text-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mx-auto mb-2"
-            style={{ color: theme.colors.primary }}
-          >
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-          <p 
-            className="text-xs transition-colors duration-300"
-            style={{ color: theme.colors.textSecondary }}
-          >
-            Fast Delivery
-          </p>
-        </div>
-      </div>
+     
     </div>
   );
 }

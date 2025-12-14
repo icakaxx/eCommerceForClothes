@@ -9,13 +9,14 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabase();
 
-    // Get all products with their types
+    // Get all products with their types (exclude soft-deleted)
     const { data: products, error: productsError } = await supabase
       .from('products')
       .select(`
         *,
-        ProductType:product_types(*)
+        product_types(*)
       `)
+      .neq('isdeleted', true)
       .order('createdat', { ascending: false });
 
     if (productsError) {
@@ -34,9 +35,9 @@ export async function GET(request: NextRequest) {
           .from('product_variants')
           .select(`
             *,
-            ProductVariantPropertyValues:product_variant_property_values(
+            product_variant_property_values(
               *,
-              Property:properties(*)
+              properties(*)
             )
           `)
           .eq('productid', product.productid);
@@ -52,9 +53,9 @@ export async function GET(request: NextRequest) {
         const firstVariant = variants?.[0];
         
         // Extract property values from variant for easy access
-        const variantProperties = firstVariant?.ProductVariantPropertyValues?.reduce((acc: Record<string, string>, pv: any) => {
-          if (pv.Property?.name) {
-            acc[pv.Property.name] = pv.Value;
+        const variantProperties = firstVariant?.product_variant_property_values?.reduce((acc: Record<string, string>, pv: any) => {
+          if (pv.properties?.name) {
+            acc[pv.properties.name] = pv.value;
           }
           return acc;
         }, {}) || {};
@@ -77,20 +78,20 @@ export async function GET(request: NextRequest) {
           'bags': 'accessories',
           'watches': 'accessories'
         };
-        const category = categoryMap[product.ProductType?.code?.toLowerCase() || ''] || 'clothes';
-        
+        const category = categoryMap[product.product_types?.code?.toLowerCase() || ''] || 'clothes';
+
         const legacyProduct = {
           // New schema fields
           ...product,
           variants: variants || [],
           productTypeID: product.producttypeid,
-          
+
           // Legacy fields for backwards compatibility
           id: product.productid,
           brand: brand,
           model: model,
           category: category,
-          type: product.ProductType?.name || '',
+          type: product.product_types?.name || '',
           color: variantProperties.color || variantProperties.colour || '',
           size: variantProperties.size || '',
           price: firstVariant?.price || 0,
@@ -138,11 +139,11 @@ export async function POST(request: NextRequest) {
 
     console.log('📦 Variants to process:', Variants.length);
     Variants.forEach((v: any, i: number) => {
-      console.log(`  Variant ${i}:`, { 
-        sku: v.sku, 
-        price: v.price, 
+      console.log(`  Variant ${i}:`, {
+        sku: v.sku,
+        price: v.price,
         quantity: v.quantity,
-        PropertyValues: v.PropertyValues 
+        propertyvalues: v.propertyvalues
       });
     });
 
@@ -172,36 +173,39 @@ export async function POST(request: NextRequest) {
         const {
           sku: variantsku,
           price,
-          CompareAtprice,
+          compareatprice,
           cost,
           quantity,
           weight,
-          weightUnit,
+          weightunit,
           barcode,
-          Trackquantity,
-          ContinueSellingWhenOutOfStock,
+          trackquantity,
+          continuesellingwhenoutofstock,
           isvisible,
-          PropertyValues = [],
+          propertyvalues = [],
           imageurl,
           IsPrimaryImage
         } = variantData;
 
-        // Create variant
+        // Create or update variant
         const { data: variant, error: variantError } = await supabase
           .from('product_variants')
-          .insert({
+          .upsert({
             productid: product.productid,
             sku: variantsku,
             price,
-            CompareAtprice,
+            compareatprice: compareatprice,
             cost,
             quantity,
             weight,
-            weightUnit: weightUnit || 'kg',
+            weightunit: weightunit || 'kg',
             barcode,
-            Trackquantity: Trackquantity ?? true,
-            ContinueSellingWhenOutOfStock: ContinueSellingWhenOutOfStock ?? false,
+            trackquantity: trackquantity ?? true,
+            continuesellingwhenoutofstock: continuesellingwhenoutofstock ?? false,
             isvisible: isvisible ?? true
+          }, {
+            onConflict: 'sku',
+            ignoreDuplicates: false
           })
           .select()
           .single();
@@ -213,12 +217,19 @@ export async function POST(request: NextRequest) {
 
         console.log('✅ Created variant:', variant);
 
-        // Create property values for this variant
-        if (PropertyValues.length > 0) {
-          const propertyValuesData = PropertyValues.map((pv: any) => ({
+        // Create/update property values for this variant
+        if (propertyvalues.length > 0) {
+          // First, delete existing property values for this variant
+          await supabase
+            .from('product_variant_property_values')
+            .delete()
+            .eq('productvariantid', variant.productvariantid);
+
+          // Then insert the new property values
+          const propertyValuesData = propertyvalues.map((pv: any) => ({
             productvariantid: variant.productvariantid,
             propertyid: pv.propertyid,
-            Value: pv.Value
+            value: pv.value
           }));
 
           const { error: pvError } = await supabase
@@ -245,7 +256,7 @@ export async function POST(request: NextRequest) {
               productid: product.productid,
               productvariantid: variant.productvariantid,
               imageurl: imageurl,
-              IsPrimary: IsPrimaryImage || false,
+              isprimary: IsPrimaryImage || false,
               sortorder: 0
             })
             .select();

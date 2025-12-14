@@ -11,7 +11,7 @@ export async function GET(
     const supabase = createServerClient();
     const { id } = await params;
 
-    // Get product with product type
+    // Get product with product type (exclude soft-deleted)
     const { data: product, error: productError } = await supabase
       .from('products')
       .select(`
@@ -19,6 +19,7 @@ export async function GET(
         ProductType:product_types(*)
       `)
       .eq('productid', id)
+      .neq('isdeleted', true)
       .single();
 
     if (productError || !product) {
@@ -28,17 +29,116 @@ export async function GET(
       );
     }
 
-    // Get variants with their images
-    const { data: variants } = await supabase
+    // Get variants first
+    const { data: variants, error: variantsError } = await supabase
       .from('product_variants')
-      .select(`
-        *,
-        ProductVariantPropertyvalues:product_variant_property_values(
-          *,
-          Property:properties(*)
-        )
-      `)
+      .select('*')
       .eq('productid', product.productid);
+
+    // Then get property values for all variants separately
+    let variantsWithProps = variants || [];
+    if (variants && variants.length > 0) {
+      const variantIds = variants.map(v => v.productvariantid);
+      
+      // Try lowercase first (Supabase PostgREST typically uses lowercase)
+      const { data: propertyValues, error: pvError } = await supabase
+        .from('product_variant_property_values')
+        .select(`
+          *,
+          Property:properties(*),
+          properties(*)
+        `)
+        .in('productvariantid', variantIds);
+      
+      console.log('🔍 Property values query:', {
+        variantIdsCount: variantIds.length,
+        propertyValuesCount: propertyValues?.length || 0,
+        error: pvError?.message,
+        sampleVariantId: variantIds[0],
+        samplePropertyValue: propertyValues?.[0]
+      });
+      
+      let finalPropertyValues = propertyValues;
+      
+      // If that fails or returns empty, try PascalCase
+      if (pvError || !propertyValues || propertyValues.length === 0) {
+        console.log('⚠️ Lowercase query failed or returned empty, trying PascalCase...');
+        const { data: propertyValuesUpper, error: pvErrorUpper } = await supabase
+          .from('product_variant_property_values')
+          .select(`
+            *,
+            Property:properties(*),
+            properties(*)
+          `)
+          .in('ProductVariantID', variantIds);
+        
+        if (!pvErrorUpper && propertyValuesUpper && propertyValuesUpper.length > 0) {
+          finalPropertyValues = propertyValuesUpper;
+          console.log('✅ PascalCase query succeeded, found', propertyValuesUpper.length, 'property values');
+        } else {
+          console.log('❌ Both queries failed. Errors:', {
+            lowercase: pvError?.message,
+            pascalCase: pvErrorUpper?.message
+          });
+        }
+      }
+
+      if (pvError && (!finalPropertyValues || finalPropertyValues.length === 0)) {
+        console.error('❌ Error fetching property values:', pvError);
+      } else {
+        console.log('📦 Fetched property values count:', finalPropertyValues?.length || 0);
+        
+        // Group property values by variant
+        const propsByVariant: Record<string, any[]> = {};
+        finalPropertyValues?.forEach((pv: any) => {
+          // Handle both PascalCase and lowercase column names
+          const variantId = pv.ProductVariantID || pv.productvariantid;
+          if (variantId) {
+            if (!propsByVariant[variantId]) {
+              propsByVariant[variantId] = [];
+            }
+            propsByVariant[variantId].push(pv);
+          }
+        });
+
+        console.log('📊 Property values grouped by variant:', Object.keys(propsByVariant).length, 'variants have properties');
+        Object.entries(propsByVariant).forEach(([variantId, props]) => {
+          console.log(`  Variant ${variantId}: ${props.length} properties`);
+        });
+
+        // Attach property values to variants
+        variantsWithProps = variants.map(variant => {
+          const variantId = variant.productvariantid || variant.ProductVariantID;
+          const props = propsByVariant[variantId] || [];
+          return {
+            ...variant,
+            ProductVariantPropertyvalues: props,
+            // Also add lowercase version for compatibility
+            product_variant_property_values: props
+          };
+        });
+
+        // Debug log
+        variantsWithProps.forEach((v: any) => {
+          const props = v.ProductVariantPropertyvalues || [];
+          console.log(`  Variant ${v.productvariantid}:`, {
+            sku: v.sku,
+            propertyValuesCount: props.length,
+            properties: props.map((pv: any) => ({
+              propertyName: pv.Property?.name || pv.Property?.Name || pv.properties?.name,
+              value: pv.value || pv.Value,
+              hasProperty: !!(pv.Property || pv.properties)
+            }))
+          });
+        });
+      }
+    }
+
+    if (variantsError) {
+      console.error('❌ Error fetching variants:', variantsError);
+    } else {
+      console.log('📦 Fetched variants count:', variants?.length || 0);
+    }
 
     // Get all product images
     const { data: allImages } = await supabase
@@ -47,14 +147,23 @@ export async function GET(
       .eq('productid', product.productid)
       .order('sortorder', { ascending: true });
 
-    // Attach images to their variants
-    const variantsWithImages = variants?.map(variant => {
+    // Attach images to their variants (using variantsWithProps which has property values)
+    const variantsWithImages = variantsWithProps?.map(variant => {
       const variantImage = allImages?.find(img => img.productvariantid === variant.productvariantid);
-      return {
+      const variantData = {
         ...variant,
         imageurl: variantImage?.imageurl,
         IsPrimaryImage: variantImage?.IsPrimary || false
       };
+      
+      // Debug: Log the variant structure to ensure property values are preserved
+      if (variant.ProductVariantPropertyvalues) {
+        console.log(`✅ Variant ${variant.productvariantid} has ${variant.ProductVariantPropertyvalues.length} property values`);
+      } else {
+        console.log(`⚠️ Variant ${variant.productvariantid} has NO property values`);
+      }
+      
+      return variantData;
     });
 
     // Get general product images (not variant-specific)
@@ -65,9 +174,13 @@ export async function GET(
     
     // Extract property values from variant for easy access
     const variantProperties: Record<string, string> = {};
-    firstVariant?.ProductVariantPropertyValues?.forEach((pv: ProductVariantPropertyValue) => {
-      if (pv.property?.name) {
-        variantProperties[pv.property.name] = pv.value;
+    // Handle both naming conventions (lowercase 'v' from Supabase query)
+    const firstVariantProps = firstVariant?.ProductVariantPropertyvalues || firstVariant?.ProductVariantPropertyValues || [];
+    firstVariantProps.forEach((pv: any) => {
+      const propName = pv.Property?.name || pv.property?.name;
+      const propValue = pv.value || pv.Value;
+      if (propName && propValue) {
+        variantProperties[propName.toLowerCase()] = propValue;
       }
     });
     
@@ -91,6 +204,23 @@ export async function GET(
     };
     const category = categoryMap[product.ProductType?.Code?.toLowerCase() || ''] || 'clothes';
     
+    // Debug logging
+    console.log('📦 Product variants count:', variantsWithImages?.length || 0);
+    if (variantsWithImages && variantsWithImages.length > 0) {
+      variantsWithImages.forEach((v: any, i: number) => {
+        const props = v.ProductVariantPropertyvalues || [];
+        console.log(`  Variant ${i}:`, {
+          id: v.productvariantid,
+          isvisible: v.isvisible,
+          propertyValuesCount: props.length,
+          propertyValues: props.map((pv: any) => ({
+            property: pv.Property?.name || pv.propertyid,
+            value: pv.value
+          }))
+        });
+      });
+    }
+
     const legacyProduct = {
       // New schema fields
       productid: product.productid,
@@ -100,6 +230,7 @@ export async function GET(
       producttypeid: product.producttypeid,
       ProductType: product.ProductType,
       Variants: variantsWithImages || [],
+      variants: variantsWithImages || [], // Add lowercase version for compatibility
       Images: images || [],
       
       // Legacy fields for backwards compatibility
@@ -154,11 +285,11 @@ export async function PUT(
 
     console.log('📦 Variants to process:', Variants.length);
     Variants.forEach((v: any, i: number) => {
-      console.log(`  Variant ${i}:`, { 
-        sku: v.sku, 
-        price: v.price, 
+      console.log(`  Variant ${i}:`, {
+        sku: v.sku,
+        price: v.price,
         quantity: v.quantity,
-        Propertyvalues: v.Propertyvalues 
+        propertyvalues: v.propertyvalues
       });
     });
 
@@ -193,7 +324,7 @@ export async function PUT(
         .eq('productid', id)
         .not('productvariantid', 'is', null); // Only delete variant-specific images
       
-      // Delete existing variants (this will cascade delete property values)
+      // Delete existing variants (cascade will delete property values)
       const { error: deleteError } = await supabase
         .from('product_variants')
         .delete()
@@ -211,16 +342,16 @@ export async function PUT(
           productvariantid, // May be present for updates
           sku: variantsku,
           price,
-          CompareAtprice,
+          compareatprice,
           cost,
           quantity,
           weight,
-          weightUnit,
+          weightunit,
           barcode,
-          Trackquantity,
-          ContinueSellingWhenOutOfStock,
+          trackquantity,
+          continuesellingwhenoutofstock,
           isvisible,
-          Propertyvalues = [],
+          propertyvalues = [],
           imageurl,
           IsPrimaryImage
         } = variantData;
@@ -230,27 +361,30 @@ export async function PUT(
           sku: variantsku,
           price,
           quantity,
-          weightUnit: weightUnit || 'kg',
-          Trackquantity: Trackquantity ?? true,
+          weightunit: weightunit || 'kg',
+          trackquantity: trackquantity ?? true,
           isvisible: isvisible ?? true
         });
 
         // Create variant
         const { data: variant, error: variantError } = await supabase
           .from('product_variants')
-          .insert({
+          .upsert({
             productid: id,
             sku: variantsku,
             price,
-            CompareAtprice,
+            compareatprice,
             cost,
             quantity,
             weight,
-            weightUnit: weightUnit || 'kg',
+            weightunit: weightunit || 'kg',
             barcode,
-            Trackquantity: Trackquantity ?? true,
-            ContinueSellingWhenOutOfStock: ContinueSellingWhenOutOfStock ?? false,
+            trackquantity: trackquantity ?? true,
+            continuesellingwhenoutofstock: continuesellingwhenoutofstock ?? false,
             isvisible: isvisible ?? true
+          }, {
+            onConflict: 'sku',
+            ignoreDuplicates: false
           })
           .select()
           .single();
@@ -263,9 +397,16 @@ export async function PUT(
 
         console.log('✅ Created variant:', variant);
 
-        // Create property values for this variant
-        if (Propertyvalues.length > 0) {
-          const propertyvaluesData = Propertyvalues.map((pv: any) => ({
+        // Create/update property values for this variant
+        if (propertyvalues.length > 0) {
+          // First, delete existing property values for this variant
+          await supabase
+            .from('product_variant_property_values')
+            .delete()
+            .eq('productvariantid', variant.productvariantid);
+
+          // Then insert the new property values
+          const propertyvaluesData = propertyvalues.map((pv: any) => ({
             productvariantid: variant.productvariantid,
             propertyid: pv.propertyid,
             value: pv.value
@@ -295,7 +436,7 @@ export async function PUT(
               productid: id,
               productvariantid: variant.productvariantid,
               imageurl: imageurl,
-              IsPrimary: IsPrimaryImage || false,
+              isprimary: IsPrimaryImage || false,
               sortorder: 0
             })
             .select();
@@ -336,10 +477,10 @@ export async function DELETE(
     const supabase = createServerClient();
     const { id } = await params;
 
-    // Delete product (cascade will delete related property values)
+    // Soft delete product by setting isdeleted = true
     const { error } = await supabase
       .from('products')
-      .delete()
+      .update({ isdeleted: true, updatedat: new Date().toISOString() })
       .eq('productid', id);
 
     if (error) {

@@ -28,12 +28,26 @@ export default function ProductCard({ product }: ProductCardProps) {
     return '';
   };
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    // Don't navigate if modal is open
+    if (showAddToCartModal) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    // Don't navigate if clicking on the express checkout button or its container
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('[data-express-checkout]')) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     router.push(`/products/${product.id}`);
   };
 
   return (
-    <div 
+    <>
+    <div
       className="rounded-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden cursor-pointer"
       style={{
         backgroundColor: theme.colors.cardBg,
@@ -104,26 +118,34 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Express Add Button */}
         {product.visible && product.quantity > 0 && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowAddToCartModal(true);
-            }}
-            className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center justify-center gap-2"
-          >
-            <ShoppingCart size={16} />
-            {t.expressAdd}
-          </button>
+          <div data-express-checkout className="relative z-10">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowAddToCartModal(true);
+              }}
+              onMouseDown={(e) => {
+                // Prevent card click from firing when clicking the button
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center justify-center gap-2"
+            >
+              <ShoppingCart size={16} />
+              {t.expressAdd}
+            </button>
+          </div>
         )}
       </div>
-
-      {/* Add to Cart Modal */}
-      <AddToCartModal
-        isOpen={showAddToCartModal}
-        onClose={() => setShowAddToCartModal(false)}
-        product={product}
-      />
     </div>
+
+    <AddToCartModal
+      isOpen={showAddToCartModal}
+      onClose={() => setShowAddToCartModal(false)}
+      product={product}
+    />
+    </>
   );
 }
 

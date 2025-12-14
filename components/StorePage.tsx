@@ -27,7 +27,7 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
   const availableCategories = productTypes.filter(type => {
     return products.some(p =>
       p.visible &&
-      p.quantity > 0 &&
+      (p.quantity > 0 || p.variants?.length === 0) && // Show products with quantity OR products with no variants (newly created)
       p.productTypeID === type.producttypeid
     );
   });
@@ -44,7 +44,9 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
   const activeCategoryFilter = currentPage === 'home' ? selectedCategory : currentPage;
 
   const filteredProducts = products.filter(p => {
-    if (!p.visible || p.quantity <= 0) return false;
+    if (!p.visible) return false;
+    // Show products with quantity > 0 OR products with no variants (newly created products)
+    if (p.quantity <= 0 && p.variants && p.variants.length > 0) return false;
 
     // Category/Product Type filtering
     if (activeCategoryFilter === 'all') {

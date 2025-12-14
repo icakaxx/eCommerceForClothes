@@ -16,7 +16,7 @@ export async function GET(
       .select(`
         *,
         product_type_properties (
-          ProductTypepropertyid,
+          producttypepropertyid,
           propertyid,
           properties (
             propertyid,
@@ -30,6 +30,27 @@ export async function GET(
       .single();
 
     if (productTypeError || !productType) {
+      // If join fails, try basic query without properties
+      if (productTypeError?.code === 'PGRST116' || productTypeError?.message?.includes('relation')) {
+        const { data: basicProductType, error: basicError } = await supabase
+          .from('product_types')
+          .select('*')
+          .eq('producttypeid', id)
+          .single();
+
+        if (basicError || !basicProductType) {
+          return NextResponse.json(
+            { error: 'Product type not found' },
+            { status: 404 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          productType: { ...basicProductType, product_type_properties: [] }
+        });
+      }
+
       return NextResponse.json(
         { error: 'Product type not found' },
         { status: 404 }

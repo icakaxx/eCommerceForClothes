@@ -1,13 +1,12 @@
 'use client';
 
-import { ArrowLeft, Package, Tags, Settings, Cog, X, DollarSign } from 'lucide-react';
+import { ArrowLeft, Package, Tags, Settings, Cog, X, DollarSign, Users, Ticket, TrendingUp, BarChart3, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useStoreSettings } from '@/context/StoreSettingsContext';
 import { translations } from '@/lib/translations';
-import LanguageToggle from '@/components/LanguageToggle';
 import { signOutAdmin } from '@/lib/auth';
 
 interface AdminSidebarProps {
@@ -70,7 +69,7 @@ export default function AdminSidebar({ currentPath, onClose }: AdminSidebarProps
         </div>
 
         <div className="flex-1 p-4 sm:p-6 pt-0 lg:pt-6">
-        <div className="flex items-center justify-between lg:block mb-4 lg:mb-8">
+        <div className="flex items-center justify-center lg:block mb-4 lg:mb-8">
           <button
             onClick={() => {
               router.push('/admin');
@@ -86,7 +85,7 @@ export default function AdminSidebar({ currentPath, onClose }: AdminSidebarProps
                 alt={`${settings.storename} Logo`}
                 width={32}
                 height={32}
-                className="w-8 h-8 object-contain"
+                className="hidden lg:block w-8 h-8 object-contain"
               />
             ) : (
               <Image
@@ -94,7 +93,7 @@ export default function AdminSidebar({ currentPath, onClose }: AdminSidebarProps
                 alt={`${settings?.storename || 'Store'} Logo`}
                 width={32}
                 height={32}
-                className="w-8 h-8 object-contain"
+                className="hidden lg:block w-8 h-8 object-contain"
               />
             )}
             <div
@@ -104,9 +103,6 @@ export default function AdminSidebar({ currentPath, onClose }: AdminSidebarProps
               {settings?.storename || 'Store'}
             </div>
           </button>
-          <div className="lg:hidden">
-            <LanguageToggle />
-          </div>
         </div>
         <nav className="space-y-1">
           <button
@@ -135,7 +131,7 @@ export default function AdminSidebar({ currentPath, onClose }: AdminSidebarProps
               onClose?.();
             }}
             onAuxClick={() => window.open('/admin/sales', '_blank')}
-            title="Sales"
+            title={t.sales}
             className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
               currentPath === '/admin/sales' ? 'opacity-100' : 'opacity-80'
             }`}
@@ -146,7 +142,107 @@ export default function AdminSidebar({ currentPath, onClose }: AdminSidebarProps
           >
             <div className="flex items-center gap-3">
               <DollarSign size={18} />
-              <span>Sales</span>
+              <span>{t.sales}</span>
+            </div>
+          </button>
+          <button
+            onClick={() => {
+              router.push('/admin/customers');
+              onClose?.();
+            }}
+            onAuxClick={() => window.open('/admin/customers', '_blank')}
+            title={t.customers}
+            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
+              currentPath === '/admin/customers' ? 'opacity-100' : 'opacity-80'
+            }`}
+            style={{
+              backgroundColor: currentPath === '/admin/customers' ? theme.colors.secondary : theme.colors.surface,
+              color: currentPath === '/admin/customers' ? theme.colors.primary : theme.colors.text
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <Users size={18} />
+              <span>{t.customers}</span>
+            </div>
+          </button>
+          <button
+            onClick={() => {
+              router.push('/admin/discounts');
+              onClose?.();
+            }}
+            onAuxClick={() => window.open('/admin/discounts', '_blank')}
+            title={t.discounts}
+            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
+              currentPath === '/admin/discounts' ? 'opacity-100' : 'opacity-80'
+            }`}
+            style={{
+              backgroundColor: currentPath === '/admin/discounts' ? theme.colors.secondary : theme.colors.surface,
+              color: currentPath === '/admin/discounts' ? theme.colors.primary : theme.colors.text
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <Ticket size={18} />
+              <span>{t.discounts}</span>
+            </div>
+          </button>
+          <button
+            onClick={() => {
+              router.push('/admin/finance');
+              onClose?.();
+            }}
+            onAuxClick={() => window.open('/admin/finance', '_blank')}
+            title={t.finance}
+            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
+              currentPath === '/admin/finance' ? 'opacity-100' : 'opacity-80'
+            }`}
+            style={{
+              backgroundColor: currentPath === '/admin/finance' ? theme.colors.secondary : theme.colors.surface,
+              color: currentPath === '/admin/finance' ? theme.colors.primary : theme.colors.text
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <TrendingUp size={18} />
+              <span>{t.finance}</span>
+            </div>
+          </button>
+          <button
+            onClick={() => {
+              router.push('/admin/analytics');
+              onClose?.();
+            }}
+            onAuxClick={() => window.open('/admin/analytics', '_blank')}
+            title={t.analytics}
+            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
+              currentPath === '/admin/analytics' ? 'opacity-100' : 'opacity-80'
+            }`}
+            style={{
+              backgroundColor: currentPath === '/admin/analytics' ? theme.colors.secondary : theme.colors.surface,
+              color: currentPath === '/admin/analytics' ? theme.colors.primary : theme.colors.text
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <BarChart3 size={18} />
+              <span>{t.analytics}</span>
+            </div>
+          </button>
+          <button
+            onClick={() => {
+              router.push('/admin/media');
+              onClose?.();
+            }}
+            onAuxClick={() => window.open('/admin/media', '_blank')}
+            title={t.media}
+            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
+              currentPath === '/admin/media' ? 'opacity-100' : 'opacity-80'
+            }`}
+            style={{
+              backgroundColor: currentPath === '/admin/media' ? theme.colors.secondary : theme.colors.surface,
+              color: currentPath === '/admin/media' ? theme.colors.primary : theme.colors.text
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <ImageIcon size={18} />
+              <span>{t.media}</span>
             </div>
           </button>
           <button

@@ -21,6 +21,7 @@ interface OrderData {
     id: string | number;
     quantity: number;
     size?: string;
+    price?: number;
   }>;
   totals: {
     subtotal: number;
@@ -185,21 +186,56 @@ async function createOrder(orderData: OrderData): Promise<string> {
   }
 
   // Create order items
-  // Note: For now, assuming item.id is the variant ID when size exists, product ID otherwise
-  const orderItems = orderData.items.map(item => ({
-    orderid: orderId,
-    productid: item.size ? null : item.id, // Use productid for non-variant items
-    productvariantid: item.size ? item.id : null, // Use productvariantid for variant items
-    quantity: item.quantity,
-    createdat: new Date().toISOString()
-  }));
+  const orderItemsPromises = orderData.items.map(async (item) => {
+    let productId = null;
+    let productVariantId = null;
+    let price = 0;
+
+    // Check if item.id is a variant ID (UUID string) or product ID (number/string)
+    if (item.id && typeof item.id === 'string' && item.id.length > 10) {
+      // Looks like a UUID variant ID (from cart when size is selected)
+      const { data: variant } = await supabase
+        .from('product_variants')
+        .select('productid, price')
+        .eq('productvariantid', item.id)
+        .single();
+
+      if (variant) {
+        productId = variant.productid;
+        productVariantId = item.id;
+        price = variant.price || 0;
+      }
+    } else if (item.id) {
+      // Assume it's a product ID (for products without variants)
+      productId = item.id;
+      // For products without variants, price comes from cart item
+      price = item.price || 0;
+    }
+
+    return {
+      orderid: orderId,
+      productid: productId,
+      ProductVariantID: productVariantId, // Use correct column name from schema
+      quantity: item.quantity,
+      price: price,
+      createdat: new Date().toISOString()
+    };
+  });
+
+  const orderItems = await Promise.all(orderItemsPromises);
 
   const { error: itemsError } = await (supabase as any)
     .from('order_items')
     .insert(orderItems);
 
   if (itemsError) {
-    console.error('Error creating order items:', error);
+    console.error('Error creating order items:', itemsError);
+    console.error('Order items error details:', {
+      message: itemsError.message,
+      code: itemsError.code,
+      details: itemsError.details,
+      hint: itemsError.hint
+    });
     throw new Error('Failed to create order items');
   }
 

@@ -5,6 +5,8 @@ import ProductMediaGallery from './ProductMediaGallery';
 import ProductDetails from './ProductDetails';
 import { Product } from '@/lib/data';
 import { useTheme } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/lib/translations';
 
 interface ProductViewProps {
   product: Product;
@@ -12,6 +14,8 @@ interface ProductViewProps {
 
 export default function ProductView({ product }: ProductViewProps) {
   const { theme } = useTheme();
+  const { language } = useLanguage();
+  const t = translations[language];
   const [currentImages, setCurrentImages] = useState<string[]>([]);
 
   useEffect(() => {
@@ -53,6 +57,27 @@ export default function ProductView({ product }: ProductViewProps) {
               images={currentImages} 
               productName={`${product.brand} ${product.model}`}
             />
+            
+            {/* Product Description Section */}
+            {product.description && (
+              <div 
+                className="mt-8 pt-8 border-t"
+                style={{ borderColor: theme.colors.border }}
+              >
+                <h2 
+                  className="text-xl font-bold mb-4"
+                  style={{ color: theme.colors.text }}
+                >
+                  {t.productDescriptionHeading}
+                </h2>
+                <div 
+                  className="prose max-w-none"
+                  style={{ color: theme.colors.textSecondary }}
+                >
+                  <p>{product.description}</p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right column - Product Info */}
@@ -63,27 +88,6 @@ export default function ProductView({ product }: ProductViewProps) {
             />
           </div>
         </div>
-
-        {/* Product Description Section */}
-        {product.description && (
-          <div 
-            className="mt-12 pt-12 border-t"
-            style={{ borderColor: theme.colors.border }}
-          >
-            <h2 
-              className="text-2xl font-bold mb-4"
-              style={{ color: theme.colors.text }}
-            >
-              Product Description
-            </h2>
-            <div 
-              className="prose max-w-none"
-              style={{ color: theme.colors.textSecondary }}
-            >
-              <p>{product.description}</p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

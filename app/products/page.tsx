@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import StorePage from '@/components/StorePage';
+import CartDrawer from '@/components/CartDrawer';
 import { useProducts } from '@/context/ProductContext';
 
-export default function ClothesPage() {
+export default function ProductsPage() {
   const { products } = useProducts();
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -26,9 +27,10 @@ export default function ClothesPage() {
     <div className="min-h-screen flex flex-col">
       <Header isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin} />
       <div className="flex-1">
-        <StorePage products={products} currentPage="clothes" />
+        <StorePage products={products} currentPage="home" />
       </div>
       <Footer />
+      <CartDrawer />
     </div>
   );
 }

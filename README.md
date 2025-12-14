@@ -37,8 +37,5 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ## Pages
 
 - `/` - Home page with all products
-- `/clothes` - Clothes category page
-- `/shoes` - Shoes category page
-- `/accessories` - Accessories category page
 - `/admin` - Admin panel for managing products
 

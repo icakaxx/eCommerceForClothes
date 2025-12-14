@@ -160,7 +160,7 @@ export default function ProductsPage() {
         sku: formData.sku || null,
         description: formData.description || null,
         producttypeid: formData.producttypeid,
-        variants: variants
+        Variants: variants
       };
 
       console.log('Submitting product with payload:', JSON.stringify(payload, null, 2));
@@ -212,29 +212,29 @@ export default function ProductsPage() {
 
         // Load properties for this product type
         if (fullProduct.producttypeid) {
-          const props = await loadPropertiesForProductType(fullProduct.ProductTypeID);
+          const props = await loadPropertiesForProductType(fullProduct.producttypeid);
           setProductTypeProperties(props);
           
           // Load existing variants if they exist
           if (fullProduct.Variants && fullProduct.Variants.length > 0) {
             const loadedVariants: Variant[] = fullProduct.Variants.map((v: any) => ({
-              ProductVariantID: v.productvariantid,
-              SKU: v.sku,
-              Price: v.price || 0,
-              CompareAtPrice: v.compareatprice,
-              Cost: v.cost,
-              Quantity: v.quantity || 0,
-              Weight: v.weight,
-              WeightUnit: v.weightunit || 'kg',
-              Barcode: v.barcode,
-              TrackQuantity: v.trackquantity ?? true,
-              ContinueSellingWhenOutOfStock: v.continuesellingwhenoutofstock ?? false,
-              IsVisible: v.isvisible ?? true,
-              ImageURL: v.imageurl, // Load variant image
+              productvariantid: v.productvariantid,
+              sku: v.sku,
+              price: v.price || 0,
+              compareatprice: v.compareatprice,
+              cost: v.cost,
+              quantity: v.quantity || 0,
+              weight: v.weight,
+              weightunit: v.weightunit || 'kg',
+              barcode: v.barcode,
+              trackquantity: v.trackquantity ?? true,
+              continuesellingwhenoutofstock: v.continuesellingwhenoutofstock ?? false,
+              isvisible: v.isvisible ?? true,
+              imageurl: v.imageurl, // Load variant image
               IsPrimaryImage: v.IsPrimaryImage || false, // Load primary flag
-              PropertyValues: (v.ProductVariantPropertyValues || []).map((pv: any) => ({
-                PropertyID: pv.propertyid,
-                Value: pv.value
+              propertyvalues: (v.product_variant_property_values || []).map((pv: any) => ({
+                propertyid: pv.propertyid,
+                value: pv.value
               }))
             }));
             
@@ -314,7 +314,7 @@ export default function ProductsPage() {
   const generateVariants = () => {
     const propertyIds = Object.keys(selectedPropertyValues);
     if (propertyIds.length === 0) {
-      alert('Please select at least one property value');
+      alert(t.selectAtLeastOnePropertyValue);
       return;
     }
 
@@ -336,7 +336,7 @@ export default function ProductsPage() {
       }));
 
       // Generate SKU from combination
-      const variantSKU = `${formData.sku || 'PROD'}-${combination.join('-').replace(/\s+/g, '')}`;
+      const variantSKU = `${formData.sku || 'PROD'}-${combination.map(v => v.toUpperCase()).join('-')}`;
 
       // Check if this variant already exists (same property values)
       const existingVariant = variants.find(v => {
@@ -472,7 +472,7 @@ export default function ProductsPage() {
           <div className="text-center py-12">Loading...</div>
         ) : (
           <>
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -603,7 +603,7 @@ export default function ProductsPage() {
                   disabled={currentPage === totalPages}
                   className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                 >
-                  {language === 'bg' ? 'Следваща' : 'Next'}
+                  {t.next}
                 </button>
               </div>
             </div>
@@ -612,17 +612,15 @@ export default function ProductsPage() {
         )}
 
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl my-8">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">
                   {editingProduct ? t.editProduct : t.addProduct}
                 </h2>
                 <button onClick={() => {
                   setShowModal(false);
-                  setProductTypeProperties([]);
-                  setSelectedPropertyValues({});
-                  setVariants([]);
+                  // Don't clear the data here - only clear when starting a new product
                 }}>
                   <X className="w-5 h-5" />
                 </button>
@@ -630,7 +628,7 @@ export default function ProductsPage() {
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name
+                    {t.productName}
                   </label>
                   <input
                     type="text"
@@ -642,7 +640,7 @@ export default function ProductsPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    SKU
+                    {t.productSKU}
                   </label>
                   <input
                     type="text"
@@ -726,7 +724,7 @@ export default function ProductsPage() {
                             </div>
                           ) : (
                             <p className="text-xs text-gray-400">
-                              This property type does not support variants. Add values in the Properties section.
+                              {t.propertyTypeNotSupportVariants}
                             </p>
                           )}
                         </div>
@@ -737,7 +735,7 @@ export default function ProductsPage() {
                       onClick={generateVariants}
                       className="mt-3 w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                     >
-                      Generate Variants ({Object.values(selectedPropertyValues).reduce((acc, vals) => acc * (vals.length || 1), 1)} combinations)
+                      {t.generateVariants} ({Object.values(selectedPropertyValues).reduce((acc, vals) => acc * (vals.length || 1), 1)} {t.combinations})
                     </button>
                   </div>
                 )}
@@ -807,7 +805,7 @@ export default function ProductsPage() {
                                         type="button"
                                         onClick={() => updateVariant(index, 'imageurl', undefined)}
                                         className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                                        title="Remove image"
+                                        title={t.removeImage}
                                       >
                                         ×
                                       </button>
@@ -838,7 +836,7 @@ export default function ProductsPage() {
                                   checked={variant.IsPrimaryImage || false}
                                   onChange={() => handlePrimaryImageChange(index)}
                                   className="w-4 h-4 text-blue-600 rounded"
-                                  title="Set as primary image"
+                                  title={t.setAsPrimaryImage}
                                 />
                               </td>
                               <td className="px-3 py-2">
