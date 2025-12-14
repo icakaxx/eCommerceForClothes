@@ -8,6 +8,22 @@ interface StoreSettings {
   logourl: string | null;
   themeid: string;
   language: 'en' | 'bg';
+  bannertext: string | null;
+  bannerduration: number | null;
+  heroimageurl: string | null;
+  discordurl: string | null;
+  facebookurl: string | null;
+  pinteresturl: string | null;
+  youtubeurl: string | null;
+  instagramurl: string | null;
+  xurl: string | null;
+  tiktokurl: string | null;
+  email: string | null;
+  yearofcreation: number | null;
+  telephonenumber: string | null;
+  closingremarks: string | null;
+  aboutusphoto: string | null;
+  aboutustext: string | null;
   createdat: string;
   updatedat: string;
 }

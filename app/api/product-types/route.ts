@@ -5,10 +5,20 @@ import { createServerClient } from '@/lib/supabase';
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient();
+    const { searchParams } = new URL(request.url);
+    const rfproducttypeid = searchParams.get('rfproducttypeid');
     
-    const { data: productTypes, error } = await supabase
+    // Build query
+    let query = supabase
       .from('product_types')
-      .select('*')
+      .select('*');
+
+    // Filter by rfproducttypeid if provided
+    if (rfproducttypeid) {
+      query = query.eq('rfproducttypeid', parseInt(rfproducttypeid));
+    }
+
+    const { data: productTypes, error } = await query
       .order('name', { ascending: true });
 
     if (error) {
@@ -39,7 +49,7 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient();
     const body = await request.json();
 
-    const { name, code } = body;
+    const { name, code, rfproducttypeid } = body;
 
     if (!name || !code) {
       return NextResponse.json(
@@ -53,6 +63,7 @@ export async function POST(request: NextRequest) {
       .insert({
         name,
         code,
+        rfproducttypeid: rfproducttypeid || null,
         updatedat: new Date().toISOString()
       })
       .select()

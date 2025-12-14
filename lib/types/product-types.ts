@@ -5,6 +5,7 @@ export interface ProductType {
   producttypeid: string;
   name: string;
   code: string;
+  rfproducttypeid?: number | null;
   createdat: string;
   updatedat: string;
 }
@@ -43,6 +44,8 @@ export interface Product {
   sku?: string;
   description?: string;
   producttypeid: string;
+  rfproducttypeid?: number | null;
+  isfeatured?: boolean;
   createdat: string;
   updatedat: string;
 }

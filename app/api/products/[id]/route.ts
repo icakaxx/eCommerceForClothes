@@ -280,6 +280,8 @@ export async function PUT(
       sku,
       description,
       producttypeid,
+      rfproducttypeid,
+      isfeatured,
       Variants = []
     } = body;
 
@@ -301,6 +303,8 @@ export async function PUT(
         sku: sku || null,
         description: description || null,
         producttypeid,
+        rfproducttypeid: rfproducttypeid || 1, // Default to 1 (For Him) if not provided
+        isfeatured: isfeatured || false,
         updatedat: new Date().toISOString()
       })
       .eq('productid', id)

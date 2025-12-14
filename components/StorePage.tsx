@@ -17,11 +17,23 @@ interface StorePageProps {
 export default function StorePage({ products, currentPage }: StorePageProps) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedFilters, setSelectedFilters] = useState<Record<string, any>>({});
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(currentPage !== 'home'); // Show filters by default on category pages
   const { language } = useLanguage();
   const { theme } = useTheme();
   const { productTypes } = useProductTypes();
   const t = translations[language];
+
+  // Map currentPage to rfproducttypeid for category pages
+  const getRfProductTypeId = (page: string) => {
+    const mapping: Record<string, number> = {
+      'for-him': 1,
+      'for-her': 2,
+      'accessories': 3
+    };
+    return mapping[page];
+  };
+
+  const currentRfProductTypeId = getRfProductTypeId(currentPage);
 
   // Filter categories to only show those with available products
   const availableCategories = productTypes.filter(type => {
@@ -41,7 +53,7 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
     }))
   ];
 
-  const activeCategoryFilter = currentPage === 'home' ? selectedCategory : currentPage;
+  const activeCategoryFilter = currentPage === 'home' ? selectedCategory : selectedCategory;
 
   const filteredProducts = products.filter(p => {
     if (!p.visible) return false;
@@ -164,43 +176,41 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
           </p>
         </div>
 
-        {currentPage === 'home' && (
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-6 sm:mb-10 px-2">
-            {categories.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-300"
-                style={{
-                  backgroundColor: selectedCategory === cat.id
-                    ? theme.colors.primary
-                    : theme.colors.cardBg,
-                  color: selectedCategory === cat.id
-                    ? '#ffffff'
-                    : theme.colors.text,
-                  border: selectedCategory === cat.id
-                    ? 'none'
-                    : `1px solid ${theme.colors.border}`,
-                  boxShadow: selectedCategory === cat.id
-                    ? theme.effects.shadowHover
-                    : 'none'
-                }}
-                onMouseEnter={(e) => {
-                  if (selectedCategory !== cat.id) {
-                    e.currentTarget.style.backgroundColor = theme.colors.surface;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (selectedCategory !== cat.id) {
-                    e.currentTarget.style.backgroundColor = theme.colors.cardBg;
-                  }
-                }}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-6 sm:mb-10 px-2">
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-300"
+              style={{
+                backgroundColor: selectedCategory === cat.id
+                  ? theme.colors.primary
+                  : theme.colors.cardBg,
+                color: selectedCategory === cat.id
+                  ? '#ffffff'
+                  : theme.colors.text,
+                border: selectedCategory === cat.id
+                  ? 'none'
+                  : `1px solid ${theme.colors.border}`,
+                boxShadow: selectedCategory === cat.id
+                  ? theme.effects.shadowHover
+                  : 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (selectedCategory !== cat.id) {
+                  e.currentTarget.style.backgroundColor = theme.colors.surface;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (selectedCategory !== cat.id) {
+                  e.currentTarget.style.backgroundColor = theme.colors.cardBg;
+                }
+              }}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
 
         <ProductFilters
           products={products}

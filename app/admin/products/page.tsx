@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Image as ImageIcon } from 'lucide-react';
 import { ProductType, Property } from '@/lib/types/product-types';
 import AdminLayout from '../components/AdminLayout';
 import { useLanguage } from '@/context/LanguageContext';
@@ -52,12 +52,20 @@ export default function ProductsPage() {
     name: '',
     sku: '',
     description: '',
+    rfproducttypeid: 1, // Default to 1 (For Him)
     producttypeid: '',
+    isfeatured: false,
     propertyvalues: {} as Record<string, string>
   });
   const [availableProperties, setAvailableProperties] = useState<Property[]>([]);
   const [selectedPropertyValues, setSelectedPropertyValues] = useState<Record<string, string[]>>({});
   const [variants, setVariants] = useState<Variant[]>([]);
+  const [rfProductTypes, setRfProductTypes] = useState<Array<{rfproducttypeid: number, name: string}>>([]);
+  const [filteredProductTypes, setFilteredProductTypes] = useState<ProductType[]>([]);
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  const [mediaFiles, setMediaFiles] = useState<Array<{name: string, path: string, url: string}>>([]);
+  const [loadingMedia, setLoadingMedia] = useState(false);
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState<number | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -78,7 +86,72 @@ export default function ProductsPage() {
     loadProducts();
     loadProductTypes();
     loadProperties();
+    loadRfProductTypes();
   }, []);
+
+  // Load RF Product Types (main categories)
+  const loadRfProductTypes = async () => {
+    try {
+      const response = await fetch('/api/rf-product-types');
+      const result = await response.json();
+      if (result.success) {
+        setRfProductTypes(result.rfProductTypes);
+      }
+    } catch (error) {
+      console.error('Failed to load RF product types:', error);
+    }
+  };
+
+  // Load media files from storage (from all folders: images, logos, hero-images)
+  const loadMediaFiles = async () => {
+    try {
+      setLoadingMedia(true);
+      const response = await fetch('/api/storage/list?folders=images,logos,hero-images&limit=200');
+      const result = await response.json();
+      if (result.success) {
+        setMediaFiles(result.files || []);
+      }
+    } catch (error) {
+      console.error('Failed to load media files:', error);
+    } finally {
+      setLoadingMedia(false);
+    }
+  };
+
+  // Open media modal for specific variant
+  const openMediaModal = (variantIndex: number) => {
+    setSelectedVariantIndex(variantIndex);
+    setShowMediaModal(true);
+    loadMediaFiles();
+  };
+
+  // Select image from media library
+  const selectImageFromMedia = (imageUrl: string) => {
+    if (selectedVariantIndex !== null) {
+      updateVariant(selectedVariantIndex, 'imageurl', imageUrl);
+    }
+    setShowMediaModal(false);
+    setSelectedVariantIndex(null);
+  };
+
+  // Filter product types based on selected main category
+  useEffect(() => {
+    if (formData.rfproducttypeid) {
+      const filtered = productTypes.filter(pt => 
+        pt.rfproducttypeid === formData.rfproducttypeid || !pt.rfproducttypeid
+      );
+      setFilteredProductTypes(filtered);
+      // Reset product type if current selection is not in filtered list
+      if (formData.producttypeid && !filtered.find(pt => pt.producttypeid === formData.producttypeid)) {
+        setFormData({ ...formData, producttypeid: '' });
+        setProductTypeProperties([]);
+        setSelectedPropertyValues({});
+        setVariants([]);
+      }
+    } else {
+      setFilteredProductTypes(productTypes);
+    }
+  }, [formData.rfproducttypeid, productTypes]);
 
   const loadProducts = async () => {
     try {
@@ -159,7 +232,9 @@ export default function ProductsPage() {
         name: formData.name,
         sku: formData.sku || null,
         description: formData.description || null,
+        rfproducttypeid: formData.rfproducttypeid,
         producttypeid: formData.producttypeid,
+        isfeatured: formData.isfeatured || false,
         Variants: variants
       };
 
@@ -176,7 +251,7 @@ export default function ProductsPage() {
       
       if (result.success) {
         setShowModal(false);
-        setFormData({ name: '', sku: '', description: '', producttypeid: '', propertyvalues: {} });
+        setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, propertyvalues: {} });
         setEditingProduct(null);
         setVariants([]);
         setSelectedPropertyValues({});
@@ -206,7 +281,9 @@ export default function ProductsPage() {
           name: fullProduct.name,
           sku: fullProduct.sku || '',
           description: fullProduct.description || '',
+          rfproducttypeid: fullProduct.rfproducttypeid || 1,
           producttypeid: fullProduct.producttypeid,
+          isfeatured: fullProduct.isfeatured || false,
           propertyvalues: {}
         });
 
@@ -455,7 +532,7 @@ export default function ProductsPage() {
           <button
             onClick={() => {
               setEditingProduct(null);
-              setFormData({ name: '', sku: '', description: '', producttypeid: '', propertyvalues: {} });
+              setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, propertyvalues: {} });
               setProductTypeProperties([]);
               setSelectedPropertyValues({});
               setVariants([]);
@@ -662,6 +739,33 @@ export default function ProductsPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Main Category
+                  </label>
+                  <select
+                    value={formData.rfproducttypeid}
+                    onChange={(e) => {
+                      const newRfProductTypeId = parseInt(e.target.value);
+                      setFormData({ 
+                        ...formData, 
+                        rfproducttypeid: newRfProductTypeId,
+                        producttypeid: '' // Reset product type when main category changes
+                      });
+                      setProductTypeProperties([]);
+                      setSelectedPropertyValues({});
+                      setVariants([]);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  >
+                    {rfProductTypes.map((rpt) => (
+                      <option key={rpt.rfproducttypeid} value={rpt.rfproducttypeid}>
+                        {rpt.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Product Type
                   </label>
                   <select
@@ -669,14 +773,31 @@ export default function ProductsPage() {
                     onChange={(e) => handleProductTypeChange(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     required
+                    disabled={!formData.rfproducttypeid}
                   >
                     <option value="">Select a product type</option>
-                    {productTypes.map((pt) => (
+                    {filteredProductTypes.map((pt) => (
                       <option key={pt.producttypeid} value={pt.producttypeid}>
                         {pt.name}
                       </option>
                     ))}
                   </select>
+                </div>
+                <div className="mb-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.isfeatured || false}
+                      onChange={(e) => setFormData({ ...formData, isfeatured: e.target.checked })}
+                      className="mr-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      {language === 'bg' ? 'Избран продукт (показва се на началната страница)' : 'Featured Product (displayed on home page)'}
+                    </span>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1 ml-6">
+                    {language === 'bg' ? 'Максимум 4 избрани продукта ще се покажат на началната страница' : 'Maximum 4 featured products will be displayed on the home page'}
+                  </p>
                 </div>
 
                 {formData.producttypeid && productTypeProperties.length > 0 && (
@@ -793,7 +914,7 @@ export default function ProductsPage() {
                                 />
                               </td>
                               <td className="px-3 py-2">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1">
                                   {variant.imageurl ? (
                                     <div className="relative group">
                                       <img 
@@ -805,12 +926,13 @@ export default function ProductsPage() {
                                         type="button"
                                         onClick={() => updateVariant(index, 'imageurl', undefined)}
                                         className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                                        title={t.removeImage}
+                                        title={language === 'bg' ? 'Премахни изображение' : 'Remove Image'}
                                       >
                                         ×
                                       </button>
                                     </div>
-                                  ) : (
+                                  ) : null}
+                                  <div className="flex gap-1">
                                     <label className="cursor-pointer">
                                       <input
                                         type="file"
@@ -821,13 +943,21 @@ export default function ProductsPage() {
                                           if (file) handleImageUpload(index, file);
                                         }}
                                       />
-                                      <div className="w-12 h-12 border-2 border-dashed border-gray-300 rounded flex items-center justify-center hover:border-blue-500 transition-colors">
-                                        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <div className="w-10 h-10 border border-gray-300 rounded flex items-center justify-center hover:border-blue-500 transition-colors bg-gray-50" title={language === 'bg' ? 'Качи ново изображение' : 'Upload new image'}>
+                                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                         </svg>
                                       </div>
                                     </label>
-                                  )}
+                                    <button
+                                      type="button"
+                                      onClick={() => openMediaModal(index)}
+                                      className="w-10 h-10 border border-gray-300 rounded flex items-center justify-center hover:border-green-500 transition-colors bg-gray-50"
+                                      title={language === 'bg' ? 'Избери от медията' : 'Select from media'}
+                                    >
+                                      <ImageIcon className="w-5 h-5 text-gray-400" />
+                                    </button>
+                                  </div>
                                 </div>
                               </td>
                               <td className="px-3 py-2 text-center">
@@ -856,12 +986,72 @@ export default function ProductsPage() {
                   </div>
                 )}
 
+                {/* Media Selection Modal */}
+                {showMediaModal && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+                      <div className="flex justify-between items-center p-4 border-b">
+                        <h3 className="text-lg font-semibold">
+                          {language === 'bg' ? 'Избери изображение от медията' : 'Select Image from Media'}
+                        </h3>
+                        <button
+                          onClick={() => {
+                            setShowMediaModal(false);
+                            setSelectedVariantIndex(null);
+                          }}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-4">
+                        {loadingMedia ? (
+                          <div className="text-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                            <p className="mt-2 text-sm text-gray-500">
+                              {language === 'bg' ? 'Зареждане...' : 'Loading...'}
+                            </p>
+                          </div>
+                        ) : mediaFiles.length === 0 ? (
+                          <div className="text-center py-8 text-gray-500">
+                            {language === 'bg' ? 'Няма налични изображения' : 'No images available'}
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                            {mediaFiles.map((file, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => selectImageFromMedia(file.url)}
+                                className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-500 transition-colors group"
+                              >
+                                <img
+                                  src={file.url}
+                                  alt={file.name}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center">
+                                  <span className="text-white text-xs opacity-0 group-hover:opacity-100">
+                                    {language === 'bg' ? 'Избери' : 'Select'}
+                                  </span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => {
                       setShowModal(false);
                       setProductTypeProperties([]);
+                      setShowMediaModal(false);
+                      setSelectedVariantIndex(null);
                       setSelectedPropertyValues({});
                       setVariants([]);
                     }}

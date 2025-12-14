@@ -7,7 +7,7 @@ import StorePage from '@/components/StorePage';
 import CartDrawer from '@/components/CartDrawer';
 import { Product } from '@/lib/data';
 
-export default function AccessoriesPage() {
+export default function ForHimPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -23,7 +23,7 @@ export default function AccessoriesPage() {
     const loadProducts = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/products?rfproducttypeid=3');
+        const response = await fetch('/api/products?rfproducttypeid=1');
         const result = await response.json();
         if (result.success) {
           setProducts(result.products);
@@ -59,10 +59,11 @@ export default function AccessoriesPage() {
     <div className="min-h-screen flex flex-col">
       <Header isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin} />
       <div className="flex-1">
-        <StorePage products={products} currentPage="accessories" />
+        <StorePage products={products} currentPage="for-him" />
       </div>
       <Footer />
       <CartDrawer />
     </div>
   );
 }
+

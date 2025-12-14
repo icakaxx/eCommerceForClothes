@@ -26,17 +26,17 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
   const { productTypes } = useProductTypes();
   const t = translations[language];
 
-  // Create nav items
+  // Create nav items - For Him, For Her, Accessories
   const navItems = [
-    { id: 'home', label: t.home, path: '/' },
-    { id: 'products', label: t.products, path: '/products' },
-    { id: 'about', label: t.about, path: '/about' }
+    { id: 'for-him', label: language === 'bg' ? 'За него' : 'For Him', path: '/for-him' },
+    { id: 'for-her', label: language === 'bg' ? 'За нея' : 'For Her', path: '/for-her' },
+    { id: 'accessories', label: language === 'bg' ? 'Аксесоари' : 'Accessories', path: '/accessories' }
   ];
 
   const getCurrentPage = () => {
-    if (pathname === '/') return 'home';
-    if (pathname === '/products') return 'products';
-    if (pathname === '/about') return 'about';
+    if (pathname === '/for-him') return 'for-him';
+    if (pathname === '/for-her') return 'for-her';
+    if (pathname === '/accessories') return 'accessories';
     return '';
   };
 
@@ -56,10 +56,40 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
         }}
       >
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex items-center h-16 relative">
+          {/* Navigation tabs on the left */}
+          <nav className="hidden md:flex items-center gap-4 lg:gap-8 flex-1">
+            {navItems.map(item => (
+              <Link
+                key={item.id}
+                href={item.path}
+                onClick={() => setIsAdmin(false)}
+                className="text-sm font-medium transition-colors whitespace-nowrap"
+                style={{
+                  color: currentPage === item.id && !isAdmin 
+                    ? theme.colors.primary 
+                    : theme.colors.textSecondary
+                }}
+                onMouseEnter={(e) => {
+                  if (currentPage !== item.id || isAdmin) {
+                    e.currentTarget.style.color = theme.colors.text;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (currentPage !== item.id || isAdmin) {
+                    e.currentTarget.style.color = theme.colors.textSecondary;
+                  }
+                }}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          
+          {/* Logo in the center */}
           <Link
             href="/"
-            className="flex items-center gap-2 sm:gap-3 cursor-pointer"
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer absolute left-1/2 transform -translate-x-1/2"
             onClick={() => setIsAdmin(false)}
           >
             {settings?.logourl ? (
@@ -89,35 +119,8 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
             </span>
           </Link>
           
-          <nav className="hidden md:flex items-center gap-4 lg:gap-8">
-            {navItems.map(item => (
-              <Link
-                key={item.id}
-                href={item.path}
-                onClick={() => setIsAdmin(false)}
-                className="text-sm font-medium transition-colors whitespace-nowrap"
-                style={{
-                  color: currentPage === item.id && !isAdmin 
-                    ? theme.colors.primary 
-                    : theme.colors.textSecondary
-                }}
-                onMouseEnter={(e) => {
-                  if (currentPage !== item.id || isAdmin) {
-                    e.currentTarget.style.color = theme.colors.text;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (currentPage !== item.id || isAdmin) {
-                    e.currentTarget.style.color = theme.colors.textSecondary;
-                  }
-                }}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          
-          <div className="flex items-center gap-2 sm:gap-4">
+          {/* Right side actions */}
+          <div className="flex items-center gap-2 sm:gap-4 flex-1 justify-end">
             {!isAdmin && (
               <button
                 onClick={openCart}
@@ -250,7 +253,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
           <div className="p-6 border-t"
                style={{ borderColor: theme.colors.border }}>
             <Link
-              href="/products"
+              href="/for-him"
               onClick={() => setMobileMenuOpen(false)}
               className="block w-full text-center py-3 px-6 rounded-lg font-medium transition-all duration-300"
               style={{

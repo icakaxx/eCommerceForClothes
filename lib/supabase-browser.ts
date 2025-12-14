@@ -20,3 +20,4 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 // Export type for use in components
 export type { User, Session } from '@supabase/supabase-js'
+

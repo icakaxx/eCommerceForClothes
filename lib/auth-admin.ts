@@ -101,3 +101,4 @@ export async function requireAdmin(request: Request): Promise<AdminUser> {
     throw new Error('Authentication failed')
   }
 }
+

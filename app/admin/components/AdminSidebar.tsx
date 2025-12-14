@@ -1,346 +1,172 @@
 'use client';
 
-import { ArrowLeft, Package, Tags, Settings, Cog, X, DollarSign, Users, Ticket, TrendingUp, BarChart3, Image as ImageIcon } from 'lucide-react';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { 
+  LayoutDashboard, 
+  Package, 
+  Tag, 
+  Settings, 
+  Users, 
+  ShoppingCart, 
+  BarChart3, 
+  DollarSign, 
+  Percent, 
+  Image as ImageIcon 
+} from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { useStoreSettings } from '@/context/StoreSettingsContext';
 import { translations } from '@/lib/translations';
-import { signOutAdmin } from '@/lib/auth';
 
 interface AdminSidebarProps {
   currentPath: string;
-  onClose?: () => void;
 }
 
-export default function AdminSidebar({ currentPath, onClose }: AdminSidebarProps) {
+export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
+  const pathname = usePathname();
   const router = useRouter();
   const { theme } = useTheme();
   const { language } = useLanguage();
-  const { settings } = useStoreSettings();
   const t = translations[language || 'en'];
 
-  const handleBackToStore = async () => {
-    try {
-      // Sign out from Supabase
-      await signOutAdmin();
-
-      // Clear localStorage
-      localStorage.removeItem('admin_authenticated');
-      localStorage.removeItem('admin_access_token');
-      localStorage.removeItem('admin_refresh_token');
-      localStorage.removeItem('admin_login_time');
-      localStorage.removeItem('admin_user_email');
-      localStorage.setItem('isAdmin', 'false');
-
-      // Call logout API to clear cookies
-      await fetch('/api/auth/logout', { method: 'POST' });
-
-      // Redirect to home
-      router.push('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Still redirect even if logout fails
-      localStorage.setItem('isAdmin', 'false');
-      router.push('/');
+  const menuItems = [
+    {
+      id: 'dashboard',
+      label: t.dashboard || 'Dashboard',
+      path: '/admin',
+      icon: LayoutDashboard
+    },
+    {
+      id: 'products',
+      label: t.products || 'Products',
+      path: '/admin/products',
+      icon: Package
+    },
+    {
+      id: 'product-types',
+      label: language === 'bg' ? 'Типове продукти' : 'Product Types',
+      path: '/admin/product-types',
+      icon: Tag
+    },
+    {
+      id: 'properties',
+      label: language === 'bg' ? 'Свойства' : 'Properties',
+      path: '/admin/properties',
+      icon: Settings
+    },
+    {
+      id: 'customers',
+      label: t.customers || 'Customers',
+      path: '/admin/customers',
+      icon: Users
+    },
+    {
+      id: 'sales',
+      label: language === 'bg' ? 'Продажби' : 'Sales',
+      path: '/admin/sales',
+      icon: ShoppingCart
+    },
+    {
+      id: 'analytics',
+      label: language === 'bg' ? 'Аналитика' : 'Analytics',
+      path: '/admin/analytics',
+      icon: BarChart3
+    },
+    {
+      id: 'finance',
+      label: language === 'bg' ? 'Финанси' : 'Finance',
+      path: '/admin/finance',
+      icon: DollarSign
+    },
+    {
+      id: 'discounts',
+      label: language === 'bg' ? 'Отстъпки' : 'Discounts',
+      path: '/admin/discounts',
+      icon: Percent
+    },
+    {
+      id: 'media',
+      label: language === 'bg' ? 'Медия' : 'Media',
+      path: '/admin/media',
+      icon: ImageIcon
+    },
+    {
+      id: 'settings',
+      label: t.storeSettings || 'Settings',
+      path: '/admin/settings',
+      icon: Settings
     }
+  ];
+
+  const isActive = (path: string) => {
+    if (path === '/admin') {
+      return pathname === '/admin';
+    }
+    return pathname?.startsWith(path);
   };
 
   return (
-    <div
-      className="w-64 h-full border-r flex-shrink-0 transition-colors duration-300"
+    <aside
+      className="w-full lg:w-64 flex-shrink-0 border-r transition-colors duration-300"
       style={{
         backgroundColor: theme.colors.surface,
         borderColor: theme.colors.border
       }}
     >
-      <div className="flex flex-col h-full">
-        {/* Mobile close button */}
-        <div className="flex justify-end p-4 lg:hidden">
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg transition-colors duration-300 hover:opacity-70"
-            style={{ color: theme.colors.textSecondary }}
-            aria-label="Close menu"
+      <div className="h-full flex flex-col">
+        {/* Header */}
+        <div
+          className="p-4 border-b"
+          style={{ borderColor: theme.colors.border }}
+        >
+          <h2
+            className="text-lg font-bold"
+            style={{ color: theme.colors.text }}
           >
-            <X size={20} />
-          </button>
+            {language === 'bg' ? 'Админ панел' : 'Admin Panel'}
+          </h2>
         </div>
 
-        <div className="flex-1 p-4 sm:p-6 pt-0 lg:pt-6">
-        <div className="flex items-center justify-center lg:block mb-4 lg:mb-8">
-          <button
-            onClick={() => {
-              router.push('/admin');
-              onClose?.();
-            }}
-            onAuxClick={() => window.open('/admin', '_blank')}
-            title={t.tooltipDashboard}
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200"
-          >
-            {settings?.logourl ? (
-              <Image
-                src={settings.logourl}
-                alt={`${settings.storename} Logo`}
-                width={32}
-                height={32}
-                className="hidden lg:block w-8 h-8 object-contain"
-              />
-            ) : (
-              <Image
-                src="/image.png"
-                alt={`${settings?.storename || 'Store'} Logo`}
-                width={32}
-                height={32}
-                className="hidden lg:block w-8 h-8 object-contain"
-              />
-            )}
-            <div
-              className="text-lg sm:text-xl font-semibold transition-colors duration-300"
-              style={{ color: theme.colors.text }}
-            >
-              {settings?.storename || 'Store'}
-            </div>
-          </button>
-        </div>
-        <nav className="space-y-1">
-          <button
-            onClick={() => {
-              router.push('/admin/products');
-              onClose?.();
-            }}
-            onAuxClick={() => window.open('/admin/products', '_blank')}
-            title={t.tooltipProducts}
-            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
-              currentPath === '/admin/products' ? 'opacity-100' : 'opacity-80'
-            }`}
-            style={{
-              backgroundColor: currentPath === '/admin/products' ? theme.colors.secondary : theme.colors.surface,
-              color: currentPath === '/admin/products' ? theme.colors.primary : theme.colors.text
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <Package size={18} />
-              <span>{t.products}</span>
-            </div>
-          </button>
-          <button
-            onClick={() => {
-              router.push('/admin/sales');
-              onClose?.();
-            }}
-            onAuxClick={() => window.open('/admin/sales', '_blank')}
-            title={t.sales}
-            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
-              currentPath === '/admin/sales' ? 'opacity-100' : 'opacity-80'
-            }`}
-            style={{
-              backgroundColor: currentPath === '/admin/sales' ? theme.colors.secondary : theme.colors.surface,
-              color: currentPath === '/admin/sales' ? theme.colors.primary : theme.colors.text
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <DollarSign size={18} />
-              <span>{t.sales}</span>
-            </div>
-          </button>
-          <button
-            onClick={() => {
-              router.push('/admin/customers');
-              onClose?.();
-            }}
-            onAuxClick={() => window.open('/admin/customers', '_blank')}
-            title={t.customers}
-            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
-              currentPath === '/admin/customers' ? 'opacity-100' : 'opacity-80'
-            }`}
-            style={{
-              backgroundColor: currentPath === '/admin/customers' ? theme.colors.secondary : theme.colors.surface,
-              color: currentPath === '/admin/customers' ? theme.colors.primary : theme.colors.text
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <Users size={18} />
-              <span>{t.customers}</span>
-            </div>
-          </button>
-          <button
-            onClick={() => {
-              router.push('/admin/discounts');
-              onClose?.();
-            }}
-            onAuxClick={() => window.open('/admin/discounts', '_blank')}
-            title={t.discounts}
-            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
-              currentPath === '/admin/discounts' ? 'opacity-100' : 'opacity-80'
-            }`}
-            style={{
-              backgroundColor: currentPath === '/admin/discounts' ? theme.colors.secondary : theme.colors.surface,
-              color: currentPath === '/admin/discounts' ? theme.colors.primary : theme.colors.text
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <Ticket size={18} />
-              <span>{t.discounts}</span>
-            </div>
-          </button>
-          <button
-            onClick={() => {
-              router.push('/admin/finance');
-              onClose?.();
-            }}
-            onAuxClick={() => window.open('/admin/finance', '_blank')}
-            title={t.finance}
-            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
-              currentPath === '/admin/finance' ? 'opacity-100' : 'opacity-80'
-            }`}
-            style={{
-              backgroundColor: currentPath === '/admin/finance' ? theme.colors.secondary : theme.colors.surface,
-              color: currentPath === '/admin/finance' ? theme.colors.primary : theme.colors.text
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <TrendingUp size={18} />
-              <span>{t.finance}</span>
-            </div>
-          </button>
-          <button
-            onClick={() => {
-              router.push('/admin/analytics');
-              onClose?.();
-            }}
-            onAuxClick={() => window.open('/admin/analytics', '_blank')}
-            title={t.analytics}
-            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
-              currentPath === '/admin/analytics' ? 'opacity-100' : 'opacity-80'
-            }`}
-            style={{
-              backgroundColor: currentPath === '/admin/analytics' ? theme.colors.secondary : theme.colors.surface,
-              color: currentPath === '/admin/analytics' ? theme.colors.primary : theme.colors.text
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <BarChart3 size={18} />
-              <span>{t.analytics}</span>
-            </div>
-          </button>
-          <button
-            onClick={() => {
-              router.push('/admin/media');
-              onClose?.();
-            }}
-            onAuxClick={() => window.open('/admin/media', '_blank')}
-            title={t.media}
-            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
-              currentPath === '/admin/media' ? 'opacity-100' : 'opacity-80'
-            }`}
-            style={{
-              backgroundColor: currentPath === '/admin/media' ? theme.colors.secondary : theme.colors.surface,
-              color: currentPath === '/admin/media' ? theme.colors.primary : theme.colors.text
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <ImageIcon size={18} />
-              <span>{t.media}</span>
-            </div>
-          </button>
-          <button
-            onClick={() => {
-              router.push('/admin/product-types');
-              onClose?.();
-            }}
-            onAuxClick={() => window.open('/admin/product-types', '_blank')}
-            title={t.tooltipProductTypes}
-            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
-              currentPath === '/admin/product-types' ? 'opacity-100' : 'opacity-80'
-            }`}
-            style={{
-              backgroundColor: currentPath === '/admin/product-types' ? theme.colors.secondary : theme.colors.surface,
-              color: currentPath === '/admin/product-types' ? theme.colors.primary : theme.colors.text
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <Tags size={18} />
-              <span>{t.productTypes}</span>
-            </div>
-          </button>
-          <button
-            onClick={() => {
-              router.push('/admin/properties');
-              onClose?.();
-            }}
-            onAuxClick={() => window.open('/admin/properties', '_blank')}
-            title={t.tooltipProperties}
-            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
-              currentPath === '/admin/properties' ? 'opacity-100' : 'opacity-80'
-            }`}
-            style={{
-              backgroundColor: currentPath === '/admin/properties' ? theme.colors.secondary : theme.colors.surface,
-              color: currentPath === '/admin/properties' ? theme.colors.primary : theme.colors.text
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <Settings size={18} />
-              <span>{t.properties}</span>
-            </div>
-          </button>
-          <button
-            onClick={() => {
-              router.push('/admin/settings');
-              onClose?.();
-            }}
-            onAuxClick={() => window.open('/admin/settings', '_blank')}
-            title={t.tooltipSettings}
-            className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-colors duration-300 hover:opacity-80 ${
-              currentPath === '/admin/settings' ? 'opacity-100' : 'opacity-80'
-            }`}
-            style={{
-              backgroundColor: currentPath === '/admin/settings' ? theme.colors.secondary : theme.colors.surface,
-              color: currentPath === '/admin/settings' ? theme.colors.primary : theme.colors.text
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <Cog size={18} />
-              <span>{t.settings}</span>
-            </div>
-          </button>
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-2">
+          <ul className="space-y-1">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
+              
+              return (
+                <li key={item.id}>
+                  <Link
+                    href={item.path}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 ${
+                      active ? 'font-medium' : ''
+                    }`}
+                    style={{
+                      backgroundColor: active ? theme.colors.primary : 'transparent',
+                      color: active ? '#ffffff' : theme.colors.textSecondary
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!active) {
+                        e.currentTarget.style.backgroundColor = theme.colors.secondary;
+                        e.currentTarget.style.color = theme.colors.text;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!active) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = theme.colors.textSecondary;
+                      }
+                    }}
+                  >
+                    <Icon size={20} />
+                    <span className="text-sm">{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </nav>
-        <button
-          onClick={() => {
-            handleBackToStore();
-            onClose?.();
-          }}
-          onAuxClick={() => {
-            handleBackToStore();
-            onClose?.();
-          }}
-          title={t.tooltipBackToStore}
-          className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 text-sm sm:text-base rounded-lg transition-colors duration-300 touch-manipulation min-h-[44px] sm:min-h-[auto]"
-          style={{
-            color: theme.colors.text
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = theme.colors.secondary;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
-          onTouchStart={(e) => {
-            e.currentTarget.style.backgroundColor = theme.colors.secondary;
-          }}
-          onTouchEnd={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
-        >
-          <ArrowLeft size={18} />
-          <span>{t.backToStore}</span>
-        </button>
-        </div>
       </div>
-    </div>
+    </aside>
   );
 }
-
-
-

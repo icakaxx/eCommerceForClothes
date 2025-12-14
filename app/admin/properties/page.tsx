@@ -104,11 +104,11 @@ export default function PropertiesPage() {
         setEditingProperty(null);
         loadProperties();
       } else {
-        alert(t.errorPrefix + result.error);
+        alert('Error: ' + result.error);
       }
     } catch (error) {
       console.error('Failed to save property:', error);
-      alert(t.failedToSaveProperty);
+      alert('Failed to save property');
     }
   };
 
@@ -123,7 +123,7 @@ export default function PropertiesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t.confirmDeleteProperty)) return;
+    if (!confirm('Are you sure you want to delete this property?')) return;
 
     try {
       const response = await fetch(`/api/properties/${id}`, { method: 'DELETE' });
@@ -131,11 +131,11 @@ export default function PropertiesPage() {
       if (result.success) {
         loadProperties();
       } else {
-        alert(t.errorPrefix + result.error);
+        alert('Error: ' + result.error);
       }
     } catch (error) {
       console.error('Failed to delete property:', error);
-      alert(t.failedToDeleteProperty);
+      alert('Failed to delete property');
     }
   };
 
@@ -164,7 +164,7 @@ export default function PropertiesPage() {
   };
 
   const handleDeleteValue = async (valueId: string) => {
-    if (!confirm(t.confirmDeletePropertyValue)) return;
+    if (!confirm('Are you sure you want to delete this property value?')) return;
 
     try {
       const response = await fetch(`/api/properties/values/${valueId}`, { method: 'DELETE' });
@@ -186,10 +186,10 @@ export default function PropertiesPage() {
         loadProperties();
 
         if (result.warning) {
-          alert(t.propertyValueDeletedLocally);
+          alert('Property value deleted locally. Database migration needed for persistence.');
         }
       } else {
-        alert(t.errorPrefix + result.error);
+        alert('Error: ' + result.error);
       }
     } catch (error) {
       console.error('Failed to delete property value via API, using local storage:', error);
@@ -201,12 +201,12 @@ export default function PropertiesPage() {
         if (valueIndex !== -1) {
           PropertyValuesStorage.deletePropertyValue(propertyId, valueId);
           loadProperties();
-          alert(t.propertyValueDeletedLocally);
+          alert('Property value deleted locally. Database migration needed for full functionality.');
           return;
         }
       }
 
-      alert(t.failedToDeletePropertyValue);
+      alert('Failed to delete property value');
     }
   };
 
@@ -254,10 +254,10 @@ export default function PropertiesPage() {
         loadProperties();
 
         if (result.warning) {
-          alert('{t.propertyValueSavedLocally}');
+          alert('Property value saved locally. Database migration needed for persistence.');
         }
       } else {
-        alert(t.errorPrefix + result.error);
+        alert('Error: ' + result.error);
       }
     } catch (error) {
       console.error('Failed to save property value via API, using local storage:', error);
@@ -286,7 +286,7 @@ export default function PropertiesPage() {
       });
       loadProperties();
 
-      alert(t.propertyValueSavedLocallyFull);
+      alert('Property value saved locally. Database migration needed for full functionality.');
     }
   };
 
@@ -334,10 +334,10 @@ export default function PropertiesPage() {
         loadProperties();
 
         if (result.warning) {
-          alert('{t.propertyValueSavedLocally}');
+          alert('Property value saved locally. Database migration needed for persistence.');
         }
       } else {
-        alert(t.errorPrefix + result.error);
+        alert('Error: ' + result.error);
       }
     } catch (error) {
       console.error('Failed to save property value via API, using local storage:', error);
@@ -365,7 +365,7 @@ export default function PropertiesPage() {
       setCurrentProperty(null);
       loadProperties();
 
-      alert(t.propertyValueSavedLocallyFull);
+      alert('Property value saved locally. Database migration needed for full functionality.');
     }
   };
 
@@ -373,7 +373,7 @@ export default function PropertiesPage() {
     <AdminLayout currentPath="/admin/properties">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">{t.properties}</h1>
+          <h1 className="text-3xl font-bold">Properties</h1>
           <button
             onClick={() => {
               setEditingProperty(null);
@@ -388,10 +388,9 @@ export default function PropertiesPage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-12">{t.loading}</div>
+          <div className="text-center py-12">Loading...</div>
         ) : (
-          <>
-            <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
+          <div className="bg-white rounded-lg shadow overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -482,14 +481,14 @@ export default function PropertiesPage() {
                           <div className="bg-gray-50 rounded-md p-4 m-2">
                             <div className="flex items-center justify-between mb-3">
                               <h4 className="text-sm font-medium text-gray-700">
-                                {t.propertyValues}
+                                Property Values
                               </h4>
                               <button
                                 onClick={() => handleAddValue(prop)}
                                 className="flex items-center gap-1 text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
                               >
                                 <Plus className="w-3 h-3" />
-                                {t.addValue}
+                                Add Value
                               </button>
                             </div>
 
@@ -522,7 +521,7 @@ export default function PropertiesPage() {
                               </div>
                             ) : (
                               <div className="text-center py-4 text-gray-500 text-sm">
-{t.noValuesDefined}
+                                No values defined. Click "Add Value" to create options for this property.
                               </div>
                             )}
                           </div>
@@ -535,14 +534,15 @@ export default function PropertiesPage() {
             </table>
             {properties.length === 0 && (
               <div className="text-center py-12 text-gray-500">
-{t.noPropertiesFound}
+                No properties found. Create one to get started.
               </div>
             )}
           </div>
+        )}
 
-          {/* Mobile Card Layout */}
-          {!loading && (
-            <div className="block md:hidden space-y-4">
+        {/* Mobile Card Layout */}
+        {!loading && (
+          <div className="block md:hidden space-y-4">
             {currentProperties.map((prop) => (
               <div key={prop.propertyid} className="bg-white p-4 rounded-lg shadow border">
                 <div className="flex justify-between items-start mb-3">
@@ -606,9 +606,10 @@ export default function PropertiesPage() {
               </div>
             ))}
           </div>
-)}
-          {/* Pagination */}
-          {!loading && totalPages > 1 && (
+        )}
+
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
           <div className="mt-6 flex items-center justify-between">
             <div className="text-sm text-gray-700">
               {language === 'bg'
@@ -654,8 +655,6 @@ export default function PropertiesPage() {
               </button>
             </div>
           </div>
-          )}
-          </>
         )}
 
         {showModal && (
@@ -672,7 +671,7 @@ export default function PropertiesPage() {
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t.name}
+                    Name
                   </label>
                   <input
                     type="text"
@@ -684,7 +683,7 @@ export default function PropertiesPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t.description}
+                    Description
                   </label>
                   <textarea
                     value={formData.description}
@@ -695,16 +694,16 @@ export default function PropertiesPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t.dataType}
+                    Data Type
                   </label>
                   <select
                     value={formData.datatype}
                     onChange={(e) => setFormData({ ...formData, datatype: e.target.value as 'text' | 'select' | 'number' })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   >
-                    <option value="text">{t.text}</option>
-                    <option value="select">{t.select}</option>
-                    <option value="number">{t.number}</option>
+                    <option value="text">Text</option>
+                    <option value="select">Select</option>
+                    <option value="number">Number</option>
                   </select>
                 </div>
                 <div className="flex justify-end gap-2">
@@ -719,7 +718,7 @@ export default function PropertiesPage() {
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
-{editingProperty ? t.update : t.create}
+                    {editingProperty ? 'Update' : 'Create'}
                   </button>
                 </div>
               </form>
@@ -739,14 +738,14 @@ export default function PropertiesPage() {
                 </button>
               </div>
               <div className="mb-4 p-3 bg-gray-50 rounded">
-                  <p className="text-sm text-gray-600">
-                    {t.propertyColon}<strong>{currentProperty.name}</strong>
-                  </p>
+                <p className="text-sm text-gray-600">
+                  Property: <strong>{currentProperty.name}</strong>
+                </p>
               </div>
               <form onSubmit={handleValueSubmit}>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t.valueRequired}
+                    Value *
                   </label>
                   <input
                     type="text"
@@ -759,7 +758,7 @@ export default function PropertiesPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t.displayOrder}
+                    Display Order
                   </label>
                   <input
                     type="number"
@@ -769,7 +768,7 @@ export default function PropertiesPage() {
                     min="0"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-{t.lowerNumbersFirst}
+                    Lower numbers appear first in the list
                   </p>
                 </div>
                 <div className="flex justify-end gap-2">
@@ -786,14 +785,14 @@ export default function PropertiesPage() {
                       onClick={handleNextValue}
                       className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                     >
-{t.next}
+                      Next
                     </button>
                   )}
                   <button
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
-{editingValue ? t.updateValue : t.addValueBtn}
+                    {editingValue ? 'Update' : 'Add'} Value
                   </button>
                 </div>
               </form>

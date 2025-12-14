@@ -215,7 +215,7 @@ async function createOrder(orderData: OrderData): Promise<string> {
     return {
       orderid: orderId,
       productid: productId,
-      ProductVariantID: productVariantId, // Use correct column name from schema
+      productvariantid: productVariantId, // Use lowercase column name to match schema
       quantity: item.quantity,
       price: price,
       createdat: new Date().toISOString()

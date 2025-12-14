@@ -8,15 +8,30 @@ const getSupabase = () => supabaseAdmin as any;
 export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabase();
+    const { searchParams } = new URL(request.url);
+    const rfproducttypeid = searchParams.get('rfproducttypeid');
 
-    // Get all products with their types (exclude soft-deleted)
-    const { data: products, error: productsError } = await supabase
+    // Build query
+    let query = supabase
       .from('products')
       .select(`
         *,
         product_types(*)
       `)
-      .neq('isdeleted', true)
+      .neq('isdeleted', true);
+
+    // Filter by rfproducttypeid if provided
+    if (rfproducttypeid) {
+      query = query.eq('rfproducttypeid', parseInt(rfproducttypeid));
+    }
+
+    // Filter by isfeatured if provided
+    const isFeatured = searchParams.get('isfeatured');
+    if (isFeatured === 'true') {
+      query = query.eq('isfeatured', true);
+    }
+
+    const { data: products, error: productsError } = await query
       .order('createdat', { ascending: false });
 
     if (productsError) {
@@ -85,6 +100,7 @@ export async function GET(request: NextRequest) {
           ...product,
           variants: variants || [],
           productTypeID: product.producttypeid,
+          isfeatured: product.isfeatured || false,
 
           // Legacy fields for backwards compatibility
           id: product.productid,
@@ -128,7 +144,7 @@ export async function POST(request: NextRequest) {
 
     console.log('📝 POST /api/products - Received body:', JSON.stringify(body, null, 2));
 
-    const { name, sku, description, producttypeid, Variants = [] } = body;
+    const { name, sku, description, producttypeid, rfproducttypeid, isfeatured, Variants = [] } = body;
 
     if (!name || !producttypeid) {
       return NextResponse.json(
@@ -155,6 +171,8 @@ export async function POST(request: NextRequest) {
         sku,
         description,
         producttypeid,
+        rfproducttypeid: rfproducttypeid || 1, // Default to 1 (For Him) if not provided
+        isfeatured: isfeatured || false,
         updatedat: new Date().toISOString()
       })
       .select()

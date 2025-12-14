@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CartDrawer from '@/components/CartDrawer';
@@ -40,7 +41,7 @@ export default function AboutPage() {
           background: isGradientTheme ? theme.colors.background : theme.colors.background
         }}
       >
-        <div className="max-w-4xl mx-auto px-3 sm:px-4 lg:px-8 py-12 sm:py-16 lg:py-24">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-8 py-12 sm:py-16 lg:py-24">
           {/* Header Section */}
           <div className="text-center mb-12 sm:mb-16">
             <h1 
@@ -49,13 +50,52 @@ export default function AboutPage() {
             >
               {t.aboutUs || 'About Us'}
             </h1>
-            <p 
-              className="text-lg sm:text-xl transition-colors duration-300"
-              style={{ color: theme.colors.textSecondary }}
-            >
-              {t.ourMission || 'Our Mission'}
-            </p>
           </div>
+
+          {/* About Us Content Section - Photo and Text */}
+          {(settings?.aboutusphoto || settings?.aboutustext) && (
+            <section className="mb-12 sm:mb-16">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-start">
+                {/* Text Content - Left on desktop, below on mobile */}
+                {settings?.aboutustext && (
+                  <div 
+                    className="order-2 md:order-1 prose prose-lg max-w-none transition-colors duration-300"
+                    style={{ 
+                      color: theme.colors.text,
+                    }}
+                    dangerouslySetInnerHTML={{ __html: settings.aboutustext }}
+                  />
+                )}
+
+                {/* Photo - Right on desktop, top on mobile */}
+                {settings?.aboutusphoto && (
+                  <div className="order-1 md:order-2">
+                    <div className="relative w-full aspect-square rounded-lg overflow-hidden">
+                      <Image
+                        src={settings.aboutusphoto}
+                        alt="About Us"
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Default Content - Only show if no custom content */}
+          {!settings?.aboutustext && (
+            <>
+              <div className="text-center mb-12 sm:mb-16">
+                <p 
+                  className="text-lg sm:text-xl transition-colors duration-300"
+                  style={{ color: theme.colors.textSecondary }}
+                >
+                  {t.ourMission || 'Our Mission'}
+                </p>
+              </div>
 
           {/* Mission Section */}
           <section className="mb-12 sm:mb-16">
@@ -232,6 +272,8 @@ export default function AboutPage() {
               {t.contact || 'Contact'}
             </p>
           </section>
+            </>
+          )}
         </div>
       </div>
       <Footer />
@@ -239,4 +281,5 @@ export default function AboutPage() {
     </div>
   );
 }
+
 
