@@ -68,7 +68,7 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
     },
     {
       id: 'analytics',
-      label: language === 'bg' ? 'Аналитика' : 'Analytics',
+      label: language === 'bg' ? 'Доклади' : 'Analytics',
       path: '/admin/analytics',
       icon: BarChart3
     },

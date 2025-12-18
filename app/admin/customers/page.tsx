@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminLayout from '../components/AdminLayout';
 import { getAdminSession } from '@/lib/auth';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/lib/translations';
 
 interface Customer {
   customerid: string;
@@ -17,6 +19,8 @@ interface Customer {
 
 export default function CustomersPage() {
   const router = useRouter();
+  const { language } = useLanguage();
+  const t = translations[language || 'en'];
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -82,18 +86,18 @@ export default function CustomersPage() {
     <AdminLayout currentPath="/admin/customers">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Customers</h1>
-          <p className="text-gray-600 mt-2">Manage and view your customer base</p>
+          <h1 className="text-3xl font-bold">{t.customers}</h1>
+          <p className="text-gray-600 mt-2">{t.manageAndViewCustomerBase}</p>
         </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-900">Total Customers</h3>
+            <h3 className="text-lg font-semibold text-gray-900">{t.totalCustomers}</h3>
             <p className="text-3xl font-bold text-blue-600 mt-2">{totalCustomers}</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-900">Active Customers</h3>
+            <h3 className="text-lg font-semibold text-gray-900">{t.activeCustomers}</h3>
             <p className="text-3xl font-bold text-green-600 mt-2">{activeCustomers}</p>
           </div>
         </div>
@@ -103,29 +107,29 @@ export default function CustomersPage() {
           {loading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-              <p className="mt-2 text-gray-500">Loading customers...</p>
+              <p className="mt-2 text-gray-500">{t.loadingCustomers}</p>
             </div>
           ) : (
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
+                    {t.nameHeader}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
+                    {t.emailHeader}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total Orders
+                    {t.totalOrdersHeader}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total Spent
+                    {t.totalSpentHeader}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Last Order
+                    {t.lastOrderHeader}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Joined
+                    {t.joinedHeader}
                   </th>
                 </tr>
               </thead>
@@ -133,19 +137,19 @@ export default function CustomersPage() {
                 {customers.map((customer) => (
                   <tr key={customer.customerid}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {customer.name || 'N/A'}
+                      {customer.name || t.na}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {customer.email || 'N/A'}
+                      {customer.email || t.na}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {customer.totalorders || 0}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      ${customer.totalspent?.toFixed(2) || '0.00'}
+                      €{customer.totalspent?.toFixed(2) || '0.00'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {customer.lastorder ? new Date(customer.lastorder).toLocaleDateString() : 'Never'}
+                      {customer.lastorder ? new Date(customer.lastorder).toLocaleDateString() : t.never}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(customer.createdat).toLocaleDateString()}
@@ -158,7 +162,7 @@ export default function CustomersPage() {
 
           {customers.length === 0 && !loading && (
             <div className="text-center py-12 text-gray-500">
-              No customers found
+              {t.noCustomersFound}
             </div>
           )}
         </div>

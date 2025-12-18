@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminLayout from '../components/AdminLayout';
 import { getAdminSession } from '@/lib/auth';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/lib/translations';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 
 interface MediaFile {
@@ -16,6 +18,8 @@ interface MediaFile {
 
 export default function MediaPage() {
   const router = useRouter();
+  const { language } = useLanguage();
+  const t = translations[language || 'en'];
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
@@ -89,7 +93,7 @@ export default function MediaPage() {
 
         const result = await response.json();
         if (!result.success) {
-          alert(`Failed to upload ${file.name}: ${result.error}`);
+          alert(`${t.failedToUpload} ${file.name}: ${result.error}`);
         }
       }
 
@@ -97,14 +101,14 @@ export default function MediaPage() {
       loadMediaFiles();
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Failed to upload files');
+      alert(t.uploadError);
     } finally {
       setUploading(false);
     }
   };
 
   const deleteFile = async (path: string) => {
-    if (!confirm('Are you sure you want to delete this file?')) return;
+    if (!confirm(t.confirmDeleteFile)) return;
 
     try {
       const response = await fetch('/api/storage/delete', {
@@ -117,11 +121,11 @@ export default function MediaPage() {
       if (result.success) {
         loadMediaFiles();
       } else {
-        alert('Failed to delete file: ' + result.error);
+        alert(t.deleteFileError + ': ' + result.error);
       }
     } catch (error) {
       console.error('Delete error:', error);
-      alert('Failed to delete file');
+      alert(t.deleteFileError);
     }
   };
 
@@ -138,6 +142,20 @@ export default function MediaPage() {
   }
 
   const folders = ['images', 'logos', 'hero-images'];
+  
+  const getFolderDisplayName = (folder: string): string => {
+    switch (folder) {
+      case 'images':
+        return t.folderImages;
+      case 'logos':
+        return t.folderLogos;
+      case 'hero-images':
+        return t.folderHeroImages;
+      default:
+        return folder.replace('-', ' ').toUpperCase();
+    }
+  };
+
   const folderFiles = mediaFiles.filter(file => {
     const fileFolder = file.path.split('/')[0]; // Extract folder from path like "images/filename.jpg"
     const matches = fileFolder === selectedFolder;
@@ -151,8 +169,8 @@ export default function MediaPage() {
     <AdminLayout currentPath="/admin/media">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Media Library</h1>
-          <p className="text-gray-600 mt-2">Manage your images and media files</p>
+          <h1 className="text-3xl font-bold">{t.mediaLibrary}</h1>
+          <p className="text-gray-600 mt-2">{t.manageImagesAndMediaFiles}</p>
         </div>
 
         {/* Folder Selection */}
@@ -168,7 +186,7 @@ export default function MediaPage() {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {folder.replace('-', ' ').toUpperCase()}
+                {getFolderDisplayName(folder)}
               </button>
             ))}
           </div>
@@ -176,12 +194,12 @@ export default function MediaPage() {
 
         {/* Upload Section */}
         <div className="bg-white p-6 rounded-lg shadow mb-6">
-          <h2 className="text-xl font-semibold mb-4">Upload Files</h2>
+          <h2 className="text-xl font-semibold mb-4">{t.uploadFiles}</h2>
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
             <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <div className="text-gray-600 mb-4">
               <label htmlFor="file-upload" className="cursor-pointer">
-                <span className="text-blue-600 hover:text-blue-500">Click to upload</span> or drag and drop
+                <span className="text-blue-600 hover:text-blue-500">{t.clickToUpload}</span> {t.orDragAndDrop}
               </label>
               <input
                 id="file-upload"
@@ -193,11 +211,11 @@ export default function MediaPage() {
                 disabled={uploading}
               />
             </div>
-            <p className="text-sm text-gray-500">PNG, JPG, GIF, WebP, AVIF up to 10MB each</p>
+            <p className="text-sm text-gray-500">{t.supportedImageFormats}</p>
             {uploading && (
               <div className="mt-4">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="text-sm text-gray-600 mt-2">Uploading...</p>
+                <p className="text-sm text-gray-600 mt-2">{t.uploading}</p>
               </div>
             )}
           </div>
@@ -207,19 +225,19 @@ export default function MediaPage() {
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-semibold">
-              {selectedFolder.replace('-', ' ').toUpperCase()} ({folderFiles.length} files)
+              {getFolderDisplayName(selectedFolder)} ({folderFiles.length} {t.files})
             </h2>
           </div>
 
           {loading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-              <p className="mt-2 text-gray-500">Loading media files...</p>
+              <p className="mt-2 text-gray-500">{t.loadingMediaFiles}</p>
             </div>
           ) : folderFiles.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <ImageIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <p>No files in this folder</p>
+              <p>{t.noFilesInFolder}</p>
             </div>
           ) : (
             <div className="p-6">
@@ -235,7 +253,7 @@ export default function MediaPage() {
                       <button
                         onClick={() => deleteFile(file.path)}
                         className="opacity-0 group-hover:opacity-100 bg-red-600 text-white rounded-full p-1 hover:bg-red-700 transition-colors"
-                        title="Delete file"
+                        title={t.deleteFile}
                       >
                         <X className="w-4 h-4" />
                       </button>

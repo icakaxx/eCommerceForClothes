@@ -25,9 +25,16 @@ interface OrderData {
   }>;
   totals: {
     subtotal: number;
+    discount?: number;
     delivery: number;
     total: number;
   };
+  discount?: {
+    code: string;
+    type: 'percentage' | 'fixed';
+    value: number;
+    amount: number;
+  } | null;
 }
 
 // Validate stock availability
@@ -117,24 +124,76 @@ async function reduceStock(items: OrderData['items']): Promise<void> {
   }
 }
 
+// Get or create customer
+async function getOrCreateCustomer(customerData: OrderData['customer']): Promise<string> {
+  const supabase = supabaseAdmin;
+
+  // Check if customer exists by email
+  const { data: existingCustomer, error: fetchError } = await supabase
+    .from('customers')
+    .select('customerid')
+    .eq('email', customerData.email)
+    .single();
+
+  if (existingCustomer && !fetchError) {
+    // Update customer information
+    await supabase
+      .from('customers')
+      .update({
+        firstname: customerData.firstName,
+        lastname: customerData.lastName,
+        telephone: customerData.telephone,
+        country: customerData.country,
+        city: customerData.city,
+        updatedat: new Date().toISOString()
+      })
+      .eq('customerid', existingCustomer.customerid);
+
+    return existingCustomer.customerid;
+  }
+
+  // Create new customer
+  const { data: newCustomer, error: createError } = await supabase
+    .from('customers')
+    .insert({
+      firstname: customerData.firstName,
+      lastname: customerData.lastName,
+      email: customerData.email,
+      telephone: customerData.telephone,
+      country: customerData.country,
+      city: customerData.city
+    })
+    .select('customerid')
+    .single();
+
+  if (createError || !newCustomer) {
+    console.error('Failed to create customer:', createError);
+    throw new Error('Failed to create customer');
+  }
+
+  return newCustomer.customerid;
+}
+
 // Create order record
 async function createOrder(orderData: OrderData): Promise<string> {
   const supabase = supabaseAdmin;
   const orderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
+  // Get or create customer first
+  const customerId = await getOrCreateCustomer(orderData.customer);
+
   const orderRecord = {
     orderid: orderId,
-    customerfirstname: orderData.customer.firstName,
-    customerlastname: orderData.customer.lastName,
-    customeremail: orderData.customer.email,
-    customertelephone: orderData.customer.telephone,
-    customercountry: orderData.customer.country,
-    customercity: orderData.customer.city,
+    customerid: customerId,
     deliverytype: orderData.delivery.type,
     deliverynotes: orderData.delivery.notes || null,
     subtotal: orderData.totals.subtotal,
     deliverycost: orderData.totals.delivery,
     total: orderData.totals.total,
+    discountcode: orderData.discount?.code || null,
+    discounttype: orderData.discount?.type || null,
+    discountvalue: orderData.discount?.value || null,
+    discountamount: orderData.discount?.amount || 0,
     status: 'pending',
     createdat: new Date().toISOString(),
     updatedat: new Date().toISOString()

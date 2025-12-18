@@ -13,6 +13,16 @@ export interface CheckoutFormData {
   country: string;
   city: string;
   deliveryType: DeliveryType;
+  discountCode: string;
+}
+
+export interface AppliedDiscount {
+  code: string;
+  description?: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  discountAmount: number;
+  finalTotal: number;
 }
 
 export interface CityOption {
@@ -28,6 +38,9 @@ export interface CheckoutState {
   isValidatingStock: boolean;
   error: string | null;
   insufficientStock: any[];
+  appliedDiscount: AppliedDiscount | null;
+  discountValidating: boolean;
+  discountError: string | null;
 
   // Actions
   updateFormData: (data: Partial<CheckoutFormData>) => void;
@@ -37,10 +50,13 @@ export interface CheckoutState {
   setError: (error: string | null) => void;
   setInsufficientStock: (stock: any[]) => void;
   resetForm: () => void;
+  validateDiscount: (cartTotal: number) => Promise<void>;
+  removeDiscount: () => void;
 
   // Computed
   isFormValid: () => boolean;
   fullName: () => string;
+  discountedTotal: (originalTotal: number, deliveryCost: number) => number;
 }
 
 const defaultFormData: CheckoutFormData = {
@@ -52,6 +68,7 @@ const defaultFormData: CheckoutFormData = {
   country: 'Bulgaria',
   city: '',
   deliveryType: 'office',
+  discountCode: '',
 };
 
 export const useCheckoutStore = create<CheckoutState>()(
@@ -63,6 +80,9 @@ export const useCheckoutStore = create<CheckoutState>()(
       isValidatingStock: false,
       error: null,
       insufficientStock: [],
+      appliedDiscount: null,
+      discountValidating: false,
+      discountError: null,
 
       updateFormData: (data) => {
         set(state => ({
@@ -90,13 +110,72 @@ export const useCheckoutStore = create<CheckoutState>()(
         set({ insufficientStock: stock });
       },
 
+      validateDiscount: async (cartTotal: number) => {
+        const { formData } = get();
+
+        if (!formData.discountCode.trim()) {
+          set({ appliedDiscount: null, discountError: null });
+          return;
+        }
+
+        try {
+          set({ discountValidating: true, discountError: null });
+
+          const response = await fetch('/api/discounts/validate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              code: formData.discountCode.trim(),
+              cartTotal
+            }),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            set({
+              appliedDiscount: result.discount,
+              discountError: null,
+              discountValidating: false
+            });
+          } else {
+            set({
+              appliedDiscount: null,
+              discountError: result.error,
+              discountValidating: false
+            });
+          }
+        } catch (error) {
+          console.error('Discount validation error:', error);
+          set({
+            appliedDiscount: null,
+            discountError: 'Failed to validate discount code',
+            discountValidating: false
+          });
+        }
+      },
+
+      removeDiscount: () => {
+        const { formData } = get();
+        set({
+          appliedDiscount: null,
+          discountError: null,
+          formData: { ...formData, discountCode: '' }
+        });
+      },
+
       resetForm: () => {
         set({
           formData: defaultFormData,
           error: null,
           isSubmitting: false,
           isValidatingStock: false,
-          insufficientStock: []
+          insufficientStock: [],
+          appliedDiscount: null,
+          discountValidating: false,
+          discountError: null
         });
       },
 
@@ -115,6 +194,17 @@ export const useCheckoutStore = create<CheckoutState>()(
       fullName: () => {
         const { formData } = get();
         return `${formData.firstName} ${formData.lastName}`.trim();
+      },
+
+      discountedTotal: (originalTotal: number, deliveryCost: number) => {
+        const { appliedDiscount } = get();
+        const subtotal = originalTotal + deliveryCost;
+
+        if (appliedDiscount) {
+          return appliedDiscount.finalTotal + deliveryCost;
+        }
+
+        return subtotal;
       }
     }),
     {
@@ -122,8 +212,9 @@ export const useCheckoutStore = create<CheckoutState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         formData: state.formData,
-        cities: state.cities
-      }), // Persist form data and cities
+        cities: state.cities,
+        appliedDiscount: state.appliedDiscount
+      }), // Persist form data, cities, and applied discount
     }
   )
 );

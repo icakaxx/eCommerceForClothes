@@ -228,7 +228,9 @@ export interface Translations {
   updating: string;
 
   // Customers
+  customers: string;
   viewAndManageCustomers: string;
+  manageAndViewCustomerBase: string;
   searchCustomers: string;
   location: string;
   lastOrder: string;
@@ -237,6 +239,15 @@ export interface Translations {
   customer: string;
   noCustomersFound: string;
   noCustomersMatchSearch: string;
+  activeCustomers: string;
+  loadingCustomers: string;
+  nameHeader: string;
+  emailHeader: string;
+  totalOrdersHeader: string;
+  totalSpentHeader: string;
+  lastOrderHeader: string;
+  joinedHeader: string;
+  never: string;
 
   // Discounts
   manageDiscountCodes: string;
@@ -258,6 +269,80 @@ export interface Translations {
   noDiscountsFound: string;
   noDiscountsMatchSearch: string;
 
+  // Discount Page
+  discounts: string;
+  manageDiscountCodesAndPromotions: string;
+  totalDiscounts: string;
+  activeDiscounts: string;
+  addDiscountCode: string;
+
+  // Checkout Discount
+  enterDiscountCode: string;
+  applyingDiscount: string;
+  applyDiscount: string;
+  discountApplied: string;
+  removeDiscount: string;
+  discountOrderSummary: string;
+
+  // Discount Validation Errors
+  invalidDiscountCode: string;
+  expiredDiscountCode: string;
+  discountCodeTooShort: string;
+  discountCodeTooLong: string;
+  discountCodeFormatError: string;
+  discountCode: string;
+  discountCodeRequired: string;
+  discountCodePlaceholder: string;
+  discountCodeHelp: string;
+  discountDescription: string;
+  discountDescriptionPlaceholder: string;
+  discountType: string;
+  discountTypeRequired: string;
+  discountValue: string;
+  discountValueRequired: string;
+  expiryDateOptional: string;
+  expiryDate: string;
+  activeStatus: string;
+  editDiscountCode: string;
+  createDiscountCode: string;
+  saving: string;
+  updateDiscount: string;
+  createDiscountBtn: string;
+  loadingDiscounts: string;
+  noDiscountsFoundEmpty: string;
+
+  // Table Headers
+  codeHeader: string;
+  descriptionHeader: string;
+  typeHeader: string;
+  valueHeader: string;
+  statusHeader: string;
+  expiresHeader: string;
+  actionsHeader: string;
+
+  // Table Content
+  na: string;
+  percentage: string;
+  fixedAmount: string;
+  never: string;
+
+  // Validation Messages
+  discountCodeRequiredMsg: string;
+  discountCodeLengthMsg: string;
+  discountCodeFormatMsg: string;
+  discountTypeRequiredMsg: string;
+  discountValueRequiredMsg: string;
+  discountPercentageMaxMsg: string;
+  invalidExpiryDateMsg: string;
+  expiryDateFutureMsg: string;
+  failedToSaveDiscount: string;
+  unexpectedError: string;
+
+  // Confirm Dialogs
+  confirmDeleteDiscount: string;
+  failedToDeleteDiscount: string;
+  unexpectedErrorDeleting: string;
+
   // Finance
   financialOverview: string;
   today: string;
@@ -278,9 +363,27 @@ export interface Translations {
   type: string;
   amount: string;
   noTransactionsFound: string;
+  finance: string;
+  financialOverviewAndRevenueTracking: string;
+  loadingFinancialData: string;
+  fromLastPeriod: string;
+  afterDeliveryCostsText: string;
+  averageOrderValue: string;
+  deliveryCosts: string;
+  totalShippingExpenses: string;
+  pendingPayments: string;
+  awaitingProcessing: string;
+  profitMargin: string;
+  revenueAfterCosts: string;
+  orderNumber: string;
+  showingTransactions: string;
+  ofTransactions: string;
+  unableToLoadFinancialData: string;
 
   // Analytics
+  analytics: string;
   salesAnalytics: string;
+  viewStorePerformanceMetrics: string;
   lastWeek: string;
   lastMonth: string;
   lastYear: string;
@@ -290,10 +393,15 @@ export interface Translations {
   sold: string;
   noProductData: string;
   noAnalyticsData: string;
+  loadingAnalyticsData: string;
+  topProducts: string;
+  recentSales: string;
+  totalCustomers: string;
 
   // Media
   mediaLibrary: string;
   manageMediaFiles: string;
+  manageImagesAndMediaFiles: string;
   grid: string;
   list: string;
   searchFiles: string;
@@ -314,9 +422,13 @@ export interface Translations {
   noMediaFiles: string;
   noFilesMatch: string;
   uploadMedia: string;
+  uploadFiles: string;
   selectFiles: string;
   dropFilesHere: string;
+  clickToUpload: string;
+  orDragAndDrop: string;
   supportedFormats: string;
+  supportedImageFormats: string;
   uploading: string;
   uploadSuccess: string;
   uploadError: string;
@@ -324,6 +436,14 @@ export interface Translations {
   confirmDeleteFiles: string;
   deleteFileError: string;
   deleteFilesError: string;
+  loadingMediaFiles: string;
+  noFilesInFolder: string;
+  files: string;
+  deleteFile: string;
+  failedToUpload: string;
+  folderImages: string;
+  folderLogos: string;
+  folderHeroImages: string;
 
   // Product Types
   loading: string;
@@ -607,7 +727,9 @@ export const translations: Record<Language, Translations> = {
   updating: 'Updating...',
 
   // Customers
+  customers: 'Customers',
   viewAndManageCustomers: 'View and manage all customers',
+  manageAndViewCustomerBase: 'Manage and view your customer base',
   searchCustomers: 'Search customers by name, email, phone, or location...',
   location: 'Location',
   lastOrder: 'Last Order',
@@ -616,6 +738,15 @@ export const translations: Record<Language, Translations> = {
   customer: 'Customer',
   noCustomersFound: 'No customers found',
   noCustomersMatchSearch: 'No customers match your search',
+  activeCustomers: 'Active Customers',
+  loadingCustomers: 'Loading customers...',
+  nameHeader: 'Name',
+  emailHeader: 'Email',
+  totalOrdersHeader: 'Total Orders',
+  totalSpentHeader: 'Total Spent',
+  lastOrderHeader: 'Last Order',
+  joinedHeader: 'Joined',
+  never: 'Never',
 
   // Discounts
   manageDiscountCodes: 'Manage discount codes and promotions',
@@ -637,8 +768,85 @@ export const translations: Record<Language, Translations> = {
   noDiscountsFound: 'No discounts found. Create your first discount code!',
   noDiscountsMatchSearch: 'No discounts match your search',
 
+  // Discount Page
+  discounts: 'Discounts',
+  manageDiscountCodesAndPromotions: 'Manage discount codes and promotions',
+  totalDiscounts: 'Total Discounts',
+  activeDiscounts: 'Active Discounts',
+  addDiscountCode: 'Add Discount Code',
+
+  // Checkout Discount
+  enterDiscountCode: 'Enter discount code',
+  applyingDiscount: 'Applying...',
+  applyDiscount: 'Apply',
+  discountApplied: 'applied',
+  removeDiscount: 'Remove discount',
+  discountOrderSummary: 'Discount',
+
+  // Discount Validation Errors
+  invalidDiscountCode: 'Invalid or expired discount code',
+  expiredDiscountCode: 'Discount code has expired',
+  discountCodeTooShort: 'Discount code is too short',
+  discountCodeTooLong: 'Discount code is too long',
+  discountCodeFormatError: 'Invalid discount code format',
+  discountCode: 'Discount Code',
+  discountCodeRequired: 'Discount Code *',
+  discountCodePlaceholder: 'SUMMER2024',
+  discountCodeHelp: 'Only letters, numbers, hyphens, and underscores allowed',
+  discountDescription: 'Description',
+  discountDescriptionPlaceholder: 'Summer sale discount',
+  discountType: 'Discount Type',
+  discountTypeRequired: 'Discount Type *',
+  discountValue: 'Value',
+  discountValueRequired: 'Value *',
+  expiryDateOptional: 'Expiry Date (Optional)',
+  expiryDate: 'Expiry Date',
+  activeStatus: 'Active',
+  editDiscountCode: 'Edit Discount Code',
+  createDiscountCode: 'Create Discount Code',
+  saving: 'Saving...',
+  updateDiscount: 'Update',
+  createDiscountBtn: 'Create',
+  loadingDiscounts: 'Loading discounts...',
+  noDiscountsFoundEmpty: 'No discounts found',
+
+  // Table Headers
+  codeHeader: 'Code',
+  descriptionHeader: 'Description',
+  typeHeader: 'Type',
+  valueHeader: 'Value',
+  statusHeader: 'Status',
+  expiresHeader: 'Expires',
+  actionsHeader: 'Actions',
+
+  // Table Content
+  na: 'N/A',
+  percentage: 'Percentage',
+  fixedAmount: 'Fixed Amount',
+  never: 'Never',
+
+  // Validation Messages
+  discountCodeRequiredMsg: 'Discount code is required',
+  discountCodeLengthMsg: 'Discount code must be between 3 and 50 characters',
+  discountCodeFormatMsg: 'Discount code can only contain letters, numbers, hyphens, and underscores',
+  discountTypeRequiredMsg: 'Please select a valid discount type',
+  discountValueRequiredMsg: 'Discount value must be a positive number',
+  discountPercentageMaxMsg: 'Percentage discount cannot exceed 100%',
+  invalidExpiryDateMsg: 'Invalid expiry date',
+  expiryDateFutureMsg: 'Expiry date must be in the future',
+  failedToSaveDiscount: 'Failed to save discount',
+  unexpectedError: 'An unexpected error occurred',
+
+  // Confirm Dialogs
+  confirmDeleteDiscount: 'Are you sure you want to delete the discount code',
+  failedToDeleteDiscount: 'Failed to delete discount',
+  unexpectedErrorDeleting: 'An unexpected error occurred while deleting the discount',
+
   // Finance
+  finance: 'Finance',
   financialOverview: 'Financial overview and transactions',
+  financialOverviewAndRevenueTracking: 'Financial overview and revenue tracking',
+  loadingFinancialData: 'Loading financial data...',
   today: 'Today',
   thisWeek: 'This Week',
   thisMonth: 'This Month',
@@ -646,20 +854,35 @@ export const translations: Record<Language, Translations> = {
   allTime: 'All Time',
   totalRevenue: 'Total Revenue',
   vsPreviousPeriod: 'vs previous period',
+  fromLastPeriod: 'from last period',
   netRevenue: 'Net Revenue',
   afterDeliveryCosts: 'After delivery costs',
+  afterDeliveryCostsText: 'After delivery costs',
   totalOrders: 'Total Orders',
   avgOrderValue: 'Avg Order Value',
+  averageOrderValue: 'Average Order Value',
   perOrder: 'Per order',
   recentTransactions: 'Recent Transactions',
   date: 'Date',
   orderId: 'Order ID',
+  orderNumber: 'Order #',
   type: 'Type',
   amount: 'Amount',
   noTransactionsFound: 'No transactions found for this period',
+  deliveryCosts: 'Delivery Costs',
+  totalShippingExpenses: 'Total shipping expenses',
+  pendingPayments: 'Pending Payments',
+  awaitingProcessing: 'Awaiting processing',
+  profitMargin: 'Profit Margin',
+  revenueAfterCosts: 'Revenue after costs',
+  showingTransactions: 'Showing',
+  ofTransactions: 'of transactions',
+  unableToLoadFinancialData: 'Unable to load financial data',
 
   // Analytics
+  analytics: 'Analytics',
   salesAnalytics: 'Sales analytics and insights',
+  viewStorePerformanceMetrics: 'View your store\'s performance metrics',
   lastWeek: 'Last Week',
   lastMonth: 'Last Month',
   lastYear: 'Last Year',
@@ -669,10 +892,15 @@ export const translations: Record<Language, Translations> = {
   sold: 'sold',
   noProductData: 'No product data available',
   noAnalyticsData: 'No analytics data available',
+  loadingAnalyticsData: 'Loading analytics data...',
+  topProducts: 'Top Products',
+  recentSales: 'Recent Sales',
+  totalCustomers: 'Total Customers',
 
   // Media
   mediaLibrary: 'Media Library',
   manageMediaFiles: 'Manage all uploaded media files',
+  manageImagesAndMediaFiles: 'Manage your images and media files',
   grid: 'Grid',
   list: 'List',
   searchFiles: 'Search files...',
@@ -693,9 +921,13 @@ export const translations: Record<Language, Translations> = {
   noMediaFiles: 'No media files found',
   noFilesMatch: 'No files match your search',
   uploadMedia: 'Upload Media',
+  uploadFiles: 'Upload Files',
   selectFiles: 'Select Files',
   dropFilesHere: 'Drop files here or click to select',
+  clickToUpload: 'Click to upload',
+  orDragAndDrop: 'or drag and drop',
   supportedFormats: 'Supported formats: JPG, PNG, GIF, WebP, SVG up to 10MB each',
+  supportedImageFormats: 'PNG, JPG, GIF, WebP, AVIF up to 10MB each',
   uploading: 'Uploading...',
   uploadSuccess: 'File uploaded successfully',
   uploadError: 'Error uploading file',
@@ -703,6 +935,14 @@ export const translations: Record<Language, Translations> = {
   confirmDeleteFiles: 'Are you sure you want to delete these files?',
   deleteFileError: 'Error deleting file',
   deleteFilesError: 'Error deleting files',
+  loadingMediaFiles: 'Loading media files...',
+  noFilesInFolder: 'No files in this folder',
+  files: 'files',
+  deleteFile: 'Delete file',
+  failedToUpload: 'Failed to upload',
+  folderImages: 'Images',
+  folderLogos: 'Logos',
+  folderHeroImages: 'Hero Images',
 
   // Product Types
   loading: 'Loading...',
@@ -1028,7 +1268,9 @@ export const translations: Record<Language, Translations> = {
   updating: 'Актуализиране...',
 
   // Customers
+  customers: 'Клиенти',
   viewAndManageCustomers: 'Преглед и управление на всички клиенти',
+  manageAndViewCustomerBase: 'Управление и преглед на вашата клиентска база',
   searchCustomers: 'Търсене на клиенти по име, имейл, телефон или местоположение...',
   location: 'Местоположение',
   lastOrder: 'Последна поръчка',
@@ -1037,6 +1279,15 @@ export const translations: Record<Language, Translations> = {
   customer: 'Клиент',
   noCustomersFound: 'Няма намерени клиенти',
   noCustomersMatchSearch: 'Няма клиенти, които отговарят на търсенето',
+  activeCustomers: 'Активни клиенти',
+  loadingCustomers: 'Зареждане на клиенти...',
+  nameHeader: 'Име',
+  emailHeader: 'Имейл',
+  totalOrdersHeader: 'Общи поръчки',
+  totalSpentHeader: 'Обща сума',
+  lastOrderHeader: 'Последна поръчка',
+  joinedHeader: 'Регистриран',
+  never: 'Никога',
 
   // Discounts
   manageDiscountCodes: 'Управление на кодове за отстъпки и промоции',
@@ -1058,8 +1309,85 @@ export const translations: Record<Language, Translations> = {
   noDiscountsFound: 'Няма намерени отстъпки. Създайте първия си код за отстъпка!',
   noDiscountsMatchSearch: 'Няма отстъпки, които отговарят на търсенето',
 
+  // Discount Page
+  discounts: 'Отстъпки',
+  manageDiscountCodesAndPromotions: 'Управление на кодове за отстъпки и промоции',
+  totalDiscounts: 'Общи отстъпки',
+  activeDiscounts: 'Активни отстъпки',
+  addDiscountCode: 'Добави код за отстъпка',
+
+  // Checkout Discount
+  enterDiscountCode: 'Въведете код за отстъпка',
+  applyingDiscount: 'Прилагане...',
+  applyDiscount: 'Приложи',
+  discountApplied: 'приложен',
+  removeDiscount: 'Премахни отстъпка',
+  discountOrderSummary: 'Отстъпка',
+
+  // Discount Validation Errors
+  invalidDiscountCode: 'Невалиден или изтекъл код за отстъпка',
+  expiredDiscountCode: 'Кодът за отстъпка е изтекъл',
+  discountCodeTooShort: 'Кодът за отстъпка е твърде кратък',
+  discountCodeTooLong: 'Кодът за отстъпка е твърде дълъг',
+  discountCodeFormatError: 'Невалиден формат на кода за отстъпка',
+  discountCode: 'Код за отстъпка',
+  discountCodeRequired: 'Код за отстъпка *',
+  discountCodePlaceholder: 'ЛЯТО2024',
+  discountCodeHelp: 'Позволени са само букви, цифри, тирета и долни черти',
+  discountDescription: 'Описание',
+  discountDescriptionPlaceholder: 'Лятна разпродажба',
+  discountType: 'Тип отстъпка',
+  discountTypeRequired: 'Тип отстъпка *',
+  discountValue: 'Стойност',
+  discountValueRequired: 'Стойност *',
+  expiryDateOptional: 'Дата на изтичане (по избор)',
+  expiryDate: 'Дата на изтичане',
+  activeStatus: 'Активен',
+  editDiscountCode: 'Редактирай код за отстъпка',
+  createDiscountCode: 'Създай код за отстъпка',
+  saving: 'Запазване...',
+  updateDiscount: 'Актуализирай',
+  createDiscountBtn: 'Създай',
+  loadingDiscounts: 'Зареждане на отстъпките...',
+  noDiscountsFoundEmpty: 'Няма намерени отстъпки',
+
+  // Table Headers
+  codeHeader: 'Код',
+  descriptionHeader: 'Описание',
+  typeHeader: 'Тип',
+  valueHeader: 'Стойност',
+  statusHeader: 'Статус',
+  expiresHeader: 'Изтича',
+  actionsHeader: 'Действия',
+
+  // Table Content
+  na: 'Н/Д',
+  percentage: 'Процент',
+  fixedAmount: 'Фиксирана сума',
+  never: 'Никога',
+
+  // Validation Messages
+  discountCodeRequiredMsg: 'Кодът за отстъпка е задължителен',
+  discountCodeLengthMsg: 'Кодът за отстъпка трябва да бъде между 3 и 50 символа',
+  discountCodeFormatMsg: 'Кодът за отстъпка може да съдържа само букви, цифри, тирета и долни черти',
+  discountTypeRequiredMsg: 'Моля изберете валиден тип отстъпка',
+  discountValueRequiredMsg: 'Стойността на отстъпката трябва да бъде положително число',
+  discountPercentageMaxMsg: 'Процентната отстъпка не може да надвишава 100%',
+  invalidExpiryDateMsg: 'Невалидна дата на изтичане',
+  expiryDateFutureMsg: 'Датата на изтичане трябва да бъде в бъдещето',
+  failedToSaveDiscount: 'Неуспешно запазване на отстъпка',
+  unexpectedError: 'Възникна неочаквана грешка',
+
+  // Confirm Dialogs
+  confirmDeleteDiscount: 'Сигурни ли сте, че искате да изтриете кода за отстъпка',
+  failedToDeleteDiscount: 'Неуспешно изтриване на отстъпка',
+  unexpectedErrorDeleting: 'Възникна неочаквана грешка при изтриване на отстъпката',
+
   // Finance
+  finance: 'Финанси',
   financialOverview: 'Финансов преглед и транзакции',
+  financialOverviewAndRevenueTracking: 'Финансов преглед и проследяване на приходите',
+  loadingFinancialData: 'Зареждане на финансови данни...',
   today: 'Днес',
   thisWeek: 'Тази седмица',
   thisMonth: 'Този месец',
@@ -1067,20 +1395,35 @@ export const translations: Record<Language, Translations> = {
   allTime: 'Цялото време',
   totalRevenue: 'Общи приходи',
   vsPreviousPeriod: 'спрямо предишния период',
+  fromLastPeriod: 'от предишния период',
   netRevenue: 'Нетни приходи',
   afterDeliveryCosts: 'След разходи за доставка',
+  afterDeliveryCostsText: 'След разходи за доставка',
   totalOrders: 'Общи поръчки',
   avgOrderValue: 'Средна стойност на поръчка',
+  averageOrderValue: 'Средна стойност на поръчка',
   perOrder: 'На поръчка',
   recentTransactions: 'Последни транзакции',
   date: 'Дата',
   orderId: 'Номер на поръчка',
+  orderNumber: 'Поръчка №',
   type: 'Тип',
   amount: 'Сума',
   noTransactionsFound: 'Няма намерени транзакции за този период',
+  deliveryCosts: 'Разходи за доставка',
+  totalShippingExpenses: 'Общи разходи за доставка',
+  pendingPayments: 'Чакащи плащания',
+  awaitingProcessing: 'В очакване на обработка',
+  profitMargin: 'Марж на печалба',
+  revenueAfterCosts: 'Приходи след разходи',
+  showingTransactions: 'Показване на',
+  ofTransactions: 'от транзакции',
+  unableToLoadFinancialData: 'Неуспешно зареждане на финансови данни',
 
   // Analytics
+  analytics: 'Анализи',
   salesAnalytics: 'Анализ на продажбите и прозрения',
+  viewStorePerformanceMetrics: 'Преглед на показателите за производителност на магазина',
   lastWeek: 'Миналата седмица',
   lastMonth: 'Миналия месец',
   lastYear: 'Миналата година',
@@ -1090,10 +1433,15 @@ export const translations: Record<Language, Translations> = {
   sold: 'продадени',
   noProductData: 'Няма налични данни за продукти',
   noAnalyticsData: 'Няма налични аналитични данни',
+  loadingAnalyticsData: 'Зареждане на аналитични данни...',
+  topProducts: 'Топ продукти',
+  recentSales: 'Последни продажби',
+  totalCustomers: 'Общо клиенти',
 
   // Media
   mediaLibrary: 'Медийна библиотека',
   manageMediaFiles: 'Управление на всички качени медийни файлове',
+  manageImagesAndMediaFiles: 'Управление на вашите изображения и медийни файлове',
   grid: 'Решетка',
   list: 'Списък',
   searchFiles: 'Търсене на файлове...',
@@ -1114,9 +1462,13 @@ export const translations: Record<Language, Translations> = {
   noMediaFiles: 'Няма намерени медийни файлове',
   noFilesMatch: 'Няма файлове, които отговарят на търсенето',
   uploadMedia: 'Качи медия',
+  uploadFiles: 'Качи файлове',
   selectFiles: 'Избери файлове',
   dropFilesHere: 'Пуснете файлове тук или кликнете за избор',
+  clickToUpload: 'Кликнете за качване',
+  orDragAndDrop: 'или плъзнете и пуснете',
   supportedFormats: 'Поддържани формати: JPG, PNG, GIF, WebP, SVG до 10MB всеки',
+  supportedImageFormats: 'PNG, JPG, GIF, WebP, AVIF до 10MB всеки',
   uploading: 'Качване...',
   uploadSuccess: 'Файлът е качен успешно',
   uploadError: 'Грешка при качване на файл',
@@ -1124,6 +1476,14 @@ export const translations: Record<Language, Translations> = {
   confirmDeleteFiles: 'Сигурни ли сте, че искате да изтриете тези файлове?',
   deleteFileError: 'Грешка при изтриване на файл',
   deleteFilesError: 'Грешка при изтриване на файлове',
+  loadingMediaFiles: 'Зареждане на медийни файлове...',
+  noFilesInFolder: 'Няма файлове в тази папка',
+  files: 'файла',
+  deleteFile: 'Изтрий файл',
+  failedToUpload: 'Неуспешно качване',
+  folderImages: 'Изображения',
+  folderLogos: 'Лога',
+  folderHeroImages: 'Херо изображения',
 
   // Properties
   previous: 'Предишна',

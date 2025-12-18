@@ -24,6 +24,9 @@ export default function CheckoutPage() {
     isValidatingStock,
     error,
     insufficientStock,
+    appliedDiscount,
+    discountValidating,
+    discountError,
     updateFormData,
     setCities,
     setSubmitting,
@@ -32,7 +35,10 @@ export default function CheckoutPage() {
     setInsufficientStock,
     resetForm,
     isFormValid,
-    fullName
+    fullName,
+    validateDiscount,
+    removeDiscount,
+    discountedTotal
   } = useCheckoutStore();
 
   const t = translations[language || 'en'];
@@ -93,6 +99,14 @@ export default function CheckoutPage() {
     updateFormData({ [field]: value });
   };
 
+  const handleApplyDiscount = () => {
+    if (formData.discountCode.trim()) {
+      validateDiscount(totalPrice);
+    } else {
+      removeDiscount();
+    }
+  };
+
   const handleDeliveryTypeChange = (deliveryType: DeliveryType) => {
     updateFormData({ deliveryType });
   };
@@ -112,7 +126,7 @@ export default function CheckoutPage() {
   };
 
   const deliveryCost = getDeliveryCost(formData.deliveryType);
-  const finalTotal = totalPrice + deliveryCost;
+  const finalTotal = discountedTotal(totalPrice, deliveryCost);
 
   const handleSubmitOrder = async () => {
     if (!isFormValid()) {
@@ -148,9 +162,16 @@ export default function CheckoutPage() {
         })),
         totals: {
           subtotal: totalPrice,
+          discount: appliedDiscount ? appliedDiscount.discountAmount : 0,
           delivery: deliveryCost,
           total: finalTotal,
         },
+        discount: appliedDiscount ? {
+          code: appliedDiscount.code,
+          type: appliedDiscount.type,
+          value: appliedDiscount.value,
+          amount: appliedDiscount.discountAmount,
+        } : null,
       };
 
       console.log('Submitting order data:', orderData);
@@ -276,6 +297,61 @@ export default function CheckoutPage() {
                       rows={3}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
+                  </div>
+
+                  {/* Discount Code */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t.discountCode}
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={formData.discountCode}
+                        onChange={(e) => handleInputChange('discountCode', e.target.value.toUpperCase())}
+                        placeholder={t.enterDiscountCode}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyDiscount}
+                        disabled={discountValidating || !formData.discountCode.trim()}
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {discountValidating ? t.applyingDiscount : t.applyDiscount}
+                      </button>
+                    </div>
+
+                    {/* Discount Messages */}
+                    {appliedDiscount && (
+                      <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                        <p className="text-sm text-green-700">
+                          ✓ {appliedDiscount.description || `${appliedDiscount.code} ${t.discountApplied}`}
+                          {appliedDiscount.type === 'percentage'
+                            ? ` (${appliedDiscount.value}% ${t.amountOff})`
+                            : ` (€${appliedDiscount.discountAmount.toFixed(2)} ${t.amountOff})`
+                          }
+                        </p>
+                        <button
+                          onClick={removeDiscount}
+                          className="text-xs text-green-600 hover:text-green-800 underline mt-1"
+                        >
+                          {t.removeDiscount}
+                        </button>
+                      </div>
+                    )}
+
+                    {discountError && (
+                      <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-md">
+                        <p className="text-sm text-red-700">✗ {
+                          discountError === 'Invalid or expired discount code' ? t.invalidDiscountCode :
+                          discountError === 'Discount code has expired' ? t.expiredDiscountCode :
+                          discountError === 'Discount code is required' ? t.discountCodeRequiredMsg :
+                          discountError === 'Invalid discount code format' ? t.discountCodeFormatError :
+                          discountError
+                        }</p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Name Fields */}
@@ -462,6 +538,12 @@ export default function CheckoutPage() {
                     <span className="text-gray-600">{t.total}:</span>
                     <span className="font-medium">€{totalPrice.toFixed(2)}</span>
                   </div>
+                  {appliedDiscount && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>{t.discountOrderSummary} ({appliedDiscount.code}):</span>
+                      <span>-€{appliedDiscount.discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">{t.delivery} ({deliveryTypeLabels[formData.deliveryType]}):</span>
                     <span className="font-medium">€{deliveryCost.toFixed(2)}</span>

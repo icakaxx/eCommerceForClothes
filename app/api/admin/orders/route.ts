@@ -5,12 +5,23 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 
 interface OrderWithItems {
   orderid: string;
-  customerfirstname: string;
-  customerlastname: string;
-  customeremail: string;
-  customertelephone: string;
-  customercountry: string;
-  customercity: string;
+  customerid: string;
+  customers?: {
+    customerid: string;
+    firstname: string;
+    lastname: string;
+    email: string;
+    telephone: string;
+    country: string;
+    city: string;
+  };
+  // Legacy fields for backward compatibility
+  customerfirstname?: string;
+  customerlastname?: string;
+  customeremail?: string;
+  customertelephone?: string;
+  customercountry?: string;
+  customercity?: string;
   deliverytype: string;
   deliverynotes: string | null;
   subtotal: number;
@@ -37,11 +48,20 @@ interface OrderWithItems {
 
 export async function GET(request: NextRequest) {
   try {
-    // Fetch all orders with their items (simplified)
+    // Fetch all orders with their items and customer info (simplified)
     const { data: orders, error: ordersError } = await supabaseAdmin
       .from('orders')
       .select(`
         *,
+        customers (
+          customerid,
+          firstname,
+          lastname,
+          email,
+          telephone,
+          country,
+          city
+        ),
         order_items (
           orderitemid,
           quantity,
@@ -156,8 +176,18 @@ export async function GET(request: NextRequest) {
         };
       }));
 
+      // Map customer data for backward compatibility
+      const customer = Array.isArray(order.customers) ? order.customers[0] : order.customers;
+      
       return {
         ...order,
+        // Add legacy fields for backward compatibility
+        customerfirstname: customer?.firstname || order.customerfirstname,
+        customerlastname: customer?.lastname || order.customerlastname,
+        customeremail: customer?.email || order.customeremail,
+        customertelephone: customer?.telephone || order.customertelephone,
+        customercountry: customer?.country || order.customercountry,
+        customercity: customer?.city || order.customercity,
         order_items: orderItems
       };
     });
