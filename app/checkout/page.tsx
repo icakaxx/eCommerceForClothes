@@ -11,6 +11,7 @@ import { useCart } from '@/context/CartContext';
 import { useCheckoutStore, type DeliveryType, type CityOption } from '@/store/checkoutStore';
 import { translations } from '@/lib/translations';
 import { ShoppingBag, Truck, MapPin, Package } from 'lucide-react';
+import type { EcontOfficesData, EcontOffice } from '@/types/econt';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -43,6 +44,14 @@ export default function CheckoutPage() {
 
   const t = translations[language || 'en'];
   const [isAdmin, setIsAdmin] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{
+    telephone?: string;
+    email?: string;
+    street?: string;
+    streetNumber?: string;
+  }>({});
+  const [econtOffices, setEcontOffices] = useState<EcontOfficesData | null>(null);
+  const [selectedOffice, setSelectedOffice] = useState<EcontOffice | null>(null);
 
   useEffect(() => {
     const adminState = localStorage.getItem('isAdmin');
@@ -58,6 +67,9 @@ export default function CheckoutPage() {
 
     // Load cities data
     loadCities();
+    
+    // Load Econt offices data
+    loadEcontOffices();
   }, [totalItems, router]);
 
   const loadCities = async () => {
@@ -95,12 +107,88 @@ export default function CheckoutPage() {
     setCities(bulgarianCities);
   };
 
+  const loadEcontOffices = async () => {
+    try {
+      const response = await fetch('/data/econt-offices.json');
+      const data: EcontOfficesData = await response.json();
+      setEcontOffices(data);
+    } catch (error) {
+      console.error('Failed to load Econt offices:', error);
+    }
+  };
+
+  // Validation functions
+  const validateBulgarianPhone = (phone: string): boolean => {
+    if (!phone || phone.trim() === '') return false;
+    
+    // Remove spaces and dashes
+    const cleaned = phone.replace(/[\s-]/g, '');
+    
+    // Bulgarian phone formats:
+    // 1. 10 digits starting with 0 (e.g., 0888123456)
+    // 2. +359 followed by 9 digits (e.g., +359888123456)
+    // 3. 00359 followed by 9 digits (e.g., 00359888123456)
+    
+    const patterns = [
+      /^0\d{9}$/,                    // 0888123456
+      /^\+359\d{9}$/,                // +359888123456
+      /^00359\d{9}$/                 // 00359888123456
+    ];
+    
+    return patterns.some(pattern => pattern.test(cleaned));
+  };
+
+  const validateEmail = (email: string): boolean => {
+    if (!email || email.trim() === '') return false;
+    
+    // Standard email regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email.trim());
+  };
+
   const handleInputChange = (field: string, value: string) => {
     updateFormData({ [field]: value });
+    
+    // Clear validation error when user starts typing
+    if (validationErrors[field as keyof typeof validationErrors]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field as keyof typeof validationErrors];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleBlur = (field: string, value: string) => {
+    let error: string | undefined;
+    
+    if (field === 'telephone') {
+      if (!value || value.trim() === '') {
+        error = t.phoneRequired;
+      } else if (!validateBulgarianPhone(value)) {
+        error = t.invalidPhone;
+      }
+    } else if (field === 'email') {
+      if (!value || value.trim() === '') {
+        error = t.emailRequired;
+      } else if (!validateEmail(value)) {
+        error = t.invalidEmail;
+      }
+    }
+    
+    if (error) {
+      setValidationErrors(prev => ({ ...prev, [field]: error }));
+    } else {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field as keyof typeof validationErrors];
+        return newErrors;
+      });
+    }
   };
 
   const handleApplyDiscount = () => {
-    if (formData.discountCode.trim()) {
+    if (formData.discountCode?.trim()) {
       validateDiscount(totalPrice);
     } else {
       removeDiscount();
@@ -108,7 +196,19 @@ export default function CheckoutPage() {
   };
 
   const handleDeliveryTypeChange = (deliveryType: DeliveryType) => {
-    updateFormData({ deliveryType });
+    updateFormData({ deliveryType, econtOfficeId: '' });
+    setSelectedOffice(null);
+  };
+
+  const handleOfficeSelect = (officeId: string) => {
+    updateFormData({ econtOfficeId: officeId });
+    
+    // Find and set the selected office for displaying working hours
+    if (econtOffices && formData.city) {
+      const cityOffices = econtOffices.officesByCity[formData.city] || [];
+      const office = cityOffices.find(o => o.id === officeId);
+      setSelectedOffice(office || null);
+    }
   };
 
   const getDeliveryCost = (deliveryType: DeliveryType) => {
@@ -129,9 +229,55 @@ export default function CheckoutPage() {
   const finalTotal = discountedTotal(totalPrice, deliveryCost);
 
   const handleSubmitOrder = async () => {
+    // Validate phone and email before submission
+    const phoneError = !formData.telephone || formData.telephone.trim() === '' 
+      ? t.phoneRequired 
+      : !validateBulgarianPhone(formData.telephone) 
+        ? t.invalidPhone 
+        : undefined;
+    
+    const emailError = !formData.email || formData.email.trim() === '' 
+      ? t.emailRequired 
+      : !validateEmail(formData.email) 
+        ? t.invalidEmail 
+        : undefined;
+
+    if (phoneError || emailError) {
+      setValidationErrors({
+        telephone: phoneError,
+        email: emailError
+      });
+      setError('Please correct the errors in the form');
+      return;
+    }
+
     if (!isFormValid()) {
       setError('Please fill in all required fields');
       return;
+    }
+
+    // Validate Econt office selection for office delivery
+    if (formData.deliveryType === 'office' && !formData.econtOfficeId) {
+      setError(t.selectEcontOffice);
+      return;
+    }
+
+    // Validate address fields for address delivery
+    if (formData.deliveryType === 'address') {
+      const addressErrors: any = {};
+      
+      if (!formData.street || !formData.street.trim()) {
+        addressErrors.street = t.required;
+      }
+      if (!formData.streetNumber || !formData.streetNumber.trim()) {
+        addressErrors.streetNumber = t.required;
+      }
+      
+      if (Object.keys(addressErrors).length > 0) {
+        setValidationErrors(prev => ({ ...prev, ...addressErrors }));
+        setError(t.pleaseFillAllRequiredFields || 'Please fill all required fields');
+        return;
+      }
     }
 
     // Temporarily commented out stock validation
@@ -153,6 +299,12 @@ export default function CheckoutPage() {
         delivery: {
           type: formData.deliveryType,
           notes: formData.notes,
+          econtOfficeId: formData.econtOfficeId,
+          street: formData.street,
+          streetNumber: formData.streetNumber,
+          entrance: formData.entrance,
+          floor: formData.floor,
+          apartment: formData.apartment,
         },
         items: items.map(item => ({
           id: item.id,
@@ -272,7 +424,7 @@ export default function CheckoutPage() {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{t.checkout}</h1>
             <div className="flex items-center gap-2 text-gray-600">
               <ShoppingBag size={20} />
-              <span>{totalItems} {totalItems === 1 ? 'item' : 'items'} in cart</span>
+              <span>{totalItems} {t.itemsInCart}</span>
             </div>
           </div>
 
@@ -281,7 +433,7 @@ export default function CheckoutPage() {
             <div className="order-1 lg:order-1">
               <div className="bg-white rounded-lg shadow-sm border p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                  Customer Information
+                  {t.customerInformation}
                 </h2>
 
                 <div className="space-y-6">
@@ -307,7 +459,7 @@ export default function CheckoutPage() {
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        value={formData.discountCode}
+                        value={formData.discountCode || ''}
                         onChange={(e) => handleInputChange('discountCode', e.target.value.toUpperCase())}
                         placeholder={t.enterDiscountCode}
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -315,7 +467,7 @@ export default function CheckoutPage() {
                       <button
                         type="button"
                         onClick={handleApplyDiscount}
-                        disabled={discountValidating || !formData.discountCode.trim()}
+                        disabled={discountValidating || !formData.discountCode?.trim()}
                         className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                       >
                         {discountValidating ? t.applyingDiscount : t.applyDiscount}
@@ -390,11 +542,17 @@ export default function CheckoutPage() {
                       </label>
                       <input
                         type="tel"
-                        value={formData.telephone}
+                        value={formData.telephone || ''}
                         onChange={(e) => handleInputChange('telephone', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        onBlur={(e) => handleBlur('telephone', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                          validationErrors.telephone ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         required
                       />
+                      {validationErrors.telephone && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.telephone}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -402,11 +560,17 @@ export default function CheckoutPage() {
                       </label>
                       <input
                         type="email"
-                        value={formData.email}
+                        value={formData.email || ''}
                         onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        onBlur={(e) => handleBlur('email', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                          validationErrors.email ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         required
                       />
+                      {validationErrors.email && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.email}</p>
+                      )}
                     </div>
                   </div>
 
@@ -421,7 +585,7 @@ export default function CheckoutPage() {
                         onChange={(e) => handleInputChange('country', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
-                        <option value="Bulgaria">Bulgaria</option>
+                        <option value="Bulgaria">{t.bulgaria}</option>
                       </select>
                     </div>
                     <div>
@@ -430,16 +594,32 @@ export default function CheckoutPage() {
                       </label>
                       <select
                         value={formData.city}
-                        onChange={(e) => handleInputChange('city', e.target.value)}
+                        onChange={(e) => {
+                          handleInputChange('city', e.target.value);
+                          // Reset office selection when city changes
+                          if (formData.deliveryType === 'office') {
+                            updateFormData({ econtOfficeId: '' });
+                            setSelectedOffice(null);
+                          }
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         required
                       >
-                        <option value="">Select a city</option>
-                        {cities.map((city) => (
-                          <option key={city.displayName} value={city.displayName}>
-                            {city.displayName}
-                          </option>
-                        ))}
+                        <option value="">{t.selectCity}</option>
+                        {/* Show Econt cities if office delivery is selected and data is loaded */}
+                        {formData.deliveryType === 'office' && econtOffices ? (
+                          econtOffices.cities.map((city) => (
+                            <option key={city} value={city}>
+                              {city}
+                            </option>
+                          ))
+                        ) : (
+                          cities.map((city) => (
+                            <option key={city.displayName} value={city.displayName}>
+                              {city.displayName}
+                            </option>
+                          ))
+                        )}
                       </select>
                     </div>
                   </div>
@@ -452,10 +632,15 @@ export default function CheckoutPage() {
                     <div className="space-y-3">
                       {(['office', 'address', 'econtomat'] as DeliveryType[]).map((type) => {
                         const Icon = deliveryTypeIcons[type];
+                        const isDisabled = type === 'econtomat';
                         return (
                           <label
                             key={type}
-                            className={`flex items-center p-4 border rounded-lg cursor-pointer transition-all ${
+                            className={`flex items-center p-4 border rounded-lg transition-all ${
+                              isDisabled
+                                ? 'cursor-not-allowed opacity-50 bg-gray-100'
+                                : 'cursor-pointer'
+                            } ${
                               formData.deliveryType === type
                                 ? 'border-blue-500 bg-blue-50'
                                 : 'border-gray-200 hover:border-gray-300'
@@ -467,6 +652,7 @@ export default function CheckoutPage() {
                               value={type}
                               checked={formData.deliveryType === type}
                               onChange={() => handleDeliveryTypeChange(type)}
+                              disabled={isDisabled}
                               className="mr-3"
                             />
                             <Icon size={20} className="mr-3 text-gray-600" />
@@ -483,6 +669,139 @@ export default function CheckoutPage() {
                       })}
                     </div>
                   </div>
+
+                  {/* Econt Office Selection - Only show if office delivery is selected */}
+                  {formData.deliveryType === 'office' && formData.city && econtOffices && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {t.econtOffice} *
+                      </label>
+                      <select
+                        value={formData.econtOfficeId || ''}
+                        onChange={(e) => handleOfficeSelect(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required
+                      >
+                        <option value="">{t.selectEcontOffice}</option>
+                        {(econtOffices.officesByCity[formData.city] || []).map((office) => (
+                          <option key={office.id} value={office.id}>
+                            {office.name}
+                          </option>
+                        ))}
+                      </select>
+                      
+                      {/* Show office details when selected */}
+                      {selectedOffice && (
+                        <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                          <div className="space-y-2">
+                            <div>
+                              <span className="text-sm font-medium text-gray-700">{t.officeAddress}:</span>
+                              <p className="text-sm text-gray-900">{selectedOffice.address}</p>
+                            </div>
+                            <div>
+                              <span className="text-sm font-medium text-gray-700">{t.workingHours}:</span>
+                              <p className="text-sm text-gray-900">{selectedOffice.workingHours}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {formData.city && (!econtOffices.officesByCity[formData.city] || econtOffices.officesByCity[formData.city].length === 0) && (
+                        <p className="text-sm text-amber-600 mt-2">
+                          {t.noOfficesInCity}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Address Fields - Only show if address delivery is selected */}
+                  {formData.deliveryType === 'address' && (
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">{t.addressDetails}</h3>
+                      
+                      <div className="space-y-4">
+                        {/* Street and Number */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {t.street} *
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.street || ''}
+                              onChange={(e) => handleInputChange('street', e.target.value)}
+                              placeholder="ул. Васил Левски"
+                              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                                validationErrors.street ? 'border-red-500' : 'border-gray-300'
+                              }`}
+                              required
+                            />
+                            {validationErrors.street && (
+                              <p className="text-red-500 text-xs mt-1">{validationErrors.street}</p>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {t.streetNumber} *
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.streetNumber || ''}
+                              onChange={(e) => handleInputChange('streetNumber', e.target.value)}
+                              placeholder="123"
+                              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                                validationErrors.streetNumber ? 'border-red-500' : 'border-gray-300'
+                              }`}
+                              required
+                            />
+                            {validationErrors.streetNumber && (
+                              <p className="text-red-500 text-xs mt-1">{validationErrors.streetNumber}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Entrance, Floor, Apartment */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {t.entrance}
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.entrance || ''}
+                              onChange={(e) => handleInputChange('entrance', e.target.value)}
+                              placeholder="A"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {t.floor}
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.floor || ''}
+                              onChange={(e) => handleInputChange('floor', e.target.value)}
+                              placeholder="5"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {t.apartment}
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.apartment || ''}
+                              onChange={(e) => handleInputChange('apartment', e.target.value)}
+                              placeholder="12"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

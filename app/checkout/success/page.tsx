@@ -35,8 +35,18 @@ interface Order {
   customercity: string;
   deliverytype: string;
   deliverynotes: string | null;
+  econtoffice: string | null;
+  deliverystreet: string | null;
+  deliverystreetnumber: string | null;
+  deliveryentrance: string | null;
+  deliveryfloor: string | null;
+  deliveryapartment: string | null;
   subtotal: number;
   deliverycost: number;
+  discountcode: string | null;
+  discounttype: string | null;
+  discountvalue: number | null;
+  discountamount: number | null;
   total: number;
   status: string;
   createdat: string;
@@ -106,7 +116,7 @@ function CheckoutSuccessContent() {
   const getDeliveryTypeLabel = (type: string) => {
     switch (type) {
       case 'office':
-        return language === 'bg' ? 'Офис на Speedy' : 'Speedy Office';
+        return language === 'bg' ? 'Офис на Еконт' : 'Econt Office';
       case 'address':
         return language === 'bg' ? 'Адрес' : 'Address';
       case 'econtomat':
@@ -327,6 +337,14 @@ function CheckoutSuccessContent() {
                   </span>
                   <span style={{ color: theme.colors.text }}>€{order.subtotal.toFixed(2)}</span>
                 </div>
+                {order.discountcode && order.discountamount && order.discountamount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: theme.colors.textSecondary }}>
+                      {language === 'bg' ? 'Отстъпка' : 'Discount'} ({order.discountcode}):
+                    </span>
+                    <span className="text-green-600">-€{order.discountamount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span style={{ color: theme.colors.textSecondary }}>
                     {language === 'bg' ? 'Доставка' : 'Delivery'} ({getDeliveryTypeLabel(order.deliverytype)}):
@@ -395,8 +413,44 @@ function CheckoutSuccessContent() {
                     {language === 'bg' ? 'Тип доставка' : 'Delivery Type'}:
                   </strong> {getDeliveryTypeLabel(order.deliverytype)}
                 </p>
-                {order.deliverynotes && (
+                
+                {/* Econt Office Details */}
+                {order.deliverytype === 'office' && order.econtoffice && (
                   <p style={{ color: theme.colors.textSecondary }}>
+                    <strong style={{ color: theme.colors.text }}>
+                      {language === 'bg' ? 'Офис на Еконт' : 'Econt Office'}:
+                    </strong> {order.econtoffice}
+                  </p>
+                )}
+                
+                {/* Address Details */}
+                {order.deliverytype === 'address' && (order.deliverystreet || order.deliverystreetnumber) && (
+                  <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.colors.border }}>
+                    <strong style={{ color: theme.colors.text }}>
+                      {language === 'bg' ? 'Адрес за доставка' : 'Delivery Address'}:
+                    </strong>
+                    <div className="mt-2 space-y-1">
+                      {order.deliverystreet && order.deliverystreetnumber && (
+                        <p style={{ color: theme.colors.textSecondary }}>
+                          {order.deliverystreet} {order.deliverystreetnumber}
+                        </p>
+                      )}
+                      {(order.deliveryentrance || order.deliveryfloor || order.deliveryapartment) && (
+                        <p style={{ color: theme.colors.textSecondary }}>
+                          {order.deliveryentrance && (language === 'bg' ? `Вход ${order.deliveryentrance}` : `Entrance ${order.deliveryentrance}`)}
+                          {order.deliveryfloor && `, ${language === 'bg' ? 'Етаж' : 'Floor'} ${order.deliveryfloor}`}
+                          {order.deliveryapartment && `, ${language === 'bg' ? 'Ап.' : 'Apt.'} ${order.deliveryapartment}`}
+                        </p>
+                      )}
+                      <p style={{ color: theme.colors.textSecondary }}>
+                        {order.customercity}, {order.customercountry}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {order.deliverynotes && (
+                  <p style={{ color: theme.colors.textSecondary }} className="mt-3 pt-3 border-t" style={{ borderColor: theme.colors.border }}>
                     <strong style={{ color: theme.colors.text }}>
                       {language === 'bg' ? 'Бележки' : 'Notes'}:
                     </strong> {order.deliverynotes}

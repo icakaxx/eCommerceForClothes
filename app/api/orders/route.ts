@@ -16,6 +16,12 @@ interface OrderData {
   delivery: {
     type: string;
     notes: string;
+    econtOfficeId?: string;
+    street?: string;
+    streetNumber?: string;
+    entrance?: string;
+    floor?: string;
+    apartment?: string;
   };
   items: Array<{
     id: string | number;
@@ -187,6 +193,12 @@ async function createOrder(orderData: OrderData): Promise<string> {
     customerid: customerId,
     deliverytype: orderData.delivery.type,
     deliverynotes: orderData.delivery.notes || null,
+    econtoffice: orderData.delivery.econtOfficeId || null,
+    deliverystreet: orderData.delivery.street || null,
+    deliverystreetnumber: orderData.delivery.streetNumber || null,
+    deliveryentrance: orderData.delivery.entrance || null,
+    deliveryfloor: orderData.delivery.floor || null,
+    deliveryapartment: orderData.delivery.apartment || null,
     subtotal: orderData.totals.subtotal,
     deliverycost: orderData.totals.delivery,
     total: orderData.totals.total,

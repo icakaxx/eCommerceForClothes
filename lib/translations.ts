@@ -130,6 +130,15 @@ export interface Translations {
   addProduct: string;
   expressAdd: string;
   addToCart: string;
+  pleaseSelectSize: string;
+  notEnoughStock: string;
+  availableItems: string;
+  shoppingCart: string;
+  yourCartIsEmpty: string;
+  continueShopping: string;
+  clearCart: string;
+  subtotal: string;
+  each: string;
   searchByBrandModelColor: string;
   basicInformation: string;
   productAttributes: string;
@@ -149,6 +158,10 @@ export interface Translations {
 
   // Checkout
   checkout: string;
+  itemsInCart: string;
+  customerInformation: string;
+  selectCity: string;
+  bulgaria: string;
   orderNotes: string;
   orderNotesPlaceholder: string;
   firstName: string;
@@ -161,12 +174,29 @@ export interface Translations {
   deliveryOffice: string;
   deliveryAddress: string;
   deliveryEcontomat: string;
+  selectEcontOffice: string;
+  econtOffice: string;
+  officeAddress: string;
+  workingHours: string;
+  noOfficesInCity: string;
+  street: string;
+  streetNumber: string;
+  entrance: string;
+  floor: string;
+  apartment: string;
+  addressDetails: string;
+  pleaseFillAllRequiredFields: string;
+  required: string;
   orderSummary: string;
   total: string;
   delivery: string;
   orderTotal: string;
   placeOrder: string;
   placingOrder: string;
+  invalidEmail: string;
+  invalidPhone: string;
+  phoneRequired: string;
+  emailRequired: string;
 
   // Tooltips
   tooltipDashboard: string;
@@ -502,6 +532,61 @@ export interface Translations {
   notAvailable: string;
   inStock: string;
   outOfStock: string;
+
+  // Cookie Consent
+  cookieConsentTitle: string;
+  cookieConsentMessage: string;
+  cookieConsentAccept: string;
+  cookieConsentReject: string;
+  cookieConsentLearnMore: string;
+
+  // Visitor Analytics
+  visitors: string;
+  visitorStats: string;
+  visitorAnalytics: string;
+  totalVisitors: string;
+  pageViews: string;
+  bounceRate: string;
+  avgSessionDuration: string;
+  topCountries: string;
+  deviceTypes: string;
+  browsers: string;
+  operatingSystems: string;
+  referrerSources: string;
+  timeRange: string;
+  realTimeStats: string;
+  today: string;
+  last7Days: string;
+  last30Days: string;
+  custom: string;
+  from: string;
+  to: string;
+  apply: string;
+  viewVisitorAnalytics: string;
+  sessions: string;
+  country: string;
+  device: string;
+  browser: string;
+  os: string;
+  referrer: string;
+  direct: string;
+  google: string;
+  facebook: string;
+  other: string;
+  ios: string;
+  android: string;
+  windows: string;
+  macos: string;
+  linux: string;
+  chrome: string;
+  safari: string;
+  firefox: string;
+  edge: string;
+  noVisitorData: string;
+  loadingVisitorData: string;
+  sessionDuration: string;
+  minutes: string;
+  seconds: string;
 }
 
 export type Language = 'en' | 'bg';
@@ -640,6 +725,15 @@ export const translations: Record<Language, Translations> = {
     addProduct: 'Add Product',
     expressAdd: 'Express Add',
     addToCart: 'Add to Cart',
+    pleaseSelectSize: 'Please select a size',
+    notEnoughStock: 'Not enough stock available',
+    availableItems: 'Available',
+    shoppingCart: 'Shopping Cart',
+    yourCartIsEmpty: 'Your cart is empty',
+    continueShopping: 'Continue Shopping',
+    clearCart: 'Clear Cart',
+    subtotal: 'Subtotal',
+    each: 'each',
     searchByBrandModelColor: 'Search by brand, model, or color...',
     basicInformation: 'Basic Information',
     productAttributes: 'Attributes',
@@ -659,6 +753,10 @@ export const translations: Record<Language, Translations> = {
 
     // Checkout
     checkout: 'Checkout',
+    itemsInCart: 'items in cart',
+    customerInformation: 'Customer Information',
+    selectCity: 'Select a city',
+    bulgaria: 'Bulgaria',
     orderNotes: 'Order Notes',
     orderNotesPlaceholder: 'Any special instructions for your order...',
     firstName: 'First Name',
@@ -671,12 +769,29 @@ export const translations: Record<Language, Translations> = {
     deliveryOffice: 'Econt Office',
     deliveryAddress: 'Address',
     deliveryEcontomat: 'Econtomat',
+    selectEcontOffice: 'Select Econt Office',
+    econtOffice: 'Econt Office',
+    officeAddress: 'Address',
+    workingHours: 'Working Hours',
+    noOfficesInCity: 'No Econt offices found in selected city',
+    street: 'Street',
+    streetNumber: 'Number',
+    entrance: 'Entrance',
+    floor: 'Floor',
+    apartment: 'Apartment',
+    addressDetails: 'Address Details',
+    pleaseFillAllRequiredFields: 'Please fill all required fields',
+    required: 'Required',
     orderSummary: 'Order Summary',
     total: 'Total',
     delivery: 'Delivery',
     orderTotal: 'Order Total',
     placeOrder: 'Place Order',
     placingOrder: 'Placing Order...',
+    invalidEmail: 'Please enter a valid email address',
+    invalidPhone: 'Please enter a valid Bulgarian phone number (e.g., 0888123456 or +359888123456)',
+    phoneRequired: 'Phone number is required',
+    emailRequired: 'Email is required',
 
     // Tooltips
     tooltipDashboard: 'Go to Dashboard',
@@ -1009,7 +1124,62 @@ export const translations: Record<Language, Translations> = {
     selectOptions: 'Select Options',
     notAvailable: 'N/A',
     inStock: 'In Stock',
-    outOfStock: 'Out of Stock'
+    outOfStock: 'Out of Stock',
+
+    // Cookie Consent
+    cookieConsentTitle: 'We use cookies',
+    cookieConsentMessage: 'We use cookies and similar technologies to analyze traffic, improve your experience, and provide personalized content. By accepting, you consent to our use of cookies.',
+    cookieConsentAccept: 'Accept',
+    cookieConsentReject: 'Reject',
+    cookieConsentLearnMore: 'Learn more',
+
+    // Visitor Analytics
+    visitors: 'Visitors',
+    visitorStats: 'Visitor Statistics',
+    visitorAnalytics: 'Visitor Analytics',
+    totalVisitors: 'Total Visitors',
+    pageViews: 'Page Views',
+    bounceRate: 'Bounce Rate',
+    avgSessionDuration: 'Avg. Session Duration',
+    topCountries: 'Top Countries',
+    deviceTypes: 'Device Types',
+    browsers: 'Browsers',
+    operatingSystems: 'Operating Systems',
+    referrerSources: 'Referrer Sources',
+    timeRange: 'Time Range',
+    realTimeStats: 'Real-time Stats',
+    today: 'Today',
+    last7Days: 'Last 7 Days',
+    last30Days: 'Last 30 Days',
+    custom: 'Custom',
+    from: 'From',
+    to: 'To',
+    apply: 'Apply',
+    viewVisitorAnalytics: 'View visitor analytics and traffic sources',
+    sessions: 'Sessions',
+    country: 'Country',
+    device: 'Device',
+    browser: 'Browser',
+    os: 'OS',
+    referrer: 'Referrer',
+    direct: 'Direct',
+    google: 'Google',
+    facebook: 'Facebook',
+    other: 'Other',
+    ios: 'iOS',
+    android: 'Android',
+    windows: 'Windows',
+    macos: 'macOS',
+    linux: 'Linux',
+    chrome: 'Chrome',
+    safari: 'Safari',
+    firefox: 'Firefox',
+    edge: 'Edge',
+    noVisitorData: 'No visitor data available',
+    loadingVisitorData: 'Loading visitor data...',
+    sessionDuration: 'Session Duration',
+    minutes: 'minutes',
+    seconds: 'seconds'
 
   },
 
@@ -1146,6 +1316,15 @@ export const translations: Record<Language, Translations> = {
     addProduct: 'Добави продукт',
     expressAdd: 'Бързо добавяне',
     addToCart: 'Добави в количката',
+    pleaseSelectSize: 'Моля, изберете размер',
+    notEnoughStock: 'Няма достатъчно наличност',
+    availableItems: 'Налично',
+    shoppingCart: 'Количка',
+    yourCartIsEmpty: 'Вашата количка е празна',
+    continueShopping: 'Продължи пазаруване',
+    clearCart: 'Изчисти количката',
+    subtotal: 'Междинна сума',
+    each: 'бр.',
     searchByBrandModelColor: 'Търсене по марка, модел или цвят...',
     basicInformation: 'Основна информация',
     productAttributes: 'Атрибути',
@@ -1165,6 +1344,10 @@ export const translations: Record<Language, Translations> = {
 
     // Checkout
     checkout: 'Поръчка',
+    itemsInCart: 'артикула в количката',
+    customerInformation: 'Информация за клиента',
+    selectCity: 'Изберете град',
+    bulgaria: 'България',
     orderNotes: 'Бележки към поръчката',
     orderNotesPlaceholder: 'Специални инструкции за поръчката...',
     firstName: 'Име',
@@ -1177,12 +1360,29 @@ export const translations: Record<Language, Translations> = {
     deliveryOffice: 'Офис на Еконт',
     deliveryAddress: 'Адрес',
     deliveryEcontomat: 'Еконтмат',
+    selectEcontOffice: 'Изберете офис на Еконт',
+    econtOffice: 'Офис на Еконт',
+    officeAddress: 'Адрес',
+    workingHours: 'Работно време',
+    noOfficesInCity: 'Няма намерени офиси на Еконт в избрания град',
+    street: 'Улица',
+    streetNumber: 'Номер',
+    entrance: 'Вход',
+    floor: 'Етаж',
+    apartment: 'Апартамент',
+    addressDetails: 'Адресни данни',
+    pleaseFillAllRequiredFields: 'Моля, попълнете всички задължителни полета',
+    required: 'Задължително',
     orderSummary: 'Обобщение на поръчката',
     total: 'Общо',
     delivery: 'Доставка',
     orderTotal: 'Крайна сума',
     placeOrder: 'Направи поръчка',
-    placingOrder: 'Изпълнение на поръчка...',
+    placingOrder: 'Обработване на поръчката...',
+    invalidEmail: 'Моля, въведете валиден имейл адрес',
+    invalidPhone: 'Моля, въведете валиден български телефонен номер (напр., 0888123456 или +359888123456)',
+    phoneRequired: 'Телефонният номер е задължителен',
+    emailRequired: 'Имейлът е задължителен',
 
     // Tooltips
     tooltipDashboard: 'Отиди в Таблото',
@@ -1512,7 +1712,62 @@ export const translations: Record<Language, Translations> = {
   selectOptions: 'Изберете опции',
   notAvailable: 'Н/Д',
   inStock: 'В наличност',
-  outOfStock: 'Изчерпан'
+  outOfStock: 'Изчерпан',
+
+  // Cookie Consent
+  cookieConsentTitle: 'Използваме бисквитки',
+  cookieConsentMessage: 'Използваме бисквитки и подобни технологии за анализ на трафика, подобряване на вашето изживяване и предоставяне на персонализирано съдържание. С приемането давате съгласие за използването на бисквитки.',
+  cookieConsentAccept: 'Приемам',
+  cookieConsentReject: 'Отказвам',
+  cookieConsentLearnMore: 'Научете повече',
+
+  // Visitor Analytics
+  visitors: 'Посетители',
+  visitorStats: 'Статистика за посетителите',
+  visitorAnalytics: 'Анализ на посетителите',
+  totalVisitors: 'Общо посетители',
+  pageViews: 'Прегледи на страници',
+  bounceRate: 'Процент на отпадане',
+  avgSessionDuration: 'Средна продължителност на сесия',
+  topCountries: 'Топ държави',
+  deviceTypes: 'Типове устройства',
+  browsers: 'Браузъри',
+  operatingSystems: 'Операционни системи',
+  referrerSources: 'Източници на препращане',
+  timeRange: 'Времеви период',
+  realTimeStats: 'Статистика в реално време',
+  today: 'Днес',
+  last7Days: 'Последните 7 дни',
+  last30Days: 'Последните 30 дни',
+  custom: 'Персонализиран',
+  from: 'От',
+  to: 'До',
+  apply: 'Приложи',
+  viewVisitorAnalytics: 'Преглед на анализите за посетителите и източниците на трафик',
+  sessions: 'Сесии',
+  country: 'Държава',
+  device: 'Устройство',
+  browser: 'Браузър',
+  os: 'ОС',
+  referrer: 'Препращащ',
+  direct: 'Директен',
+  google: 'Google',
+  facebook: 'Facebook',
+  other: 'Други',
+  ios: 'iOS',
+  android: 'Android',
+  windows: 'Windows',
+  macos: 'macOS',
+  linux: 'Linux',
+  chrome: 'Chrome',
+  safari: 'Safari',
+  firefox: 'Firefox',
+  edge: 'Edge',
+  noVisitorData: 'Няма налични данни за посетители',
+  loadingVisitorData: 'Зареждане на данни за посетители...',
+  sessionDuration: 'Продължителност на сесията',
+  minutes: 'минути',
+  seconds: 'секунди'
 
   }
 };

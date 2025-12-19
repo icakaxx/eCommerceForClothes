@@ -25,7 +25,7 @@ const CartDrawer: React.FC = () => {
   const t = translations[language || 'en'];
 
   const formatPrice = (price: number) => {
-    return `$${price.toFixed(2)}`;
+    return `€${price.toFixed(2)}`;
   };
 
   if (!isCartOpen) return null;
@@ -45,7 +45,7 @@ const CartDrawer: React.FC = () => {
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div className="flex items-center space-x-2">
               <ShoppingCart size={24} className="text-gray-900" />
-              <h2 className="text-xl font-bold text-gray-900">Shopping Cart</h2>
+              <h2 className="text-xl font-bold text-gray-900">{t.shoppingCart}</h2>
               {totalItems > 0 && (
                 <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
                   {totalItems}
@@ -65,13 +65,13 @@ const CartDrawer: React.FC = () => {
             {items.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full p-6 text-center">
                 <ShoppingCart size={48} className="text-gray-300 mb-4" />
-                <p className="text-gray-500 text-lg">Your cart is empty</p>
+                <p className="text-gray-500 text-lg">{t.yourCartIsEmpty}</p>
                 <Link
                   href="/"
                   onClick={closeCart}
                   className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                 >
-                  Continue Shopping
+                  {t.continueShopping}
                 </Link>
               </div>
             ) : (
@@ -99,7 +99,7 @@ const CartDrawer: React.FC = () => {
                           {item.type && ` • ${item.type}`}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {formatPrice(item.price)} each
+                          {formatPrice(item.price)} {t.each}
                         </p>
                       </div>
                       <button
@@ -133,7 +133,7 @@ const CartDrawer: React.FC = () => {
                         <p className="font-bold text-gray-900">
                           {formatPrice(item.quantity * item.price)}
                         </p>
-                        <p className="text-xs text-gray-500">Subtotal</p>
+                        <p className="text-xs text-gray-500">{t.subtotal}</p>
                       </div>
                     </div>
                   </div>
@@ -146,7 +146,7 @@ const CartDrawer: React.FC = () => {
           {items.length > 0 && (
             <div className="border-t border-gray-200 p-6 space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-lg font-medium">Total:</span>
+                <span className="text-lg font-medium">{t.total}:</span>
                 <span className="text-xl font-bold text-gray-900">
                   {formatPrice(totalPrice)}
                 </span>
@@ -157,14 +157,14 @@ const CartDrawer: React.FC = () => {
                   onClick={clearCart}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
                 >
-                  Clear Cart
+                  {t.clearCart}
                 </button>
                 <Link
                   href="/checkout"
                   onClick={closeCart}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-center"
                 >
-                  Checkout
+                  {t.checkout}
                 </Link>
               </div>
 
@@ -172,7 +172,7 @@ const CartDrawer: React.FC = () => {
                 onClick={closeCart}
                 className="w-full px-4 py-2 border border-gray-900 text-gray-900 rounded-lg hover:bg-gray-900 hover:text-white transition"
               >
-                Continue Shopping
+                {t.continueShopping}
               </button>
             </div>
           )}

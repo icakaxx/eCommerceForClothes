@@ -14,6 +14,13 @@ export interface CheckoutFormData {
   city: string;
   deliveryType: DeliveryType;
   discountCode: string;
+  econtOfficeId?: string;
+  // Address delivery fields
+  street?: string;
+  streetNumber?: string;
+  entrance?: string;
+  floor?: string;
+  apartment?: string;
 }
 
 export interface AppliedDiscount {
@@ -69,6 +76,12 @@ const defaultFormData: CheckoutFormData = {
   city: '',
   deliveryType: 'office',
   discountCode: '',
+  econtOfficeId: '',
+  street: '',
+  streetNumber: '',
+  entrance: '',
+  floor: '',
+  apartment: '',
 };
 
 export const useCheckoutStore = create<CheckoutState>()(
@@ -215,6 +228,14 @@ export const useCheckoutStore = create<CheckoutState>()(
         cities: state.cities,
         appliedDiscount: state.appliedDiscount
       }), // Persist form data, cities, and applied discount
+      merge: (persistedState: any, currentState: CheckoutState) => ({
+        ...currentState,
+        ...persistedState,
+        formData: {
+          ...defaultFormData,
+          ...(persistedState?.formData || {})
+        }
+      })
     }
   )
 );

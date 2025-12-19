@@ -12,7 +12,9 @@ import {
   BarChart3, 
   DollarSign, 
   Percent, 
-  Image as ImageIcon 
+  Image as ImageIcon,
+  Eye,
+  ArrowLeft 
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -73,6 +75,12 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
       icon: BarChart3
     },
     {
+      id: 'visitors',
+      label: t.visitors || 'Visitors',
+      path: '/admin/visitors',
+      icon: Eye
+    },
+    {
       id: 'finance',
       label: language === 'bg' ? 'Финанси' : 'Finance',
       path: '/admin/finance',
@@ -107,13 +115,13 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
 
   return (
     <aside
-      className="w-full lg:w-64 flex-shrink-0 border-r transition-colors duration-300"
+      className="w-full lg:w-64 lg:h-screen flex-shrink-0 border-r transition-colors duration-300 sticky top-0"
       style={{
         backgroundColor: theme.colors.surface,
         borderColor: theme.colors.border
       }}
     >
-      <div className="h-full flex flex-col">
+      <div className="h-full flex flex-col max-h-screen">
         {/* Header */}
         <div
           className="p-4 border-b"
@@ -128,7 +136,7 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-2">
+        <nav className="flex-1 overflow-y-auto p-2 min-h-0">
           <ul className="space-y-1">
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -166,6 +174,32 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
             })}
           </ul>
         </nav>
+
+        {/* Footer - Back to Store */}
+        <div
+          className="p-4 border-t flex-shrink-0"
+          style={{ borderColor: theme.colors.border }}
+        >
+          <Link
+            href="/"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 w-full"
+            style={{
+              backgroundColor: theme.colors.secondary,
+              color: theme.colors.text
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = theme.colors.primary;
+              e.currentTarget.style.color = '#ffffff';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = theme.colors.secondary;
+              e.currentTarget.style.color = theme.colors.text;
+            }}
+          >
+            <ArrowLeft size={20} />
+            <span className="text-sm font-medium">{t.goToStore}</span>
+          </Link>
+        </div>
       </div>
     </aside>
   );

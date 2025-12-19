@@ -43,12 +43,12 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
 
     if (product.category === 'clothes' || product.category === 'shoes') {
       if (!selectedSize) {
-        newErrors.size = 'Please select a size';
+        newErrors.size = t.pleaseSelectSize;
       }
     }
 
     if (quantity > product.quantity) {
-      newErrors.quantity = 'Not enough stock available';
+      newErrors.quantity = t.notEnoughStock;
     }
 
     setErrors(newErrors);
@@ -214,7 +214,7 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
             {needsSize && (
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-3">
-                  Size <span className="text-red-500">*</span>
+                  {t.size} <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {availableSizes.map((size) => (
@@ -240,7 +240,7 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
             {/* Quantity */}
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-3">
-                Quantity
+                {t.quantity}
               </label>
               <div className="flex items-center space-x-3">
                 <button
@@ -267,7 +267,7 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Available: {product.quantity} items
+                {t.availableItems}: {product.quantity} {t.pcs}
               </p>
               {errors.quantity && (
                 <p className="text-red-500 text-sm mt-1">{errors.quantity}</p>
@@ -278,10 +278,10 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">
-                  {quantity} × ${product.price.toFixed(2)}
+                  {quantity} × €{product.price.toFixed(2)}
                 </span>
                 <span className="text-lg font-bold text-gray-900">
-                  ${(product.price * quantity).toFixed(2)}
+                  €{(product.price * quantity).toFixed(2)}
                 </span>
               </div>
             </div>
@@ -293,14 +293,14 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
               onClick={handleClose}
               className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
             >
-              Cancel
+              {t.cancel}
             </button>
             <button
               onClick={handleAddToCart}
               className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center justify-center space-x-2"
             >
               <ShoppingCart size={16} />
-              <span>Add to Cart</span>
+              <span>{t.addToCart}</span>
             </button>
           </div>
         </div>
