@@ -23,6 +23,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
       brand: '',
       model: '',
       color: '',
+      subtitle: '',
       quantity: 0,
       price: 0,
       visible: true,
@@ -45,6 +46,11 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
   const [selectedPropertyValues, setSelectedPropertyValues] = useState<Record<string, string[]>>({});
   const [loadingProperties, setLoadingProperties] = useState(false);
   const [productTypes, setProductTypes] = useState<Array<{producttypeid: string, name: string}>>([]);
+  
+  // Related products state
+  const [relatedProductIds, setRelatedProductIds] = useState<string[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+  const [loadingRelatedProducts, setLoadingRelatedProducts] = useState(false);
 
   // Load product types
   const loadProductTypes = async () => {
@@ -257,6 +263,10 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
   // Load product types on mount
   useEffect(() => {
     loadProductTypes();
+    loadAvailableProducts();
+    if (!isNewProduct && product?.id) {
+      loadRelatedProducts();
+    }
   }, []);
 
   // Update properties when product type changes
@@ -265,6 +275,61 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
       loadPropertiesForProductType(formData.productTypeID);
     }
   }, [formData.productTypeID]);
+
+  // Load available products for related products dropdown
+  const loadAvailableProducts = async () => {
+    try {
+      const response = await fetch('/api/products');
+      const result = await response.json();
+      if (response.ok && result.products) {
+        // Filter out the current product
+        const filtered = result.products.filter((p: Product) => 
+          p.id !== product?.id && p.productid !== product?.productid
+        );
+        setAvailableProducts(filtered);
+      }
+    } catch (error) {
+      console.error('Error loading available products:', error);
+    }
+  };
+
+  // Load existing related products
+  const loadRelatedProducts = async () => {
+    if (!product || isNewProduct) return;
+    
+    try {
+      setLoadingRelatedProducts(true);
+      const productId = product.id || product.productid;
+      const response = await fetch(`/api/products/${productId}/related`);
+      const result = await response.json();
+      
+      if (response.ok && result.products) {
+        const ids = result.products.map((p: Product) => p.productid || p.id);
+        setRelatedProductIds(ids);
+      }
+    } catch (error) {
+      console.error('Error loading related products:', error);
+    } finally {
+      setLoadingRelatedProducts(false);
+    }
+  };
+
+  // Save related products
+  const saveRelatedProducts = async (productId: string) => {
+    try {
+      const response = await fetch(`/api/products/${productId}/related`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ relatedProductIds })
+      });
+      
+      if (!response.ok) {
+        console.error('Error saving related products');
+      }
+    } catch (error) {
+      console.error('Error saving related products:', error);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -299,6 +364,12 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
       propertyValues
     };
 
+    // Save related products for existing products
+    if (!isNewProduct && (product?.id || product?.productid)) {
+      const productId = String(product.id || product.productid);
+      saveRelatedProducts(productId);
+    }
+    
     onSave(productToSave);
   };
 
@@ -612,6 +683,30 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                 type="text"
                 value={formData.model}
                 onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                className="w-full px-3 py-2.5 sm:py-2 text-sm border rounded-lg focus:ring-2 focus:border-transparent transition-colors duration-300"
+                style={{
+                  backgroundColor: theme.colors.cardBg,
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text
+                }}
+              />
+            </div>
+
+            <div>
+              <label 
+                className="block text-xs sm:text-sm font-medium mb-1.5 transition-colors duration-300"
+                style={{ color: theme.colors.text }}
+              >
+                {t.productSubtitle}
+                <span className="text-xs ml-1" style={{ color: theme.colors.textSecondary }}>
+                  ({language === 'bg' ? 'напр. тесен, свободен крой' : 'e.g., close fit, loose fit'})
+                </span>
+              </label>
+              <input
+                type="text"
+                value={formData.subtitle || ''}
+                onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
+                placeholder={language === 'bg' ? 'Тесен крой' : 'Close fit'}
                 className="w-full px-3 py-2.5 sm:py-2 text-sm border rounded-lg focus:ring-2 focus:border-transparent transition-colors duration-300"
                 style={{
                   backgroundColor: theme.colors.cardBg,
@@ -1117,6 +1212,108 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
               }
             </p>
           </div>
+
+          {/* Related Products Section (Only for existing products) */}
+          {!isNewProduct && (
+            <div className="space-y-3 sm:space-y-4">
+              <h3
+                className="font-medium text-sm sm:text-base transition-colors duration-300"
+                style={{ color: theme.colors.text }}
+              >
+                {t.relatedProducts} ({t.youMightLike})
+              </h3>
+              
+              <p 
+                className="text-xs transition-colors duration-300"
+                style={{ color: theme.colors.textSecondary }}
+              >
+                {language === 'bg'
+                  ? 'Изберете продукти, които да се показват в секцията "Може да харесате" на страницата на продукта.'
+                  : 'Select products to display in the "You might like" section on the product page.'
+                }
+              </p>
+
+              {loadingRelatedProducts ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="animate-spin" size={24} style={{ color: theme.colors.primary }} />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {availableProducts.length > 0 ? (
+                    <div className="max-h-60 overflow-y-auto border rounded-lg p-3"
+                         style={{ borderColor: theme.colors.border }}>
+                      {availableProducts.map((availableProduct) => {
+                        const productId = availableProduct.productid || availableProduct.id;
+                        const isSelected = relatedProductIds.includes(productId);
+                        
+                        return (
+                          <label
+                            key={productId}
+                            className="flex items-center gap-3 p-2 rounded hover:bg-opacity-50 cursor-pointer transition-colors"
+                            style={{ 
+                              backgroundColor: isSelected ? theme.colors.surface : 'transparent'
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setRelatedProductIds(prev => [...prev, productId]);
+                                } else {
+                                  setRelatedProductIds(prev => prev.filter(id => id !== productId));
+                                }
+                              }}
+                              className="w-4 h-4 rounded"
+                            />
+                            <div className="flex items-center gap-3 flex-1">
+                              {availableProduct.images && availableProduct.images[0] && (
+                                <img
+                                  src={availableProduct.images[0]}
+                                  alt={availableProduct.name || `${availableProduct.brand} ${availableProduct.model}`}
+                                  className="w-12 h-12 object-cover rounded"
+                                />
+                              )}
+                              <div className="flex-1">
+                                <p 
+                                  className="text-sm font-medium"
+                                  style={{ color: theme.colors.text }}
+                                >
+                                  {availableProduct.brand} – {availableProduct.model}
+                                </p>
+                                <p 
+                                  className="text-xs"
+                                  style={{ color: theme.colors.textSecondary }}
+                                >
+                                  €{availableProduct.price?.toFixed(2) || '0.00'}
+                                </p>
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p 
+                      className="text-sm py-4 text-center"
+                      style={{ color: theme.colors.textSecondary }}
+                    >
+                      {language === 'bg' ? 'Няма налични продукти' : 'No available products'}
+                    </p>
+                  )}
+                  
+                  {relatedProductIds.length > 0 && (
+                    <p 
+                      className="text-xs"
+                      style={{ color: theme.colors.textSecondary }}
+                    >
+                      {relatedProductIds.length} {language === 'bg' ? 'избрани продукта' : 'products selected'}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           <div 
             className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4 border-t transition-colors duration-300 sticky bottom-0 bg-inherit"

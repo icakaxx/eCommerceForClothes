@@ -330,3 +330,6 @@ export function isBot(): boolean {
   return botPatterns.some(pattern => pattern.test(navigator.userAgent));
 }
 
+
+
+

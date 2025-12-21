@@ -10,6 +10,8 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabase();
     const { searchParams } = new URL(request.url);
     const rfproducttypeid = searchParams.get('rfproducttypeid');
+    const excludeId = searchParams.get('excludeId');
+    const limit = searchParams.get('limit');
 
     // Build query
     let query = supabase
@@ -25,10 +27,20 @@ export async function GET(request: NextRequest) {
       query = query.eq('rfproducttypeid', parseInt(rfproducttypeid));
     }
 
+    // Exclude specific product ID (for related products)
+    if (excludeId) {
+      query = query.neq('productid', excludeId);
+    }
+
     // Filter by isfeatured if provided
     const isFeatured = searchParams.get('isfeatured');
     if (isFeatured === 'true') {
       query = query.eq('isfeatured', true);
+    }
+
+    // Apply limit if provided
+    if (limit) {
+      query = query.limit(parseInt(limit));
     }
 
     const { data: products, error: productsError } = await query
@@ -115,6 +127,7 @@ export async function GET(request: NextRequest) {
           visible: firstVariant?.isvisible ?? true,
           images: images?.map((img: any) => img.imageurl) || ['/image.png'],
           description: product.description || '',
+          subtitle: product.subtitle || '',
           propertyValues: variantProperties
         };
 
@@ -144,7 +157,7 @@ export async function POST(request: NextRequest) {
 
     console.log('📝 POST /api/products - Received body:', JSON.stringify(body, null, 2));
 
-    const { name, sku, description, producttypeid, rfproducttypeid, isfeatured, Variants = [] } = body;
+    const { name, sku, description, subtitle, producttypeid, rfproducttypeid, isfeatured, Variants = [] } = body;
 
     if (!name || !producttypeid) {
       return NextResponse.json(
@@ -170,6 +183,7 @@ export async function POST(request: NextRequest) {
         name,
         sku,
         description,
+        subtitle: subtitle || null,
         producttypeid,
         rfproducttypeid: rfproducttypeid || 1, // Default to 1 (For Him) if not provided
         isfeatured: isfeatured || false,

@@ -78,3 +78,6 @@ async function setupDiscountsTable() {
 }
 
 setupDiscountsTable();
+
+
+

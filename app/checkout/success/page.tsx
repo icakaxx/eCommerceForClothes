@@ -450,7 +450,7 @@ function CheckoutSuccessContent() {
                 )}
                 
                 {order.deliverynotes && (
-                  <p style={{ color: theme.colors.textSecondary }} className="mt-3 pt-3 border-t" style={{ borderColor: theme.colors.border }}>
+                  <p style={{ color: theme.colors.textSecondary, borderColor: theme.colors.border }} className="mt-3 pt-3 border-t">
                     <strong style={{ color: theme.colors.text }}>
                       {language === 'bg' ? 'Бележки' : 'Notes'}:
                     </strong> {order.deliverynotes}

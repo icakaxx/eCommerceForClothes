@@ -7,7 +7,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useCart } from '@/context/CartContext';
 import { translations } from '@/lib/translations';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Heart, Share2, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ProductDetailsProps {
   product: Product;
@@ -52,6 +52,11 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [availableOptions, setAvailableOptions] = useState<Record<string, Set<string>>>({});
+  
+  // State for wishlist, share, and size guide
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isSizeGuideExpanded, setIsSizeGuideExpanded] = useState(false);
+  const [shareMessage, setShareMessage] = useState('');
 
   useEffect(() => {
     // Extract variants from product - handle both Variants and variants
@@ -204,6 +209,33 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
     openCart();
   };
 
+  const handleShare = async () => {
+    const shareData = {
+      title: `${product.brand} ${product.model}`,
+      text: `Check out this ${product.type || 'product'} from ${product.brand}`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        setShareMessage('Shared successfully!');
+      } else {
+        // Fallback: Copy to clipboard
+        await navigator.clipboard.writeText(window.location.href);
+        setShareMessage('Link copied to clipboard!');
+      }
+      setTimeout(() => setShareMessage(''), 3000);
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  const handleWishlist = () => {
+    setIsWishlisted(!isWishlisted);
+    // TODO: Implement actual wishlist functionality when accounts are added
+  };
+
   return (
     <div className="product-details">
       {/* Back button */}
@@ -228,13 +260,68 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         {t.backTo} {getCategoryLabel()}
       </button>
 
-      {/* Product Name */}
-      <h1 
-        className="product__single__name text-3xl md:text-4xl font-bold mb-2 capitalize transition-colors duration-300"
-        style={{ color: theme.colors.text }}
-      >
-        {product.brand} – {product.model}
-      </h1>
+      {/* Product Name and Actions */}
+      <div className="flex items-start justify-between gap-4 mb-2">
+        <h1 
+          className="product__single__name text-3xl md:text-4xl font-bold capitalize transition-colors duration-300 flex-1"
+          style={{ color: theme.colors.text }}
+        >
+          {product.brand} – {product.model}
+        </h1>
+        
+        {/* Share and Wishlist Buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={handleShare}
+            className="p-2 rounded-full hover:opacity-80 transition-all duration-200"
+            style={{ 
+              backgroundColor: theme.colors.surface,
+              border: `1px solid ${theme.colors.border}`
+            }}
+            title={t.share}
+          >
+            <Share2 size={20} style={{ color: theme.colors.text }} />
+          </button>
+          <button
+            onClick={handleWishlist}
+            className="p-2 rounded-full hover:opacity-80 transition-all duration-200"
+            style={{ 
+              backgroundColor: theme.colors.surface,
+              border: `1px solid ${theme.colors.border}`
+            }}
+            title={t.addToWishlist}
+          >
+            <Heart 
+              size={20} 
+              style={{ color: isWishlisted ? '#ef4444' : theme.colors.text }}
+              fill={isWishlisted ? '#ef4444' : 'none'}
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* Share Message */}
+      {shareMessage && (
+        <div 
+          className="mb-2 px-3 py-1.5 text-sm rounded-md"
+          style={{
+            backgroundColor: theme.colors.surface,
+            color: theme.colors.text
+          }}
+        >
+          {shareMessage}
+        </div>
+      )}
+
+      {/* Product Subtitle (if available) */}
+      {product.subtitle && (
+        <p 
+          className="text-lg mb-2 transition-colors duration-300"
+          style={{ color: theme.colors.textSecondary }}
+        >
+          {product.subtitle}
+        </p>
+      )}
 
       {/* Category Badge */}
       <span 
@@ -313,6 +400,85 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
               }}
             >
               {t.sku}: <span style={{ color: theme.colors.text }}>{selectedVariant.sku || t.notAvailable}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Size Guide Section */}
+      {Object.keys(availableOptions).some(key => key.toLowerCase() === 'size') && (
+        <div 
+          className="mb-8 border rounded-lg overflow-hidden"
+          style={{ borderColor: theme.colors.border }}
+        >
+          <button
+            onClick={() => setIsSizeGuideExpanded(!isSizeGuideExpanded)}
+            className="w-full px-4 py-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+            style={{ backgroundColor: theme.colors.surface }}
+          >
+            <span 
+              className="text-sm font-medium"
+              style={{ color: theme.colors.text }}
+            >
+              📏 {t.sizeGuide}
+            </span>
+            {isSizeGuideExpanded ? (
+              <ChevronUp size={18} style={{ color: theme.colors.text }} />
+            ) : (
+              <ChevronDown size={18} style={{ color: theme.colors.text }} />
+            )}
+          </button>
+          {isSizeGuideExpanded && (
+            <div 
+              className="px-4 py-3 border-t"
+              style={{ 
+                borderColor: theme.colors.border,
+                backgroundColor: theme.colors.background
+              }}
+            >
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
+                      <th className="text-left py-2 px-2" style={{ color: theme.colors.text }}>Size</th>
+                      <th className="text-left py-2 px-2" style={{ color: theme.colors.text }}>Chest (cm)</th>
+                      <th className="text-left py-2 px-2" style={{ color: theme.colors.text }}>Waist (cm)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>XS</td>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>94</td>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>75</td>
+                    </tr>
+                    <tr style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>S</td>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>98</td>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>79</td>
+                    </tr>
+                    <tr style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>M</td>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>102</td>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>83</td>
+                    </tr>
+                    <tr style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>L</td>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>106</td>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>87</td>
+                    </tr>
+                    <tr style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>XL</td>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>110</td>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>91</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>XXL</td>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>114</td>
+                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>95</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

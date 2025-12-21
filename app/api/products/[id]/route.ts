@@ -227,6 +227,7 @@ export async function GET(
       name: product.name,
       sku: product.sku,
       description: product.description,
+      subtitle: product.subtitle || '', // Add subtitle field
       producttypeid: product.producttypeid,
       ProductType: product.ProductType,
       Variants: variantsWithImages || [],
@@ -279,6 +280,7 @@ export async function PUT(
       name,
       sku,
       description,
+      subtitle,
       producttypeid,
       rfproducttypeid,
       isfeatured,
@@ -302,6 +304,7 @@ export async function PUT(
         name,
         sku: sku || null,
         description: description || null,
+        subtitle: subtitle || null,
         producttypeid,
         rfproducttypeid: rfproducttypeid || 1, // Default to 1 (For Him) if not provided
         isfeatured: isfeatured || false,

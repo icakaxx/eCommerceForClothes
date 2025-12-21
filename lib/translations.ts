@@ -219,10 +219,6 @@ export interface Translations {
 
   // Admin Navigation
   sales: string;
-  customers: string;
-  discounts: string;
-  finance: string;
-  analytics: string;
   media: string;
   adminPanel: string;
 
@@ -294,7 +290,6 @@ export interface Translations {
   validPeriod: string;
   usage: string;
   minimum: string;
-  to: string;
   unlimited: string;
   noDiscountsFound: string;
   noDiscountsMatchSearch: string;
@@ -335,7 +330,6 @@ export interface Translations {
   activeStatus: string;
   editDiscountCode: string;
   createDiscountCode: string;
-  saving: string;
   updateDiscount: string;
   createDiscountBtn: string;
   loadingDiscounts: string;
@@ -354,7 +348,6 @@ export interface Translations {
   na: string;
   percentage: string;
   fixedAmount: string;
-  never: string;
 
   // Validation Messages
   discountCodeRequiredMsg: string;
@@ -424,7 +417,6 @@ export interface Translations {
   noProductData: string;
   noAnalyticsData: string;
   loadingAnalyticsData: string;
-  topProducts: string;
   recentSales: string;
   totalCustomers: string;
 
@@ -555,7 +547,6 @@ export interface Translations {
   referrerSources: string;
   timeRange: string;
   realTimeStats: string;
-  today: string;
   last7Days: string;
   last30Days: string;
   custom: string;
@@ -564,7 +555,6 @@ export interface Translations {
   apply: string;
   viewVisitorAnalytics: string;
   sessions: string;
-  country: string;
   device: string;
   browser: string;
   os: string;
@@ -587,6 +577,19 @@ export interface Translations {
   sessionDuration: string;
   minutes: string;
   seconds: string;
+  
+  // Product Detail Page
+  share: string;
+  addToWishlist: string;
+  productSubtitle: string;
+  sizeGuide: string;
+  deliveryInfo: string;
+  deliveryTime: string;
+  deliveryMethods: string;
+  youMightLike: string;
+  relatedProducts: string;
+  showMore: string;
+  showLess: string;
 }
 
 export type Language = 'en' | 'bg';
@@ -803,10 +806,6 @@ export const translations: Record<Language, Translations> = {
 
     // Admin Navigation
     sales: 'Sales',
-    customers: 'Customers',
-    discounts: 'Discounts',
-    finance: 'Finance',
-    analytics: 'Analytics',
     media: 'Media',
     adminPanel: 'Admin Panel',
 
@@ -919,7 +918,6 @@ export const translations: Record<Language, Translations> = {
   activeStatus: 'Active',
   editDiscountCode: 'Edit Discount Code',
   createDiscountCode: 'Create Discount Code',
-  saving: 'Saving...',
   updateDiscount: 'Update',
   createDiscountBtn: 'Create',
   loadingDiscounts: 'Loading discounts...',
@@ -938,7 +936,6 @@ export const translations: Record<Language, Translations> = {
   na: 'N/A',
   percentage: 'Percentage',
   fixedAmount: 'Fixed Amount',
-  never: 'Never',
 
   // Validation Messages
   discountCodeRequiredMsg: 'Discount code is required',
@@ -958,11 +955,11 @@ export const translations: Record<Language, Translations> = {
   unexpectedErrorDeleting: 'An unexpected error occurred while deleting the discount',
 
   // Finance
+  today: 'Today',
   finance: 'Finance',
   financialOverview: 'Financial overview and transactions',
   financialOverviewAndRevenueTracking: 'Financial overview and revenue tracking',
   loadingFinancialData: 'Loading financial data...',
-  today: 'Today',
   thisWeek: 'This Week',
   thisMonth: 'This Month',
   thisYear: 'This Year',
@@ -1008,7 +1005,6 @@ export const translations: Record<Language, Translations> = {
   noProductData: 'No product data available',
   noAnalyticsData: 'No analytics data available',
   loadingAnalyticsData: 'Loading analytics data...',
-  topProducts: 'Top Products',
   recentSales: 'Recent Sales',
   totalCustomers: 'Total Customers',
 
@@ -1148,12 +1144,10 @@ export const translations: Record<Language, Translations> = {
     referrerSources: 'Referrer Sources',
     timeRange: 'Time Range',
     realTimeStats: 'Real-time Stats',
-    today: 'Today',
     last7Days: 'Last 7 Days',
     last30Days: 'Last 30 Days',
     custom: 'Custom',
     from: 'From',
-    to: 'To',
     apply: 'Apply',
     viewVisitorAnalytics: 'View visitor analytics and traffic sources',
     sessions: 'Sessions',
@@ -1179,7 +1173,20 @@ export const translations: Record<Language, Translations> = {
     loadingVisitorData: 'Loading visitor data...',
     sessionDuration: 'Session Duration',
     minutes: 'minutes',
-    seconds: 'seconds'
+    seconds: 'seconds',
+    
+    // Product Detail Page
+    share: 'Share',
+    addToWishlist: 'Add to Wishlist',
+    productSubtitle: 'Product Subtitle',
+    sizeGuide: 'Size Guide',
+    deliveryInfo: 'Delivery Information',
+    deliveryTime: 'Standard delivery takes 2-3 business days',
+    deliveryMethods: 'Available delivery methods: Econt Office, Address, Econtomat',
+    youMightLike: 'You might like',
+    relatedProducts: 'Related Products',
+    showMore: 'Show More',
+    showLess: 'Show Less'
 
   },
 
@@ -1430,10 +1437,6 @@ export const translations: Record<Language, Translations> = {
 
   // Admin Navigation
   sales: 'Продажби',
-  customers: 'Клиенти',
-  discounts: 'Отстъпки',
-  finance: 'Финанси',
-  analytics: 'Анализи',
   media: 'Медия',
   adminPanel: 'Администраторски панел',
 
@@ -1545,7 +1548,6 @@ export const translations: Record<Language, Translations> = {
   activeStatus: 'Активен',
   editDiscountCode: 'Редактирай код за отстъпка',
   createDiscountCode: 'Създай код за отстъпка',
-  saving: 'Запазване...',
   updateDiscount: 'Актуализирай',
   createDiscountBtn: 'Създай',
   loadingDiscounts: 'Зареждане на отстъпките...',
@@ -1564,7 +1566,6 @@ export const translations: Record<Language, Translations> = {
   na: 'Н/Д',
   percentage: 'Процент',
   fixedAmount: 'Фиксирана сума',
-  never: 'Никога',
 
   // Validation Messages
   discountCodeRequiredMsg: 'Кодът за отстъпка е задължителен',
@@ -1634,7 +1635,6 @@ export const translations: Record<Language, Translations> = {
   noProductData: 'Няма налични данни за продукти',
   noAnalyticsData: 'Няма налични аналитични данни',
   loadingAnalyticsData: 'Зареждане на аналитични данни...',
-  topProducts: 'Топ продукти',
   recentSales: 'Последни продажби',
   totalCustomers: 'Общо клиенти',
 
@@ -1736,7 +1736,6 @@ export const translations: Record<Language, Translations> = {
   referrerSources: 'Източници на препращане',
   timeRange: 'Времеви период',
   realTimeStats: 'Статистика в реално време',
-  today: 'Днес',
   last7Days: 'Последните 7 дни',
   last30Days: 'Последните 30 дни',
   custom: 'Персонализиран',
@@ -1763,11 +1762,24 @@ export const translations: Record<Language, Translations> = {
   safari: 'Safari',
   firefox: 'Firefox',
   edge: 'Edge',
-  noVisitorData: 'Няма налични данни за посетители',
-  loadingVisitorData: 'Зареждане на данни за посетители...',
-  sessionDuration: 'Продължителност на сесията',
-  minutes: 'минути',
-  seconds: 'секунди'
+    noVisitorData: 'Няма налични данни за посетители',
+    loadingVisitorData: 'Зареждане на данни за посетители...',
+    sessionDuration: 'Продължителност на сесията',
+    minutes: 'минути',
+    seconds: 'секунди',
+    
+    // Product Detail Page
+    share: 'Споделяне',
+    addToWishlist: 'Добави в любими',
+    productSubtitle: 'Подзаглавие на продукта',
+    sizeGuide: 'Ръководство за размери',
+    deliveryInfo: 'Информация за доставка',
+    deliveryTime: 'Стандартната доставка отнема 2-3 работни дни',
+    deliveryMethods: 'Налични методи за доставка: Офис на Еконт, Адрес, Еконтомат',
+    youMightLike: 'Може да харесате',
+    relatedProducts: 'Свързани продукти',
+    showMore: 'Покажи повече',
+    showLess: 'Покажи по-малко'
 
   }
 };

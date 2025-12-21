@@ -13,12 +13,15 @@ export interface Product {
   visible: boolean;
   images: string[];
   description?: string;
+  subtitle?: string; // Product subtitle (e.g., "Close fit", "Loose fit")
   isfeatured?: boolean; // Whether the product is featured on the home page
   // New fields for product type system
   productTypeID?: string;
   propertyValues?: Record<string, string>; // property name -> value mapping
   variants?: any[]; // Product variants from database
   Variants?: any[]; // Product variants from database (alternative naming)
+  Images?: any[]; // Product images from database (alternative naming)
+  productid?: string; // Product ID from database (alternative naming)
 }
 
 export const initialProducts: Product[] = [
