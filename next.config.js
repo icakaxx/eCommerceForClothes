@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Set Turbopack root to silence workspace root warning
+  turbopack: {
+    root: __dirname,
+  },
   images: {
     remotePatterns: [
       {

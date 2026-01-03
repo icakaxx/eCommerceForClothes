@@ -43,8 +43,8 @@ export default function ProductFilters({
     // Create a map from propertyId to propertyName for lookup
     const propertyIdToNameMap: Record<string, string> = {};
     properties.forEach(property => {
-      const propertyId = property.propertyid || property.PropertyID || property.id;
-      const propertyName = property.name || property.Name;
+      const propertyId = property.propertyid || (property as any).PropertyID || (property as any).id;
+      const propertyName = property.name || (property as any).Name;
       if (propertyId && propertyName) {
         propertyIdToNameMap[propertyId] = propertyName;
       }
@@ -105,8 +105,8 @@ export default function ProductFilters({
     // Use values from property_values table (via properties context), but filter to only include
     // values that actually exist in the products on this page
     properties.forEach(property => {
-      const propertyId = property.propertyid || property.PropertyID || property.id;
-      const propertyName = property.name || property.Name;
+      const propertyId = property.propertyid || (property as any).PropertyID || (property as any).id;
+      const propertyName = property.name || (property as any).Name;
       
       if (property.values && property.values.length > 0 && propertyId) {
         // Get all active values from property_values table
@@ -201,7 +201,7 @@ export default function ProductFilters({
     const dropdownState = dropdownStates[propertyId] || { isOpen: false, searchTerm: '' };
 
     // Filter values based on search term (match from anywhere)
-    const filteredValues = values.filter(value =>
+    const filteredValues = values.filter((value: string) =>
       value.toLowerCase().includes(dropdownState.searchTerm.toLowerCase())
     );
 
@@ -317,7 +317,7 @@ export default function ProductFilters({
                       >
                         {language === 'bg' ? 'Всички' : 'All'}
                       </button>
-                      {filteredValues.map(value => (
+                      {filteredValues.map((value: string) => (
                         <button
                           key={value}
                           onClick={() => handleValueSelect(value)}
@@ -479,8 +479,8 @@ export default function ProductFilters({
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {properties.map(property => {
-          const propertyId = property.propertyid || property.PropertyID || property.id;
-          const propertyName = property.name || property.Name;
+          const propertyId = property.propertyid || (property as any).PropertyID || (property as any).id;
+          const propertyName = property.name || (property as any).Name;
           // availableValues now uses propertyId as key (not propertyName) to avoid collisions
           const hasValues = propertyId && availableValues[propertyId] && availableValues[propertyId].length > 0;
 

@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useCookieConsent } from '@/context/CookieConsentContext';
 import { collectVisitorData, isBot } from '@/lib/analytics';
 
-export default function AnalyticsTracker() {
+function AnalyticsTrackerContent() {
   const { hasConsent } = useCookieConsent();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -198,6 +198,14 @@ export default function AnalyticsTracker() {
 
   // This component doesn't render anything
   return null;
+}
+
+export default function AnalyticsTracker() {
+  return (
+    <Suspense fallback={null}>
+      <AnalyticsTrackerContent />
+    </Suspense>
+  );
 }
 
 

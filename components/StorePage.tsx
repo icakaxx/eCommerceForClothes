@@ -28,8 +28,8 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
   // Create a map from propertyId to property name for filtering
   const propertyIdToNameMap = new Map<string, string>();
   properties.forEach(property => {
-    const propertyId = property.propertyid || property.PropertyID || property.id;
-    const propertyName = property.name || property.Name;
+    const propertyId = property.propertyid || (property as any).PropertyID || (property as any).id;
+    const propertyName = property.name || (property as any).Name;
     if (propertyId && propertyName) {
       propertyIdToNameMap.set(propertyId, propertyName);
     }

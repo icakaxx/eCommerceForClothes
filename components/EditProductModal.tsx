@@ -1244,7 +1244,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                          style={{ borderColor: theme.colors.border }}>
                       {availableProducts.map((availableProduct) => {
                         const productId = availableProduct.productid || availableProduct.id;
-                        const isSelected = relatedProductIds.includes(productId);
+                        const isSelected = relatedProductIds.includes(String(productId));
                         
                         return (
                           <label
@@ -1258,10 +1258,11 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                               type="checkbox"
                               checked={isSelected}
                               onChange={(e) => {
+                                const productIdStr = String(productId);
                                 if (e.target.checked) {
-                                  setRelatedProductIds(prev => [...prev, productId]);
+                                  setRelatedProductIds(prev => [...prev, productIdStr]);
                                 } else {
-                                  setRelatedProductIds(prev => prev.filter(id => id !== productId));
+                                  setRelatedProductIds(prev => prev.filter(id => id !== productIdStr));
                                 }
                               }}
                               className="w-4 h-4 rounded"
@@ -1270,7 +1271,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                               {availableProduct.images && availableProduct.images[0] && (
                                 <img
                                   src={availableProduct.images[0]}
-                                  alt={availableProduct.name || `${availableProduct.brand} ${availableProduct.model}`}
+                                  alt={`${availableProduct.brand} ${availableProduct.model}`}
                                   className="w-12 h-12 object-cover rounded"
                                 />
                               )}

@@ -6,15 +6,18 @@ import type { NextRequest } from 'next/server';
  * 1. Capturing IP address and forwarding to client
  * 2. Bot detection (to skip analytics tracking)
  * 3. Adding security headers
+ * 
+ * Note: Next.js shows a deprecation warning about using "proxy" instead of "middleware",
+ * but middleware.ts is still the standard approach in Next.js 16. This warning appears
+ * to be a future deprecation notice or Turbopack-specific message.
  */
 export function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
   // Get IP address
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
-             request.headers.get('x-real-ip') || 
-             request.ip || 
-             'unknown';
+              request.headers.get('x-real-ip') || 
+              'unknown';
 
   // Forward IP to client (for analytics)
   response.headers.set('x-client-ip', ip);
