@@ -194,3 +194,4 @@ Possible additions:
 No more hardcoded strings or automatic category matching. You have full control over your product recommendations!
 
 
+

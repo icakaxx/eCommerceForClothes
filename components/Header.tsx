@@ -139,25 +139,23 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
               </button>
             )}
 
-            <button
-              onClick={() => {
-                if (!isAdmin) {
-                  router.push('/admin');
-                } else {
+            {isAdmin && (
+              <button
+                onClick={() => {
                   localStorage.setItem('isAdmin', 'false');
                   setIsAdmin(false);
                   router.push('/');
-                }
-              }}
-              className="text-xs sm:text-sm whitespace-nowrap transition-colors duration-300"
-              style={{
-                color: theme.colors.textSecondary
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}
-              onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textSecondary}
-            >
-              {isAdmin ? t.exitAdmin : t.admin}
-            </button>
+                }}
+                className="text-xs sm:text-sm whitespace-nowrap transition-colors duration-300"
+                style={{
+                  color: theme.colors.textSecondary
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}
+                onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textSecondary}
+              >
+                {t.exitAdmin}
+              </button>
+            )}
             
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -227,26 +225,24 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
               </Link>
             ))}
 
-            {/* Admin/Exit Admin Button */}
-            <button
-              onClick={() => {
-                if (!isAdmin) {
-                  router.push('/admin');
-                } else {
+            {/* Exit Admin Button (only shown when in admin mode) */}
+            {isAdmin && (
+              <button
+                onClick={() => {
                   localStorage.setItem('isAdmin', 'false');
                   setIsAdmin(false);
                   router.push('/');
-                }
-                setMobileMenuOpen(false);
-              }}
-              className="block w-full text-left px-6 py-4 font-medium border-b transition-colors duration-300 hover:opacity-70"
-              style={{
-                color: theme.colors.textSecondary,
-                borderColor: theme.colors.border
-              }}
-            >
-              {isAdmin ? t.exitAdmin : t.admin}
-            </button>
+                  setMobileMenuOpen(false);
+                }}
+                className="block w-full text-left px-6 py-4 font-medium border-b transition-colors duration-300 hover:opacity-70"
+                style={{
+                  color: theme.colors.textSecondary,
+                  borderColor: theme.colors.border
+                }}
+              >
+                {t.exitAdmin}
+              </button>
+            )}
           </div>
 
           {/* Bottom CTA Button */}
