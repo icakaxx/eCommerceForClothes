@@ -11,7 +11,7 @@ import type { NextRequest } from 'next/server';
  * but middleware.ts is still the standard approach in Next.js 16. This warning appears
  * to be a future deprecation notice or Turbopack-specific message.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const response = NextResponse.next();
 
   // Get IP address
