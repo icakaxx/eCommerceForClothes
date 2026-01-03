@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -52,6 +52,8 @@ export default function CheckoutPage() {
   }>({});
   const [econtOffices, setEcontOffices] = useState<EcontOfficesData | null>(null);
   const [selectedOffice, setSelectedOffice] = useState<EcontOffice | null>(null);
+  const [showCityDropdown, setShowCityDropdown] = useState<boolean>(false);
+  const cityDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const adminState = localStorage.getItem('isAdmin');
@@ -371,12 +373,13 @@ export default function CheckoutPage() {
 
       console.log('Order placed successfully:', orderResult.orderId);
 
-      // Clear cart and form
+      // Redirect to success page with order ID using window.location for immediate redirect
+      // This ensures the redirect happens before any state updates that might prevent navigation
+      window.location.href = `/checkout/success?orderId=${orderResult.orderId}`;
+      
+      // Clear cart and form after redirect (these won't execute if redirect works, but that's fine)
       clearCart();
       resetForm();
-
-      // Redirect to success page with order ID
-      router.push(`/checkout/success?orderId=${orderResult.orderId}`);
 
     } catch (err) {
       console.error('Order submission error:', err);
@@ -592,35 +595,78 @@ export default function CheckoutPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         {t.city} *
                       </label>
-                      <select
-                        value={formData.city}
-                        onChange={(e) => {
-                          handleInputChange('city', e.target.value);
-                          // Reset office selection when city changes
-                          if (formData.deliveryType === 'office') {
-                            updateFormData({ econtOfficeId: '' });
-                            setSelectedOffice(null);
-                          }
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        required
-                      >
-                        <option value="">{t.selectCity}</option>
-                        {/* Show Econt cities if office delivery is selected and data is loaded */}
-                        {formData.deliveryType === 'office' && econtOffices ? (
-                          econtOffices.cities.map((city) => (
-                            <option key={city} value={city}>
-                              {city}
-                            </option>
-                          ))
-                        ) : (
-                          cities.map((city) => (
-                            <option key={city.displayName} value={city.displayName}>
-                              {city.displayName}
-                            </option>
-                          ))
+                      <div className="relative" ref={cityDropdownRef}>
+                        <input
+                          type="text"
+                          value={formData.city}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            handleInputChange('city', value);
+                            setShowCityDropdown(true);
+                            // Reset office selection when city changes
+                            if (formData.deliveryType === 'office') {
+                              updateFormData({ econtOfficeId: '' });
+                              setSelectedOffice(null);
+                            }
+                          }}
+                          onFocus={() => setShowCityDropdown(true)}
+                          placeholder={t.selectCity}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          required
+                        />
+                        {showCityDropdown && (
+                          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                            {/* Show Econt cities if office delivery is selected and data is loaded */}
+                            {formData.deliveryType === 'office' && econtOffices ? (
+                              econtOffices.cities
+                                .filter((city) => 
+                                  city.toLowerCase().includes((formData.city || '').toLowerCase())
+                                )
+                                .map((city) => (
+                                  <button
+                                    key={city}
+                                    type="button"
+                                    onClick={() => {
+                                      handleInputChange('city', city);
+                                      setShowCityDropdown(false);
+                                      if (formData.deliveryType === 'office') {
+                                        updateFormData({ econtOfficeId: '' });
+                                        setSelectedOffice(null);
+                                      }
+                                    }}
+                                    className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                  >
+                                    {city}
+                                  </button>
+                                ))
+                            ) : (
+                              cities
+                                .filter((city) => 
+                                  city.name.toLowerCase().includes((formData.city || '').toLowerCase()) ||
+                                  city.displayName.toLowerCase().includes((formData.city || '').toLowerCase()) ||
+                                  city.postcode.includes(formData.city || '')
+                                )
+                                .map((city) => (
+                                  <button
+                                    key={city.displayName}
+                                    type="button"
+                                    onClick={() => {
+                                      handleInputChange('city', city.displayName);
+                                      setShowCityDropdown(false);
+                                      if (formData.deliveryType === 'office') {
+                                        updateFormData({ econtOfficeId: '' });
+                                        setSelectedOffice(null);
+                                      }
+                                    }}
+                                    className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                  >
+                                    {city.displayName}
+                                  </button>
+                                ))
+                            )}
+                          </div>
                         )}
-                      </select>
+                      </div>
                     </div>
                   </div>
 

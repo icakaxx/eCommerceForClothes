@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CartDrawer from '@/components/CartDrawer';
 import Banner from '@/components/Banner';
+import LoadingScreen from '@/components/LoadingScreen';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useStoreSettings } from '@/context/StoreSettingsContext';
@@ -19,9 +20,9 @@ export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const { settings, isLoading: settingsLoading } = useStoreSettings();
   const { language } = useLanguage();
   const { theme } = useTheme();
-  const { settings } = useStoreSettings();
   const t = translations[language];
 
   useEffect(() => {
@@ -53,6 +54,11 @@ export default function Home() {
 
     loadFeaturedProducts();
   }, []);
+
+  // Show loading screen while StoreSettings is loading (prevents showing backup content)
+  if (settingsLoading) {
+    return <LoadingScreen />;
+  }
 
   const handleSetIsAdmin = (value: boolean) => {
     setIsAdmin(value);

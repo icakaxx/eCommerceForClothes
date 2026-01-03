@@ -6,14 +6,17 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProductView from '@/components/ProductView';
 import CartDrawer from '@/components/CartDrawer';
+import LoadingScreen from '@/components/LoadingScreen';
 import { Product } from '@/lib/data';
 import { useLanguage } from '@/context/LanguageContext';
+import { useStoreSettings } from '@/context/StoreSettingsContext';
 import { translations } from '@/lib/translations';
 
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { language } = useLanguage();
+  const { isLoading: settingsLoading } = useStoreSettings();
   const t = translations[language];
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,6 +75,11 @@ export default function ProductDetailPage() {
     setIsAdmin(value);
     localStorage.setItem('isAdmin', value.toString());
   };
+
+  // Show loading screen while StoreSettings is loading (prevents showing backup content)
+  if (settingsLoading) {
+    return <LoadingScreen />;
+  }
 
   if (isLoading) {
     return (

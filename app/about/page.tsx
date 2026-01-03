@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CartDrawer from '@/components/CartDrawer';
+import LoadingScreen from '@/components/LoadingScreen';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useStoreSettings } from '@/context/StoreSettingsContext';
@@ -15,7 +16,7 @@ export default function AboutPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const { language } = useLanguage();
   const { theme } = useTheme();
-  const { settings } = useStoreSettings();
+  const { settings, isLoading: settingsLoading } = useStoreSettings();
   const t = translations[language];
 
   useEffect(() => {
@@ -24,6 +25,11 @@ export default function AboutPage() {
       setIsAdmin(true);
     }
   }, []);
+
+  // Show loading screen while StoreSettings is loading (prevents showing backup content)
+  if (settingsLoading) {
+    return <LoadingScreen />;
+  }
 
   const handleSetIsAdmin = (value: boolean) => {
     setIsAdmin(value);

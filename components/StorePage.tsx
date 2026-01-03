@@ -7,6 +7,7 @@ import { Product } from '@/lib/data';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useProductTypes } from '@/context/ProductTypeContext';
+import { useProperties } from '@/context/PropertiesContext';
 import { translations } from '@/lib/translations';
 
 interface StorePageProps {
@@ -21,7 +22,18 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
   const { language } = useLanguage();
   const { theme } = useTheme();
   const { productTypes } = useProductTypes();
+  const { properties } = useProperties();
   const t = translations[language];
+  
+  // Create a map from propertyId to property name for filtering
+  const propertyIdToNameMap = new Map<string, string>();
+  properties.forEach(property => {
+    const propertyId = property.propertyid || property.PropertyID || property.id;
+    const propertyName = property.name || property.Name;
+    if (propertyId && propertyName) {
+      propertyIdToNameMap.set(propertyId, propertyName);
+    }
+  });
 
   // Map currentPage to rfproducttypeid for category pages
   const getRfProductTypeId = (page: string) => {
@@ -104,23 +116,73 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
       }
 
       // Regular property filtering
-      // First try propertyValues, then fallback to legacy fields
-      let propertyValue = p.propertyValues?.[filterKey];
-      if (!propertyValue) {
-        // Fallback to legacy field (convert to lowercase for matching)
-        const legacyField = filterKey.toLowerCase();
-        propertyValue = (p as any)[legacyField];
+      // filterKey is propertyId, map it to property name first
+      const propertyName = propertyIdToNameMap.get(filterKey) || filterKey;
+      
+      // Try propertyValues using property name first
+      let propertyValue = p.propertyValues?.[propertyName];
+      let matched = false;
+      
+      // Check if propertyValue matches filter
+      if (propertyValue) {
+        if (typeof filterValue === 'string' && propertyValue === filterValue) {
+          matched = true;
+        } else if (typeof filterValue === 'string' && typeof propertyValue === 'string' && propertyValue.toLowerCase().includes(filterValue.toLowerCase())) {
+          matched = true;
+        }
+      }
+      
+      // Also check ALL variants for property values - match by propertyId OR property name
+      // A product matches if ANY variant has the matching property value
+      if (!matched) {
+        const productVariants = p.variants || p.Variants || [];
+        for (const variant of productVariants) {
+          const propertyValues = variant.ProductVariantPropertyvalues || 
+                                variant.ProductVariantPropertyValues || 
+                                variant.product_variant_property_values ||
+                                variant.productVariantPropertyvalues ||
+                                [];
+          for (const pv of propertyValues) {
+            const propId = pv.propertyid || pv.PropertyID || pv.Property?.propertyid || pv.properties?.propertyid;
+            const propName = pv.Property?.name || pv.Property?.Name || pv.properties?.name || pv.properties?.Name || '';
+            // Match by propertyId OR property name
+            if (propId === filterKey || propName === propertyName || propName === filterKey) {
+              const variantValue = pv.value || pv.Value || '';
+              // Check if this variant's value matches the filter
+              if (variantValue && typeof filterValue === 'string') {
+                if (variantValue === filterValue) {
+                  matched = true;
+                  break;
+                } else if (typeof variantValue === 'string' && variantValue.toLowerCase().includes(filterValue.toLowerCase())) {
+                  matched = true;
+                  break;
+                }
+              }
+            }
+          }
+          if (matched) break;
+        }
+      }
+      
+      // Fallback to legacy field if still no match
+      if (!matched) {
+        // Also handle legacy- prefix (e.g., "legacy-size" -> "size")
+        let legacyField = filterKey.toLowerCase();
+        if (legacyField.startsWith('legacy-')) {
+          legacyField = legacyField.replace('legacy-', '');
+        }
+        const legacyValue = (p as any)[legacyField];
+        if (legacyValue && typeof filterValue === 'string') {
+          if (legacyValue === filterValue) {
+            matched = true;
+          } else if (typeof legacyValue === 'string' && legacyValue.toLowerCase().includes(filterValue.toLowerCase())) {
+            matched = true;
+          }
+        }
       }
 
-      if (!propertyValue) return false;
-
-      // For text filters, check if the property value contains the filter value (case insensitive)
-      if (typeof filterValue === 'string' && !propertyValue.toLowerCase().includes(filterValue.toLowerCase())) {
-        return false;
-      }
-
-      // For exact matches
-      if (typeof filterValue === 'string' && propertyValue !== filterValue) {
+      // If no match found, exclude this product
+      if (!matched) {
         return false;
       }
     }

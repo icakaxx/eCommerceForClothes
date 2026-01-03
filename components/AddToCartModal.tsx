@@ -20,34 +20,158 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
   const { addItem, openCart } = useCart();
   const t = translations[language || 'en'];
 
-  const [selectedSize, setSelectedSize] = useState<string>('');
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [availableOptions, setAvailableOptions] = useState<Record<string, Set<string>>>({});
+  const [selectedVariant, setSelectedVariant] = useState<any>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Reset form when modal opens
+  // Extract available properties from product variants
   useEffect(() => {
-    if (isOpen) {
-      setSelectedSize(product.size || '');
+    if (isOpen && product) {
+      const productVariants = product.variants || product.Variants || [];
+      
+      if (Array.isArray(productVariants) && productVariants.length > 0) {
+        const visibleVariants = productVariants.filter((v: any) => v.isvisible !== false);
+        
+        // Build available options map from all variants
+        const optionsMap: Record<string, Set<string>> = {};
+        visibleVariants.forEach((variant: any) => {
+          // Try multiple naming conventions for property values
+          const propertyValues = variant.ProductVariantPropertyvalues || 
+                                variant.ProductVariantPropertyValues || 
+                                variant.product_variant_property_values ||
+                                variant.productVariantPropertyvalues ||
+                                [];
+          
+          propertyValues.forEach((pv: any) => {
+            // Try multiple naming conventions for property name
+            const propertyName = (pv.Property?.name || 
+                                 pv.Property?.Name || 
+                                 pv.properties?.name ||
+                                 pv.properties?.Name ||
+                                 pv.propertyid || 
+                                 '').toLowerCase();
+            // Try multiple naming conventions for property value
+            const propertyValue = pv.value || pv.Value || '';
+            
+            if (propertyName && propertyValue) {
+              if (!optionsMap[propertyName]) {
+                optionsMap[propertyName] = new Set();
+              }
+              optionsMap[propertyName].add(propertyValue);
+            }
+          });
+        });
+        
+        setAvailableOptions(optionsMap);
+        
+        // Select first variant by default and set initial options
+        if (visibleVariants.length > 0) {
+          const primaryVariant = visibleVariants.find((v: any) => v.IsPrimaryImage) || visibleVariants[0];
+          setSelectedVariant(primaryVariant);
+          
+          const initialOptions: Record<string, string> = {};
+          const primaryPropertyValues = primaryVariant.ProductVariantPropertyvalues || 
+                                       primaryVariant.ProductVariantPropertyValues || 
+                                       primaryVariant.product_variant_property_values ||
+                                       primaryVariant.productVariantPropertyvalues ||
+                                       [];
+          primaryPropertyValues.forEach((pv: any) => {
+            const propertyName = (pv.Property?.name || 
+                                 pv.Property?.Name || 
+                                 pv.properties?.name ||
+                                 pv.properties?.Name ||
+                                 pv.propertyid || 
+                                 '').toLowerCase();
+            const propertyValue = pv.value || pv.Value || '';
+            
+            if (propertyName && propertyValue) {
+              initialOptions[propertyName] = propertyValue;
+            }
+          });
+          setSelectedOptions(initialOptions);
+        }
+      } else {
+        // No variants, clear everything
+        setAvailableOptions({});
+        setSelectedOptions({});
+        setSelectedVariant(null);
+      }
+      
       setQuantity(1);
       setErrors({});
     }
   }, [isOpen, product]);
 
+  const handleOptionChange = (propertyName: string, value: string) => {
+    const newOptions = { ...selectedOptions, [propertyName]: value };
+    setSelectedOptions(newOptions);
+
+    // Find matching variant based on all selected options
+    const productVariants = product.variants || product.Variants || [];
+    const visibleVariants = productVariants.filter((v: any) => v.isvisible !== false);
+    
+    const matchingVariant = visibleVariants.find((variant: any) => {
+      const propertyValues = variant.ProductVariantPropertyvalues || 
+                            variant.ProductVariantPropertyValues || 
+                            variant.product_variant_property_values ||
+                            variant.productVariantPropertyvalues ||
+                            [];
+      if (propertyValues.length === 0) return false;
+
+      const variantOptions: Record<string, string> = {};
+      propertyValues.forEach((pv: any) => {
+        const propName = (pv.Property?.name || 
+                         pv.Property?.Name || 
+                         pv.properties?.name ||
+                         pv.properties?.Name ||
+                         pv.propertyid || 
+                         '').toLowerCase();
+        const propValue = pv.value || pv.Value || '';
+        
+        if (propName && propValue) {
+          variantOptions[propName] = propValue;
+        }
+      });
+
+      // Check if all selected options match this variant
+      return Object.keys(newOptions).every(
+        (key) => variantOptions[key] === newOptions[key]
+      );
+    });
+
+    if (matchingVariant) {
+      setSelectedVariant(matchingVariant);
+    }
+  };
+
   const handleQuantityChange = (delta: number) => {
-    const newQuantity = Math.max(1, Math.min(product.quantity, quantity + delta));
+    const maxQuantity = selectedVariant?.quantity || product.quantity || 0;
+    const newQuantity = Math.max(1, Math.min(maxQuantity, quantity + delta));
     setQuantity(newQuantity);
   };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (product.category === 'clothes' || product.category === 'shoes') {
-      if (!selectedSize) {
-        newErrors.size = t.pleaseSelectSize;
+    // Validate that all available properties are selected
+    Object.keys(availableOptions).forEach((propertyName) => {
+      if (!selectedOptions[propertyName]) {
+        if (propertyName === 'size') {
+          newErrors[propertyName] = t.pleaseSelectSize;
+        } else {
+          const propertyLabel = propertyName === 'colour' || propertyName === 'color' ? t.color :
+                               propertyName.charAt(0).toUpperCase() + propertyName.slice(1);
+          newErrors[propertyName] = language === 'bg' 
+            ? `Моля, изберете ${propertyLabel.toLowerCase()}`
+            : `Please select ${propertyLabel.toLowerCase()}`;
+        }
       }
-    }
+    });
 
-    if (quantity > product.quantity) {
+    const maxQuantity = selectedVariant?.quantity || product.quantity || 0;
+    if (quantity > maxQuantity) {
       newErrors.quantity = t.notEnoughStock;
     }
 
@@ -58,36 +182,24 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
   const handleAddToCart = () => {
     if (!validateForm()) return;
 
-    // Find the variant and its properties if we have a selected size
-    let itemId = product.id;
+    // Use selected variant if available, otherwise use product
+    const itemId = selectedVariant?.productvariantid || selectedVariant?.ProductVariantID || product.id;
+    const itemPrice = selectedVariant?.price || product.price;
+    const itemImageUrl = selectedVariant?.imageurl || selectedVariant?.ImageURL || product.images[0] || '/placeholder-image.jpg';
+    
+    // Extract property values from selected variant or use selected options
     let variantPropertyValues: Record<string, string> = {};
-
-    if (selectedSize && product.variants) {
-      const variant = product.variants.find((v: any) => {
-        // Check if variant has property values with matching size
-        // Handle both naming conventions and case variations
-        const propertyValues = v.ProductVariantPropertyvalues || v.ProductVariantPropertyValues || [];
-        const sizeProperty = propertyValues.find((pv: any) => {
-          const propName = (pv.Property?.name || pv.Property?.Name || '').toLowerCase();
-          const propValue = pv.value || pv.Value || '';
-          return (propName === 'size' || propName === 'размер') && propValue === selectedSize;
-        });
-        return sizeProperty !== undefined;
-      });
-      if (variant) {
-        itemId = variant.ProductVariantID;
-
-        // Extract all property values from the variant
-        // Handle both naming conventions and case variations
-        const variantProps = variant.ProductVariantPropertyvalues || variant.ProductVariantPropertyValues || [];
+    if (selectedVariant) {
+      const variantProps = selectedVariant.ProductVariantPropertyvalues || selectedVariant.ProductVariantPropertyValues || [];
         variantProps.forEach((pv: any) => {
-          const propName = (pv.Property?.name || pv.Property?.Name || '').toLowerCase();
+        const propName = (pv.Property?.name || pv.Property?.Name || pv.propertyid || '').toLowerCase();
           const propValue = pv.value || pv.Value || '';
           if (propName && propValue) {
             variantPropertyValues[propName] = propValue;
           }
         });
-      }
+    } else {
+      variantPropertyValues = selectedOptions;
     }
 
     // Merge base product properties with variant properties (variant takes precedence)
@@ -96,6 +208,9 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
       ...variantPropertyValues,
     };
 
+    // Get size from selected options (for backward compatibility)
+    const selectedSize = selectedOptions['size'] || selectedOptions['размер'] || '';
+
     // Add item to cart
     addItem({
       id: itemId,
@@ -103,11 +218,11 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
       brand: product.brand,
       model: product.model,
       type: product.type,
-      color: product.color,
+      color: selectedOptions['colour'] || selectedOptions['color'] || product.color,
       size: selectedSize,
-      price: product.price,
+      price: itemPrice,
       quantity: quantity,
-      imageUrl: product.images[0] || '/placeholder-image.jpg',
+      imageUrl: itemImageUrl,
       category: product.category,
       propertyValues: Object.keys(mergedPropertyValues).length > 0 ? mergedPropertyValues : undefined,
     });
@@ -120,26 +235,17 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
   };
 
   const handleClose = () => {
-    setSelectedSize('');
+    setSelectedOptions({});
     setQuantity(1);
     setErrors({});
+    setSelectedVariant(null);
     onClose();
   };
 
   if (!isOpen) return null;
 
-  // Available sizes based on category
-  const getAvailableSizes = () => {
-    if (product.category === 'clothes') {
-      return ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-    } else if (product.category === 'shoes') {
-      return ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45'];
-    }
-    return [];
-  };
-
-  const availableSizes = getAvailableSizes();
-  const needsSize = availableSizes.length > 0;
+  // Get current quantity available
+  const currentQuantity = selectedVariant?.quantity || product.quantity || 0;
 
   return (
     <div 
@@ -183,7 +289,7 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
             <div className="flex items-center space-x-3">
               <div className="relative w-12 h-12 rounded-lg overflow-hidden">
                 <Image
-                  src={product.images[0] || '/placeholder-image.jpg'}
+                  src={selectedVariant?.imageurl || selectedVariant?.ImageURL || product.images[0] || '/placeholder-image.jpg'}
                   alt={product.model}
                   fill
                   quality={90}
@@ -210,31 +316,42 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
 
           {/* Content */}
           <div className="p-6 space-y-6">
-            {/* Size Selection */}
-            {needsSize && (
-              <div>
+            {/* Property Selection - Dynamic for all properties */}
+            {Object.keys(availableOptions).length > 0 && (
+              <>
+                {Object.entries(availableOptions).map(([propertyName, values]) => {
+                  const propertyLabel = propertyName === 'size' ? t.size : 
+                                       propertyName === 'colour' || propertyName === 'color' ? t.color :
+                                       propertyName.charAt(0).toUpperCase() + propertyName.slice(1);
+                  const isSelected = selectedOptions[propertyName];
+                  
+                  return (
+                    <div key={propertyName}>
                 <label className="block text-sm font-medium text-gray-900 mb-3">
-                  {t.size} <span className="text-red-500">*</span>
+                        {propertyLabel} <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
-                  {availableSizes.map((size) => (
+                        {Array.from(values).map((value) => (
                     <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
+                            key={value}
+                            onClick={() => handleOptionChange(propertyName, value as string)}
                       className={`py-2 px-4 border rounded-lg text-sm font-medium transition ${
-                        selectedSize === size
+                              selectedOptions[propertyName] === value
                           ? 'border-blue-500 bg-blue-50 text-blue-700'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      {size}
+                            {value}
                     </button>
                   ))}
                 </div>
-                {errors.size && (
-                  <p className="text-red-500 text-sm mt-1">{errors.size}</p>
+                      {errors[propertyName] && (
+                        <p className="text-red-500 text-sm mt-1">{errors[propertyName]}</p>
                 )}
               </div>
+                  );
+                })}
+              </>
             )}
 
             {/* Quantity */}
@@ -255,19 +372,19 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
                   value={quantity}
                   onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                   min={1}
-                  max={product.quantity}
+                  max={currentQuantity}
                   className="w-20 text-center border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none"
                 />
                 <button
                   onClick={() => handleQuantityChange(1)}
                   className="p-2 hover:bg-gray-100 rounded-lg transition"
-                  disabled={quantity >= product.quantity}
+                  disabled={quantity >= currentQuantity}
                 >
                   <Plus size={16} />
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                {t.availableItems}: {product.quantity} {t.pcs}
+                {t.availableItems}: {currentQuantity} {t.pcs}
               </p>
               {errors.quantity && (
                 <p className="text-red-500 text-sm mt-1">{errors.quantity}</p>
@@ -278,10 +395,10 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">
-                  {quantity} × €{product.price.toFixed(2)}
+                  {quantity} × €{(selectedVariant?.price || product.price || 0).toFixed(2)}
                 </span>
                 <span className="text-lg font-bold text-gray-900">
-                  €{(product.price * quantity).toFixed(2)}
+                  €{((selectedVariant?.price || product.price || 0) * quantity).toFixed(2)}
                 </span>
               </div>
             </div>

@@ -5,12 +5,15 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import StorePage from '@/components/StorePage';
 import CartDrawer from '@/components/CartDrawer';
+import LoadingScreen from '@/components/LoadingScreen';
 import { Product } from '@/lib/data';
+import { useStoreSettings } from '@/context/StoreSettingsContext';
 
 export default function ForHerPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { isLoading: settingsLoading } = useStoreSettings();
 
   useEffect(() => {
     const adminState = localStorage.getItem('isAdmin');
@@ -42,6 +45,11 @@ export default function ForHerPage() {
     setIsAdmin(value);
     localStorage.setItem('isAdmin', value.toString());
   };
+
+  // Show loading screen while StoreSettings is loading (prevents showing backup content)
+  if (settingsLoading) {
+    return <LoadingScreen />;
+  }
 
   if (loading) {
     return (

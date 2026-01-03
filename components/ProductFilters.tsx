@@ -32,75 +32,120 @@ export default function ProductFilters({
   const dropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Load available values from property_values table (via properties context)
-  // Fallback to extracting from products for legacy compatibility
+  // Filter to only show values that exist in the products on this page
   useEffect(() => {
     const values: Record<string, string[]> = {};
 
-    // First, use values from property_values table (via properties context)
+    // First, extract all actual values from products to filter database values
+    // Use propertyId as key (not propertyName) since multiple properties can have the same name
+    const productValues: Record<string, Set<string>> = {};
+    
+    // Create a map from propertyId to propertyName for lookup
+    const propertyIdToNameMap: Record<string, string> = {};
     properties.forEach(property => {
-      const propertyName = property.name;
-      if (property.values && property.values.length > 0) {
-        // Get all active values from property_values table
-        const activeValues = property.values
-          .filter((pv: any) => pv.isactive !== false)
-          .map((pv: any) => pv.value)
-          .sort((a: string, b: string) => {
-            // Sort by displayorder if available, otherwise alphabetically
-            const pvA = property.values?.find((pv: any) => pv.value === a);
-            const pvB = property.values?.find((pv: any) => pv.value === b);
-            if (pvA?.displayorder !== undefined && pvB?.displayorder !== undefined) {
-              return pvA.displayorder - pvB.displayorder;
-            }
-            return a.localeCompare(b);
-          });
-        
-        if (activeValues.length > 0) {
-          values[propertyName] = activeValues;
-        }
+      const propertyId = property.propertyid || property.PropertyID || property.id;
+      const propertyName = property.name || property.Name;
+      if (propertyId && propertyName) {
+        propertyIdToNameMap[propertyId] = propertyName;
       }
     });
-
-    // Fallback: Extract values from products for properties that don't have values in the database
-    // or for legacy properties
-    const propertiesWithValues = new Set(Object.keys(values));
+    
     products.forEach(product => {
-      // First try to get values from propertyValues (new system)
+      // Extract from propertyValues (new system) - this uses propertyName as key
+      // We need to map it to propertyId if possible, but for now keep as legacy support
       if (product.propertyValues) {
         Object.entries(product.propertyValues).forEach(([propertyName, value]) => {
-          // Only add if property doesn't already have values from database
-          if (!propertiesWithValues.has(propertyName) && value) {
-            if (!values[propertyName]) {
-              values[propertyName] = [];
+          if (value && typeof value === 'string') {
+            // Find propertyId for this propertyName (there might be multiple with same name)
+            // For legacy support, keep propertyName key but prefer propertyId from variants
+            if (!productValues[propertyName]) {
+              productValues[propertyName] = new Set();
             }
-            if (!values[propertyName].includes(value)) {
-              values[propertyName].push(value);
-            }
+            productValues[propertyName].add(value);
           }
         });
       }
 
-      // Fallback to legacy fields for backwards compatibility
+      // Extract from variants (new system) - check all variants
+      // Use propertyId as the key to avoid collisions from duplicate property names
+      const productVariants = product.variants || product.Variants || [];
+      productVariants.forEach((variant: any) => {
+        const propertyValues = variant.ProductVariantPropertyvalues || 
+                              variant.ProductVariantPropertyValues || 
+                              variant.product_variant_property_values ||
+                              variant.productVariantPropertyvalues ||
+                              [];
+        propertyValues.forEach((pv: any) => {
+          const propertyId = pv.propertyid || pv.PropertyID || pv.Property?.propertyid || pv.properties?.propertyid;
+          const propertyValue = pv.value || pv.Value || '';
+          if (propertyId && propertyValue) {
+            // Use propertyId as key to avoid collisions from duplicate property names
+            if (!productValues[propertyId]) {
+              productValues[propertyId] = new Set();
+            }
+            productValues[propertyId].add(propertyValue);
+          }
+        });
+      });
+
+      // Extract from legacy fields
       const legacyFields = ['color', 'size', 'type', 'brand', 'model'];
       legacyFields.forEach(field => {
         const value = (product as any)[field];
         if (value && typeof value === 'string') {
-          const propertyName = field.charAt(0).toUpperCase() + field.slice(1); // Capitalize first letter
-          // Only add if property doesn't already have values from database
-          if (!propertiesWithValues.has(propertyName)) {
-            if (!values[propertyName]) {
-              values[propertyName] = [];
-            }
-            if (!values[propertyName].includes(value)) {
-              values[propertyName].push(value);
-            }
+          const propertyName = field.charAt(0).toUpperCase() + field.slice(1);
+          if (!productValues[propertyName]) {
+            productValues[propertyName] = new Set();
           }
+          productValues[propertyName].add(value);
         }
       });
     });
 
-    // Sort all arrays
-    Object.keys(values).forEach(propertyName => {
-      values[propertyName] = values[propertyName].sort();
+    // Use values from property_values table (via properties context), but filter to only include
+    // values that actually exist in the products on this page
+    properties.forEach(property => {
+      const propertyId = property.propertyid || property.PropertyID || property.id;
+      const propertyName = property.name || property.Name;
+      
+      if (property.values && property.values.length > 0 && propertyId) {
+        // Get all active values from property_values table
+        const allActiveValues = property.values
+          .filter((pv: any) => pv.isactive !== false)
+          .map((pv: any) => pv.value);
+
+        // Filter to only include values that exist in products
+        // Prefer propertyId as key (unique), fallback to propertyName for legacy
+        const productValuesSet = productValues[propertyId] || productValues[propertyName] || new Set();
+        const filteredValues = allActiveValues.filter((value: string) => productValuesSet.has(value));
+
+        // Sort the filtered values
+        const sortedValues = filteredValues.sort((a: string, b: string) => {
+          const pvA = property.values?.find((pv: any) => pv.value === a);
+          const pvB = property.values?.find((pv: any) => pv.value === b);
+          if (pvA?.displayorder !== undefined && pvB?.displayorder !== undefined) {
+            return pvA.displayorder - pvB.displayorder;
+          }
+          return a.localeCompare(b);
+        });
+        
+        if (sortedValues.length > 0) {
+          // Use propertyId as key to store values, but we'll display using propertyName in the UI
+          values[propertyId] = sortedValues;
+        }
+      }
+    });
+
+    // Fallback: Use values extracted from products for properties that don't have values in the database
+    // or for legacy properties
+    const propertiesWithValues = new Set(Object.keys(values));
+    Object.entries(productValues).forEach(([propertyName, valueSet]) => {
+      if (!propertiesWithValues.has(propertyName)) {
+        const valueArray = Array.from(valueSet).sort();
+        if (valueArray.length > 0) {
+          values[propertyName] = valueArray;
+        }
+      }
     });
 
     setAvailableValues(values);
@@ -151,7 +196,8 @@ export default function ProductFilters({
     // Handle both datatype (lowercase) and DataType (uppercase) for compatibility
     const dataType = property.datatype || property.DataType || 'text';
     const currentValue = selectedFilters[propertyId] || '';
-    const values = availableValues[propertyName] || [];
+    // availableValues now uses propertyId as key (not propertyName) to avoid collisions
+    const values = (propertyId && availableValues[propertyId]) || [];
     const dropdownState = dropdownStates[propertyId] || { isOpen: false, searchTerm: '' };
 
     // Filter values based on search term (match from anywhere)
@@ -433,14 +479,16 @@ export default function ProductFilters({
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {properties.map(property => {
-          const propertyName = property.name;
-          const hasValues = availableValues[propertyName] && availableValues[propertyName].length > 0;
+          const propertyId = property.propertyid || property.PropertyID || property.id;
+          const propertyName = property.name || property.Name;
+          // availableValues now uses propertyId as key (not propertyName) to avoid collisions
+          const hasValues = propertyId && availableValues[propertyId] && availableValues[propertyId].length > 0;
 
           // Only show filters that have available values
           if (!hasValues) return null;
 
           return (
-            <div key={property.propertyid}>
+            <div key={propertyId}>
               <label
                 className="block text-sm font-medium mb-2"
                 style={{ color: theme.colors.text }}

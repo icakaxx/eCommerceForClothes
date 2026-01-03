@@ -59,29 +59,8 @@ export function StoreSettingsProvider({ children }: { children: ReactNode }) {
       if (result.settings) {
         setSettings(result.settings);
       } else {
-        // Create default settings if none exist
-        const defaultSettings = {
-          storename: 'ModaBox',
-          logourl: null,
-          themeid: 'default',
-          language: 'en'
-        };
-
-        const createResponse = await fetch('/api/store-settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(defaultSettings)
-        });
-
-        const createResult = await createResponse.json();
-
-        if (!createResponse.ok || !createResult.success) {
-          console.error('Error creating default store settings:', createResult.error);
-          setError('Failed to create default settings');
-          return;
-        }
-
-        setSettings(createResult.settings);
+        console.error('❌ No store settings found in database');
+        setError('Store settings not found in database');
       }
     } catch (err) {
       console.error('Error loading store settings:', err);
