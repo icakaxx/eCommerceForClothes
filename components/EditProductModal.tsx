@@ -209,12 +209,12 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                 } else {
                   console.log(`🔍 DEBUG EditProductModal: ❌ No matching propertyvalueid found for "${value}"`);
                   console.log(`  Available values:`, propertyValuesMap[prop.propertyid].map(pv => ({ id: pv.propertyvalueid, value: pv.value })));
-                  // Fallback: use the value string directly (for non-select or if ID not found)
-                  initialSelected[prop.propertyid] = [value];
+                  // Fallback: use the value(s) directly (for non-select or if ID not found)
+                  initialSelected[prop.propertyid] = Array.isArray(value) ? value : [value];
                 }
               } else {
-                // For non-select properties, use the value directly
-                initialSelected[prop.propertyid] = [value];
+                // For non-select properties, use the value(s) directly
+                initialSelected[prop.propertyid] = Array.isArray(value) ? value : [value];
               }
             } else {
               console.log(`🔍 DEBUG EditProductModal: ❌ Property "${propName}" not found in available properties`);
@@ -1280,7 +1280,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                                   className="text-sm font-medium"
                                   style={{ color: theme.colors.text }}
                                 >
-                                  {availableProduct.brand} – {availableProduct.model}
+                                  {availableProduct.brand} {availableProduct.model}
                                 </p>
                                 <p 
                                   className="text-xs"

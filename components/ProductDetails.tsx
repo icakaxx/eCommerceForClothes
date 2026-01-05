@@ -7,12 +7,13 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useCart } from '@/context/CartContext';
 import { translations } from '@/lib/translations';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart, Heart, Share2, ChevronDown, ChevronUp } from 'lucide-react';
+import { ShoppingCart, Heart, Share2 } from 'lucide-react';
 
 interface ProductDetailsProps {
   product: Product;
   onVariantChange?: (imageUrl: string | undefined) => void;
 }
+
 
 interface Variant {
   productvariantid: string;
@@ -52,16 +53,15 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [availableOptions, setAvailableOptions] = useState<Record<string, Set<string>>>({});
-  
-  // State for wishlist, share, and size guide
+
+  // State for wishlist and share
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const [isSizeGuideExpanded, setIsSizeGuideExpanded] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
 
   useEffect(() => {
     // Extract variants from product - handle both Variants and variants
     const productVariants = product.variants || product.Variants || [];
-    
+
     if (Array.isArray(productVariants) && productVariants.length > 0) {
       console.log('🔍 ProductDetails: Found variants:', productVariants);
       const visibleVariants = productVariants.filter((v: any) => v.isvisible !== false);
@@ -74,12 +74,12 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         // Handle both naming conventions
         const propertyValues = variant.ProductVariantPropertyvalues || variant.ProductVariantPropertyValues || [];
         console.log(`🔍 ProductDetails: Variant ${variant.productvariantid} property values:`, propertyValues);
-        
+
         propertyValues.forEach((pv: any) => {
           // Handle both lowercase and uppercase property name
           const propertyName = (pv.Property?.name || pv.Property?.Name || pv.propertyid || '').toLowerCase();
           const propertyValue = pv.value || pv.Value || '';
-          
+
           if (propertyName && propertyValue) {
             if (!optionsMap[propertyName]) {
               optionsMap[propertyName] = new Set();
@@ -104,14 +104,14 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
           // Handle both lowercase and uppercase property name
           const propertyName = (pv.Property?.name || pv.Property?.Name || pv.propertyid || '').toLowerCase();
           const propertyValue = pv.value || pv.Value || '';
-          
+
           if (propertyName && propertyValue) {
             initialOptions[propertyName] = propertyValue;
           }
         });
         console.log('🔍 ProductDetails: Initial selected options:', initialOptions);
         setSelectedOptions(initialOptions);
-        
+
         // Notify parent of initial variant image (only once on mount)
         if (onVariantChange && primaryVariant.imageurl) {
           onVariantChange(primaryVariant.imageurl);
@@ -120,7 +120,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
     } else {
       console.log('🔍 ProductDetails: No variants found. Product:', product);
     }
-  }, [product.variants, product.Variants]); // Removed onVariantChange from dependencies
+  }, [product.variants, product.Variants]);
 
   const handleOptionChange = (propertyName: string, value: string) => {
     console.log(`🔍 ProductDetails: Option changed - ${propertyName}: ${value}`);
@@ -138,7 +138,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         // Handle both lowercase and uppercase property name
         const propName = (pv.Property?.name || pv.Property?.Name || pv.propertyid || '').toLowerCase();
         const propValue = pv.value || pv.Value || '';
-        
+
         if (propName && propValue) {
           variantOptions[propName] = propValue;
         }
@@ -148,20 +148,20 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
       const matches = Object.keys(newOptions).every(
         (key) => variantOptions[key] === newOptions[key]
       );
-      
+
       console.log(`🔍 ProductDetails: Checking variant ${variant.productvariantid}:`, {
         variantOptions,
         newOptions,
         matches
       });
-      
+
       return matches;
     });
 
     if (matchingVariant) {
       console.log('🔍 ProductDetails: Matched variant:', matchingVariant);
       setSelectedVariant(matchingVariant);
-      
+
       // Notify parent component of image change
       if (onVariantChange) {
         onVariantChange(matchingVariant.imageurl);
@@ -189,6 +189,18 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   const handleAddToCart = () => {
     if (currentQuantity <= 0) return;
 
+    // Convert property values to cart-compatible format (arrays become comma-separated strings)
+    const cartCompatiblePropertyValues: Record<string, string> = {};
+    if (product.propertyValues) {
+      Object.entries(product.propertyValues).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          cartCompatiblePropertyValues[key] = value.join(', ');
+        } else {
+          cartCompatiblePropertyValues[key] = value;
+        }
+      });
+    }
+
     // Add item to cart
     addItem({
       id: selectedVariant?.productvariantid || product.id,
@@ -200,9 +212,9 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
       size: selectedVariant ? selectedOptions['Size'] || selectedOptions['size'] || product.size : product.size,
       price: currentPrice,
       quantity: 1, // Default to 1, user can adjust in cart
-      imageUrl: selectedVariant?.imageurl || product.images[0] || '/image.png',
+      imageUrl: selectedVariant?.imageurl || product.images?.[0] || '/image.png',
       category: product.category,
-      propertyValues: product.propertyValues,
+      propertyValues: Object.keys(cartCompatiblePropertyValues).length > 0 ? cartCompatiblePropertyValues : undefined,
     });
 
     // Open cart drawer
@@ -266,7 +278,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
           className="product__single__name text-3xl md:text-4xl font-bold capitalize transition-colors duration-300 flex-1"
           style={{ color: theme.colors.text }}
         >
-          {product.brand} – {product.model}
+          {product.brand} {product.model}
         </h1>
         
         {/* Share and Wishlist Buttons */}
@@ -356,7 +368,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
       {/* Variant Options */}
       {Object.keys(availableOptions).length > 0 && (
         <div className="mb-8">
-          <h3 
+          <h3
             className="text-lg font-semibold mb-4 transition-colors duration-300"
             style={{ color: theme.colors.text }}
           >
@@ -364,7 +376,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
           </h3>
           {Object.entries(availableOptions).map(([propertyName, values]) => (
             <div key={propertyName} className="mb-4">
-              <label 
+              <label
                 className="block text-sm font-medium mb-2 transition-colors duration-300"
                 style={{ color: theme.colors.text }}
               >
@@ -392,11 +404,11 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
             </div>
           ))}
           {selectedVariant && (
-            <div 
+            <div
               className="mt-4 p-3 rounded-lg text-sm"
-              style={{ 
+              style={{
                 backgroundColor: theme.colors.surface,
-                color: theme.colors.textSecondary 
+                color: theme.colors.textSecondary
               }}
             >
               {t.sku}: <span style={{ color: theme.colors.text }}>{selectedVariant.sku || t.notAvailable}</span>
@@ -405,94 +417,15 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         </div>
       )}
 
-      {/* Size Guide Section */}
-      {Object.keys(availableOptions).some(key => key.toLowerCase() === 'size') && (
-        <div 
-          className="mb-8 border rounded-lg overflow-hidden"
-          style={{ borderColor: theme.colors.border }}
-        >
-          <button
-            onClick={() => setIsSizeGuideExpanded(!isSizeGuideExpanded)}
-            className="w-full px-4 py-3 flex items-center justify-between hover:opacity-80 transition-opacity"
-            style={{ backgroundColor: theme.colors.surface }}
-          >
-            <span 
-              className="text-sm font-medium"
-              style={{ color: theme.colors.text }}
-            >
-              📏 {t.sizeGuide}
-            </span>
-            {isSizeGuideExpanded ? (
-              <ChevronUp size={18} style={{ color: theme.colors.text }} />
-            ) : (
-              <ChevronDown size={18} style={{ color: theme.colors.text }} />
-            )}
-          </button>
-          {isSizeGuideExpanded && (
-            <div 
-              className="px-4 py-3 border-t"
-              style={{ 
-                borderColor: theme.colors.border,
-                backgroundColor: theme.colors.background
-              }}
-            >
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
-                      <th className="text-left py-2 px-2" style={{ color: theme.colors.text }}>Size</th>
-                      <th className="text-left py-2 px-2" style={{ color: theme.colors.text }}>Chest (cm)</th>
-                      <th className="text-left py-2 px-2" style={{ color: theme.colors.text }}>Waist (cm)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>XS</td>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>94</td>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>75</td>
-                    </tr>
-                    <tr style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>S</td>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>98</td>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>79</td>
-                    </tr>
-                    <tr style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>M</td>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>102</td>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>83</td>
-                    </tr>
-                    <tr style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>L</td>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>106</td>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>87</td>
-                    </tr>
-                    <tr style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>XL</td>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>110</td>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>91</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>XXL</td>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>114</td>
-                      <td className="py-2 px-2" style={{ color: theme.colors.textSecondary }}>95</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Product Attributes */}
       <div className="product__single__attributes mb-8">
-        <h3 
+        <h3
           className="text-lg font-semibold mb-4 transition-colors duration-300"
           style={{ color: theme.colors.text }}
         >
           {t.productDetails}
         </h3>
-        <ul 
+        <ul
           className="space-y-3 transition-colors duration-300"
           style={{ color: theme.colors.textSecondary }}
         >
@@ -521,12 +454,12 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
           {/* Display property values from new schema */}
           {product.propertyValues && Object.keys(product.propertyValues).length > 0 && (
             <>
-              {Object.entries(product.propertyValues).map(([propertyName, value]) => (
+              {Object.entries(product.propertyValues).map(([propertyName, values]) => (
                 <li key={propertyName} className="flex">
                   <span className="font-medium w-32" style={{ color: theme.colors.text }}>
                     {propertyName}:
                   </span>
-                  <span>{value}</span>
+                  <span>{Array.isArray(values) ? values.join(', ') : values}</span>
                 </li>
               ))}
             </>

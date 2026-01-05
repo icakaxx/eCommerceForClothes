@@ -104,7 +104,9 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
         }
 
         if (propertyValue) {
-          const numericValue = parseFloat(propertyValue);
+          // Handle both string and array property values
+          const valueToParse = Array.isArray(propertyValue) ? propertyValue[0] : propertyValue;
+          const numericValue = parseFloat(valueToParse);
           const filterNumber = parseFloat(filterValue);
 
           if (!isNaN(numericValue) && !isNaN(filterNumber)) {

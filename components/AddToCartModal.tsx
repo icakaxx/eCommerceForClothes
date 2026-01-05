@@ -208,6 +208,16 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
       ...variantPropertyValues,
     };
 
+    // Convert any arrays to comma-separated strings for cart compatibility
+    const cartCompatiblePropertyValues: Record<string, string> = {};
+    Object.entries(mergedPropertyValues).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        cartCompatiblePropertyValues[key] = value.join(', ');
+      } else {
+        cartCompatiblePropertyValues[key] = value;
+      }
+    });
+
     // Get size from selected options (for backward compatibility)
     const selectedSize = selectedOptions['size'] || selectedOptions['размер'] || '';
 
@@ -224,7 +234,7 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
       quantity: quantity,
       imageUrl: itemImageUrl,
       category: product.category,
-      propertyValues: Object.keys(mergedPropertyValues).length > 0 ? mergedPropertyValues : undefined,
+      propertyValues: Object.keys(cartCompatiblePropertyValues).length > 0 ? cartCompatiblePropertyValues : undefined,
     });
 
     // Open cart drawer

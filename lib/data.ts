@@ -17,7 +17,7 @@ export interface Product {
   isfeatured?: boolean; // Whether the product is featured on the home page
   // New fields for product type system
   productTypeID?: string;
-  propertyValues?: Record<string, string>; // property name -> value mapping
+  propertyValues?: Record<string, string | string[]>; // property name -> value(s) mapping
   variants?: any[]; // Product variants from database
   Variants?: any[]; // Product variants from database (alternative naming)
   Images?: any[]; // Product images from database (alternative naming)

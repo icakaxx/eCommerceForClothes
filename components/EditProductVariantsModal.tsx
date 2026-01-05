@@ -19,14 +19,8 @@ interface VariantFormData {
   productvariantid?: string;
   sku?: string;
   price?: number;
-  compareatprice?: number;
-  cost?: number;
   quantity: number;
-  weight?: number;
-  weightunit: string;
-  barcode?: string;
   trackquantity: boolean;
-  continuesellingwhenoutofstock: boolean;
   isvisible: boolean;
   propertyvalues: Record<string, string>;
 }
@@ -52,14 +46,8 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
       productvariantid: v.productvariantid,
       sku: v.sku || '',
       price: v.price || 0,
-      compareatprice: v.compareatprice || undefined,
-      cost: v.cost || undefined,
       quantity: v.quantity,
-      weight: v.weight || undefined,
-      weightunit: v.weightunit || 'kg',
-      barcode: v.barcode || '',
       trackquantity: v.trackquantity,
-      continuesellingwhenoutofstock: v.continuesellingwhenoutofstock,
       isvisible: v.isvisible,
       propertyvalues: v.propertyvalues?.reduce((acc, pv) => {
         if (pv.property) {
@@ -77,9 +65,7 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
   const [editingVariantIndex, setEditingVariantIndex] = useState<number | null>(null);
   const [variantForm, setVariantForm] = useState<VariantFormData>({
     quantity: 0,
-    weightunit: 'kg',
     trackquantity: true,
-    continuesellingwhenoutofstock: false,
     isvisible: true,
     propertyvalues: {}
   });
@@ -298,9 +284,7 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
   const addVariant = () => {
     setVariantForm({
       quantity: 0,
-      weightunit: 'kg',
       trackquantity: true,
-      continuesellingwhenoutofstock: false,
       isvisible: true,
       propertyvalues: {}
     });
@@ -895,24 +879,6 @@ function VariantModal({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                {language === 'bg' ? 'Сравнителна цена' : 'Compare at Price'}
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={variant.compareatprice || ''}
-                onChange={(e) => updateVariant('compareatprice', e.target.value ? parseFloat(e.target.value) : undefined)}
-                className="w-full px-3 py-2 border rounded-md"
-                style={{
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                  color: theme.colors.text
-                }}
-              />
-            </div>
           </div>
 
           {/* Properties */}
@@ -992,15 +958,6 @@ function VariantModal({
             </div>
 
             <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="continueSelling"
-                checked={variant.continuesellingwhenoutofstock}
-                onChange={(e) => updateVariant('continuesellingwhenoutofstock', e.target.checked)}
-              />
-              <label htmlFor="continueSelling" className="text-sm">
-                {language === 'bg' ? 'Продължавай да продаваш когато свърши' : 'Continue selling when out of stock'}
-              </label>
             </div>
 
             <div className="flex items-center gap-2">

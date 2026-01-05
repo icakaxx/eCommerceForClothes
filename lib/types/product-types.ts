@@ -65,14 +65,8 @@ export interface ProductVariant {
   productid: string;
   sku?: string;
   price?: number;
-  compareatprice?: number;
-  cost?: number;
   quantity: number;
-  weight?: number;
-  weightunit: string;
-  barcode?: string;
   trackquantity: boolean;
-  continuesellingwhenoutofstock: boolean;
   isvisible: boolean;
   createdat: string;
   updatedat: string;

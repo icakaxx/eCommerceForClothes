@@ -4,6 +4,48 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 // Type-safe Supabase client for this module
 const getSupabase = () => supabaseAdmin as any;
 
+// Ensure SKUs are unique by checking database and generating alternatives if needed
+async function ensureUniqueSKUs(variants: any[], supabase: any) {
+  const processedVariants = [];
+
+  for (const variant of variants) {
+    let finalSKU = variant.sku;
+    let counter = 1;
+
+    // Check if SKU exists and generate unique alternative if needed
+    while (true) {
+      const { data: existingVariant } = await supabase
+        .from('product_variants')
+        .select('productvariantid')
+        .eq('sku', finalSKU)
+        .single();
+
+      if (!existingVariant) {
+        // SKU is unique, use it
+        break;
+      }
+
+      // Generate alternative SKU
+      const baseSKU = variant.sku.split('-').slice(0, -1).join('-'); // Remove last part
+      finalSKU = `${baseSKU}-${counter}`;
+      counter++;
+
+      // Safety check to prevent infinite loops
+      if (counter > 100) {
+        finalSKU = `${variant.sku}_${Date.now()}`;
+        break;
+      }
+    }
+
+    processedVariants.push({
+      ...variant,
+      sku: finalSKU
+    });
+  }
+
+  return processedVariants;
+}
+
 // GET - Fetch all products with variants and images
 export async function GET(request: NextRequest) {
   try {
@@ -159,6 +201,10 @@ export async function POST(request: NextRequest) {
 
     const { name, sku, description, subtitle, producttypeid, rfproducttypeid, isfeatured, Variants = [] } = body;
 
+    // Ensure SKUs are unique before creating variants
+    const uniqueVariants = await ensureUniqueSKUs(Variants, supabase);
+
+
     if (!name || !producttypeid) {
       return NextResponse.json(
         { error: 'Missing required fields: name, producttypeid' },
@@ -166,7 +212,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('📦 Variants to process:', Variants.length);
     Variants.forEach((v: any, i: number) => {
       console.log(`  Variant ${i}:`, {
         sku: v.sku,
@@ -201,7 +246,7 @@ export async function POST(request: NextRequest) {
     }
 
       // Create new variants
-      for (const variantData of Variants) {
+      for (const variantData of uniqueVariants) {
         const {
           sku: variantsku,
           price,
@@ -212,32 +257,22 @@ export async function POST(request: NextRequest) {
           weightunit,
           barcode,
           trackquantity,
-          continuesellingwhenoutofstock,
           isvisible,
           propertyvalues = [],
           imageurl,
           IsPrimaryImage
         } = variantData;
 
-        // Create or update variant
+        // Create new variant (no upsert - variants should be unique per product)
         const { data: variant, error: variantError } = await supabase
           .from('product_variants')
-          .upsert({
+          .insert({
             productid: product.productid,
             sku: variantsku,
             price,
-            compareatprice: compareatprice,
-            cost,
             quantity,
-            weight,
-            weightunit: weightunit || 'kg',
-            barcode,
             trackquantity: trackquantity ?? true,
-            continuesellingwhenoutofstock: continuesellingwhenoutofstock ?? false,
             isvisible: isvisible ?? true
-          }, {
-            onConflict: 'sku',
-            ignoreDuplicates: false
           })
           .select()
           .single();
@@ -246,8 +281,6 @@ export async function POST(request: NextRequest) {
           console.error('❌ Error creating variant:', variantError);
           continue; // Continue with other variants
         }
-
-        console.log('✅ Created variant:', variant);
 
         // Create/update property values for this variant
         if (propertyvalues.length > 0) {

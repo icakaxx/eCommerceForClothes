@@ -2,6 +2,48 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
 import { ProductVariantPropertyValue } from '@/lib/types/product-types';
 
+// Ensure SKUs are unique by checking database and generating alternatives if needed
+async function ensureUniqueSKUs(variants: any[], supabase: any) {
+  const processedVariants = [];
+
+  for (const variant of variants) {
+    let finalSKU = variant.sku;
+    let counter = 1;
+
+    // Check if SKU exists and generate unique alternative if needed
+    while (true) {
+      const { data: existingVariant } = await supabase
+        .from('product_variants')
+        .select('productvariantid')
+        .eq('sku', finalSKU)
+        .single();
+
+      if (!existingVariant) {
+        // SKU is unique, use it
+        break;
+      }
+
+      // Generate alternative SKU
+      const baseSKU = variant.sku.split('-').slice(0, -1).join('-'); // Remove last part
+      finalSKU = `${baseSKU}-${counter}`;
+      counter++;
+
+      // Safety check to prevent infinite loops
+      if (counter > 100) {
+        finalSKU = `${variant.sku}_${Date.now()}`;
+        break;
+      }
+    }
+
+    processedVariants.push({
+      ...variant,
+      sku: finalSKU
+    });
+  }
+
+  return processedVariants;
+}
+
 // GET - Get single product with variants and images
 export async function GET(
   request: NextRequest,
@@ -172,15 +214,33 @@ export async function GET(
     // Transform to new format with backwards compatibility
     const firstVariant = variants?.[0];
     
-    // Extract property values from variant for easy access
-    const variantProperties: Record<string, string> = {};
-    // Handle both naming conventions (lowercase 'v' from Supabase query)
-    const firstVariantProps = firstVariant?.ProductVariantPropertyvalues || firstVariant?.ProductVariantPropertyValues || [];
-    firstVariantProps.forEach((pv: any) => {
-      const propName = pv.Property?.name || pv.property?.name;
-      const propValue = pv.value || pv.Value;
-      if (propName && propValue) {
-        variantProperties[propName.toLowerCase()] = propValue;
+    // Extract all unique property values from all variants for easy access
+    const variantProperties: Record<string, string[]> = {};
+    // Collect all property values across all variants
+    (variantsWithImages || []).forEach(variant => {
+      const variantProps = variant.ProductVariantPropertyvalues || variant.ProductVariantPropertyValues || [];
+      variantProps.forEach((pv: any) => {
+        const propName = pv.Property?.name || pv.property?.name;
+        const propValue = pv.value || pv.Value;
+        if (propName && propValue) {
+          const key = propName.toLowerCase();
+          if (!variantProperties[key]) {
+            variantProperties[key] = [];
+          }
+          // Only add if not already present
+          if (!variantProperties[key].includes(propValue)) {
+            variantProperties[key].push(propValue);
+          }
+        }
+      });
+    });
+
+    // For backwards compatibility, also create a flattened version
+    const flattenedProperties: Record<string, string> = {};
+    Object.entries(variantProperties).forEach(([key, values]) => {
+      if (values.length > 0) {
+        // For single values, use the first one; for multiple values, join them
+        flattenedProperties[key] = values.length === 1 ? values[0] : values.join(', ');
       }
     });
     
@@ -247,7 +307,8 @@ export async function GET(
       visible: firstVariant?.isvisible ?? true,
       images: images?.map(img => img.imageurl) || ['/image.png'],
       productTypeID: product.producttypeid,
-      propertyvalues: variantProperties
+      propertyvalues: flattenedProperties, // For backwards compatibility
+      propertyValues: variantProperties // New format with all values
     };
 
     return NextResponse.json({
@@ -287,15 +348,9 @@ export async function PUT(
       Variants = []
     } = body;
 
-    console.log('📦 Variants to process:', Variants.length);
-    Variants.forEach((v: any, i: number) => {
-      console.log(`  Variant ${i}:`, {
-        sku: v.sku,
-        price: v.price,
-        quantity: v.quantity,
-        propertyvalues: v.propertyvalues
-      });
-    });
+
+    // Ensure SKUs are unique before creating variants
+    const uniqueVariants = await ensureUniqueSKUs(Variants, supabase);
 
     // Update product
     const { data: product, error: productError } = await supabase
@@ -344,7 +399,7 @@ export async function PUT(
       }
 
       // Create new variants
-      for (const variantData of Variants) {
+      for (const variantData of uniqueVariants) {
         const {
           productvariantid, // May be present for updates
           sku: variantsku,
@@ -363,35 +418,17 @@ export async function PUT(
           IsPrimaryImage
         } = variantData;
 
-        console.log('🔨 Attempting to insert variant:', {
-          productid: id,
-          sku: variantsku,
-          price,
-          quantity,
-          weightunit: weightunit || 'kg',
-          trackquantity: trackquantity ?? true,
-          isvisible: isvisible ?? true
-        });
 
-        // Create variant
+        // Create variant (no upsert since we deleted existing variants first)
         const { data: variant, error: variantError } = await supabase
           .from('product_variants')
-          .upsert({
+          .insert({
             productid: id,
             sku: variantsku,
             price,
-            compareatprice,
-            cost,
             quantity,
-            weight,
-            weightunit: weightunit || 'kg',
-            barcode,
             trackquantity: trackquantity ?? true,
-            continuesellingwhenoutofstock: continuesellingwhenoutofstock ?? false,
             isvisible: isvisible ?? true
-          }, {
-            onConflict: 'sku',
-            ignoreDuplicates: false
           })
           .select()
           .single();
@@ -402,7 +439,6 @@ export async function PUT(
           continue;
         }
 
-        console.log('✅ Created variant:', variant);
 
         // Create/update property values for this variant
         if (propertyvalues.length > 0) {

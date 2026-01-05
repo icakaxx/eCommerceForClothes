@@ -69,7 +69,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           className="text-base sm:text-lg font-semibold mb-2 line-clamp-2 transition-colors duration-300"
           style={{ color: theme.colors.text }}
         >
-          {product.brand} – {product.model}
+          {product.brand} {product.model}
         </h3>
         
         <span 

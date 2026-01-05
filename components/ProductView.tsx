@@ -165,8 +165,8 @@ export default function ProductView({ product }: ProductViewProps) {
 
           {/* Right column - Product Info */}
           <div className="product__detail__right">
-            <ProductDetails 
-              product={product} 
+            <ProductDetails
+              product={product}
               onVariantChange={handleVariantImageChange}
             />
           </div>
@@ -202,7 +202,7 @@ export default function ProductView({ product }: ProductViewProps) {
                     className="font-semibold mb-1 group-hover:underline"
                     style={{ color: theme.colors.text }}
                   >
-                    {relatedProduct.brand} – {relatedProduct.model}
+                    {relatedProduct.brand} {relatedProduct.model}
                   </h3>
                   <p 
                     className="text-lg font-bold"

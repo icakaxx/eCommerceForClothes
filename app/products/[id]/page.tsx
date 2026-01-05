@@ -52,7 +52,9 @@ export default function ProductDetailPage() {
               ? data.product.Images.map((img: any) => img.imageurl || img.url)
               : ['/image.png'], // Fallback image
             brand: data.product.brand || 'Unknown',
-            model: data.product.model || data.product.Name || 'Product'
+            model: data.product.model || data.product.Name || 'Product',
+            // Ensure propertyValues is properly mapped (API returns propertyvalues in lowercase)
+            propertyValues: data.product.propertyValues || data.product.propertyvalues || {}
           };
           setProduct(productData);
         } else {

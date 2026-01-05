@@ -22,14 +22,8 @@ interface Variant {
   productvariantid?: string;
   sku?: string;
   price: number;
-  compareatprice?: number;
-  cost?: number;
   quantity: number;
-  weight?: number;
-  weightunit: string;
-  barcode?: string;
   trackquantity: boolean;
-  continuesellingwhenoutofstock: boolean;
   isvisible: boolean;
   propertyvalues: Array<{
     propertyid: string;
@@ -162,7 +156,7 @@ export default function ProductsPage() {
       const result = await response.json();
       if (result.success) {
         // Map API response to Product interface
-        setProducts(result.products.map((p: any) => ({
+        const mappedProducts = result.products.map((p: any) => ({
           productid: p.productid,
           name: p.name,
           sku: p.sku || '',
@@ -170,7 +164,9 @@ export default function ProductsPage() {
           producttypeid: p.producttypeid || '',
           ProductType: p.producttype,
           propertyvalues: p.propertyvalues || {}
-        })));
+        }));
+
+        setProducts(mappedProducts);
       }
     } catch (error) {
       console.error('Failed to load products:', error);
@@ -322,7 +318,6 @@ export default function ProductsPage() {
         Variants: variants
       };
 
-      console.log('Submitting product with payload:', JSON.stringify(payload, null, 2));
 
       const response = await fetch(url, {
         method,
@@ -340,6 +335,7 @@ export default function ProductsPage() {
         setVariants([]);
         setSelectedPropertyValues({});
         setNewPropertyValues({});
+
         loadProducts();
       } else {
         alert('Error: ' + result.error);
@@ -383,14 +379,8 @@ export default function ProductsPage() {
               productvariantid: v.productvariantid,
               sku: v.sku,
               price: v.price || 0,
-              compareatprice: v.compareatprice,
-              cost: v.cost,
               quantity: v.quantity || 0,
-              weight: v.weight,
-              weightunit: v.weightunit || 'kg',
-              barcode: v.barcode,
               trackquantity: v.trackquantity ?? true,
-              continuesellingwhenoutofstock: v.continuesellingwhenoutofstock ?? false,
               isvisible: v.isvisible ?? true,
               imageurl: v.imageurl, // Load variant image
               IsPrimaryImage: v.IsPrimaryImage || false, // Load primary flag
@@ -400,7 +390,6 @@ export default function ProductsPage() {
               }))
             }));
             
-            console.log('Loaded variants with images:', loadedVariants);
             setVariants(loadedVariants);
             
             // Set selected property values from existing variants
@@ -499,8 +488,10 @@ export default function ProductsPage() {
         value: combination[index]
       }));
 
-      // Generate SKU from combination
-      const variantSKU = `${formData.sku || 'PROD'}-${combination.map(v => v.toUpperCase()).join('-')}`;
+      // Generate SKU from combination - include product ID for uniqueness
+      // For new products, use a timestamp-based unique identifier
+      const productId = editingProduct?.productid || `NEW_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+      const variantSKU = `${formData.sku || 'PROD'}-${productId}-${combination.map(v => v.toUpperCase()).join('-')}`;
 
       // Check if this variant already exists (same property values)
       const existingVariant = variants.find(v => {
@@ -523,10 +514,7 @@ export default function ProductsPage() {
           sku: variantSKU,
           price: 0,
           quantity: 0,
-          weight: 0,
-          weightunit: 'kg',
           trackquantity: true,
-          continuesellingwhenoutofstock: false,
           isvisible: true,
           propertyvalues: propertyValues
         };
