@@ -5,14 +5,18 @@ import { useRouter } from 'next/navigation';
 import { Plus, Edit2, Trash2, X } from 'lucide-react';
 import { ProductType } from '@/lib/types/product-types';
 import AdminLayout from '../components/AdminLayout';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/lib/translations';
 
 export default function ProductTypesPage() {
   const router = useRouter();
+  const { language } = useLanguage();
+  const t = translations[language || 'bg'];
   const [productTypes, setProductTypes] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProductType, setEditingProductType] = useState<ProductType | null>(null);
-  const [formData, setFormData] = useState({ Name: '', Code: '' });
+  const [formData, setFormData] = useState({ name: '', code: '' });
 
   useEffect(() => {
     loadProductTypes();
@@ -50,7 +54,7 @@ export default function ProductTypesPage() {
       const result = await response.json();
       if (result.success) {
         setShowModal(false);
-        setFormData({ Name: '', Code: '' });
+        setFormData({ name: '', code: '' });
         setEditingProductType(null);
         loadProductTypes();
       } else {
@@ -64,12 +68,12 @@ export default function ProductTypesPage() {
 
   const handleEdit = (productType: ProductType) => {
     setEditingProductType(productType);
-    setFormData({ Name: productType.name, Code: productType.code });
+    setFormData({ name: productType.name, code: productType.code });
     setShowModal(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product type?')) return;
+    if (!confirm(t.confirmDeleteProductType)) return;
 
     try {
       const response = await fetch(`/api/product-types/${id}`, { method: 'DELETE' });
@@ -97,13 +101,13 @@ export default function ProductTypesPage() {
           <button
             onClick={() => {
               setEditingProductType(null);
-              setFormData({ Name: '', Code: '' });
+              setFormData({ name: '', code: '' });
               setShowModal(true);
             }}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             <Plus className="w-5 h-5" />
-            Add Product Type
+            {t.addProductType}
           </button>
         </div>
 
@@ -115,13 +119,13 @@ export default function ProductTypesPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
+                    {t.name}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Code
+                    {t.code}
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                    {t.actions}
                   </th>
                 </tr>
               </thead>
@@ -140,7 +144,7 @@ export default function ProductTypesPage() {
                           onClick={() => handleManageProperties(pt)}
                           className="text-blue-600 hover:text-blue-900"
                         >
-                          Manage Properties
+                          {t.manageProperties}
                         </button>
                         <button
                           onClick={() => handleEdit(pt)}
@@ -162,7 +166,7 @@ export default function ProductTypesPage() {
             </table>
             {productTypes.length === 0 && (
               <div className="text-center py-12 text-gray-500">
-                No product types found. Create one to get started.
+                {t.noProductTypesFound}
               </div>
             )}
           </div>
@@ -173,7 +177,7 @@ export default function ProductTypesPage() {
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">
-                  {editingProductType ? 'Edit Product Type' : 'Add Product Type'}
+                  {editingProductType ? t.editProductType : t.addProductType}
                 </h2>
                 <button onClick={() => setShowModal(false)}>
                   <X className="w-5 h-5" />
@@ -182,24 +186,24 @@ export default function ProductTypesPage() {
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name
+                    {t.name}
                   </label>
                   <input
                     type="text"
-                    value={formData.Name}
-                    onChange={(e) => setFormData({ ...formData, Name: e.target.value })}
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     required
                   />
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Code
+                    {t.code}
                   </label>
                   <input
                     type="text"
-                    value={formData.Code}
-                    onChange={(e) => setFormData({ ...formData, Code: e.target.value })}
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     required
                   />
@@ -210,13 +214,13 @@ export default function ProductTypesPage() {
                     onClick={() => setShowModal(false)}
                     className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
                   >
-                    Cancel
+                    {t.cancel}
                   </button>
                   <button
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
-                    {editingProductType ? 'Update' : 'Create'}
+                    {editingProductType ? t.update : t.create}
                   </button>
                 </div>
               </form>

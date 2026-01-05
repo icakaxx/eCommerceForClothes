@@ -66,6 +66,8 @@ export default function ProductsPage() {
   const [mediaFiles, setMediaFiles] = useState<Array<{name: string, path: string, url: string}>>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [selectedVariantIndex, setSelectedVariantIndex] = useState<number | null>(null);
+  const [newPropertyValues, setNewPropertyValues] = useState<Record<string, string>>({});
+  const [addingPropertyValue, setAddingPropertyValue] = useState<Record<string, boolean>>({});
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -206,12 +208,94 @@ export default function ProductsPage() {
       const response = await fetch(`/api/product-types/${productTypeId}/properties`);
       const result = await response.json();
       if (result.success && result.properties) {
-        return result.properties.map((p: any) => p.properties).filter(Boolean);
+        const properties = result.properties.map((p: any) => p.properties).filter(Boolean);
+        
+        // Load values for each property
+        const propertiesWithValues = await Promise.all(
+          properties.map(async (prop: Property) => {
+            try {
+              const valuesResponse = await fetch(`/api/properties/${prop.propertyid}/values`);
+              const valuesResult = await valuesResponse.json();
+              if (valuesResult.success) {
+                return {
+                  ...prop,
+                  values: valuesResult.values || []
+                };
+              }
+            } catch (error) {
+              console.error(`Failed to load values for property ${prop.propertyid}:`, error);
+            }
+            return {
+              ...prop,
+              values: prop.values || []
+            };
+          })
+        );
+        
+        return propertiesWithValues;
       }
     } catch (error) {
       console.error('Failed to load properties for product type:', error);
     }
     return [];
+  };
+
+  const handleAddPropertyValue = async (propertyId: string) => {
+    const newValue = newPropertyValues[propertyId]?.trim();
+    if (!newValue) {
+      alert(language === 'bg' ? 'Моля, въведете стойност' : 'Please enter a value');
+      return;
+    }
+
+    // Check if value already exists
+    const property = productTypeProperties.find(p => p.propertyid === propertyId);
+    if (property?.values?.some(v => v.value.toLowerCase() === newValue.toLowerCase())) {
+      alert(language === 'bg' ? 'Тази стойност вече съществува' : 'This value already exists');
+      return;
+    }
+
+    setAddingPropertyValue(prev => ({ ...prev, [propertyId]: true }));
+
+    try {
+      // Get the next display order
+      const maxDisplayOrder = property?.values?.reduce((max, v) => Math.max(max, v.displayorder || 0), 0) || 0;
+      
+      const response = await fetch(`/api/properties/${propertyId}/values`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          value: newValue,
+          displayorder: maxDisplayOrder + 1
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Reload properties for the product type to get the new value
+        if (formData.producttypeid) {
+          const updatedProps = await loadPropertiesForProductType(formData.producttypeid);
+          setProductTypeProperties(updatedProps);
+        }
+        
+        // Automatically select the newly added value
+        const currentValues = selectedPropertyValues[propertyId] || [];
+        setSelectedPropertyValues({
+          ...selectedPropertyValues,
+          [propertyId]: [...currentValues, newValue]
+        });
+        
+        // Clear the input
+        setNewPropertyValues(prev => ({ ...prev, [propertyId]: '' }));
+      } else {
+        alert(language === 'bg' ? 'Грешка при добавяне на стойност: ' + result.error : 'Error adding value: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Failed to add property value:', error);
+      alert(language === 'bg' ? 'Неуспешно добавяне на стойност' : 'Failed to add property value');
+    } finally {
+      setAddingPropertyValue(prev => ({ ...prev, [propertyId]: false }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -255,6 +339,7 @@ export default function ProductsPage() {
         setEditingProduct(null);
         setVariants([]);
         setSelectedPropertyValues({});
+        setNewPropertyValues({});
         loadProducts();
       } else {
         alert('Error: ' + result.error);
@@ -379,11 +464,13 @@ export default function ProductsPage() {
       // Reset selected property values for variant generation
       setSelectedPropertyValues({});
       setVariants([]);
+      setNewPropertyValues({});
     } else {
       setProductTypeProperties([]);
       setFormData(prev => ({ ...prev, propertyvalues: {} }));
       setSelectedPropertyValues({});
       setVariants([]);
+      setNewPropertyValues({});
     }
   };
 
@@ -775,7 +862,7 @@ export default function ProductsPage() {
                     required
                     disabled={!formData.rfproducttypeid}
                   >
-                    <option value="">Select a product type</option>
+                    <option value="">{t.selectAProductType}</option>
                     {filteredProductTypes.map((pt) => (
                       <option key={pt.producttypeid} value={pt.producttypeid}>
                         {pt.name}
@@ -820,32 +907,77 @@ export default function ProductsPage() {
                               <span className="text-gray-400 ml-1">({property.description})</span>
                             )}
                           </label>
-                          {property.datatype === 'select' && property.values && property.values.length > 0 ? (
-                            <div className="space-y-1">
-                              {property.values
-                                .filter(v => v.isactive)
-                                .sort((a, b) => a.displayorder - b.displayorder)
-                                .map((value) => (
-                                  <label key={value.propertyvalueid} className="flex items-center">
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedPropertyValues[property.propertyid]?.includes(value.value) || false}
-                                      onChange={(e) => {
-                                        const currentValues = selectedPropertyValues[property.propertyid] || [];
-                                        const newValues = e.target.checked
-                                          ? [...currentValues, value.value]
-                                          : currentValues.filter(v => v !== value.value);
-                                        setSelectedPropertyValues({
-                                          ...selectedPropertyValues,
-                                          [property.propertyid]: newValues
-                                        });
-                                      }}
-                                      className="mr-2"
-                                    />
-                                    <span className="text-sm">{value.value}</span>
-                                  </label>
-                                ))}
-                            </div>
+                          {property.datatype === 'select' ? (
+                            <>
+                              {property.values && property.values.length > 0 ? (
+                                <div className="space-y-1">
+                                  {property.values
+                                    .filter(v => v.isactive)
+                                    .sort((a, b) => a.displayorder - b.displayorder)
+                                    .map((value) => (
+                                      <label key={value.propertyvalueid} className="flex items-center">
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedPropertyValues[property.propertyid]?.includes(value.value) || false}
+                                          onChange={(e) => {
+                                            const currentValues = selectedPropertyValues[property.propertyid] || [];
+                                            const newValues = e.target.checked
+                                              ? [...currentValues, value.value]
+                                              : currentValues.filter(v => v !== value.value);
+                                            setSelectedPropertyValues({
+                                              ...selectedPropertyValues,
+                                              [property.propertyid]: newValues
+                                            });
+                                          }}
+                                          className="mr-2"
+                                        />
+                                        <span className="text-sm">{value.value}</span>
+                                      </label>
+                                    ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-gray-400 mb-2">
+                                  {language === 'bg' ? 'Няма налични стойности' : 'No values available'}
+                                </p>
+                              )}
+                              {/* Add new value input */}
+                              <div className="mt-2 pt-2 border-t border-gray-200">
+                                <div className="flex gap-2">
+                                  <input
+                                    type="text"
+                                    value={newPropertyValues[property.propertyid] || ''}
+                                    onChange={(e) => setNewPropertyValues(prev => ({ ...prev, [property.propertyid]: e.target.value }))}
+                                    onKeyPress={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleAddPropertyValue(property.propertyid);
+                                      }
+                                    }}
+                                    placeholder={language === 'bg' ? 'Добави нова стойност...' : 'Add new value...'}
+                                    className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    disabled={addingPropertyValue[property.propertyid]}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAddPropertyValue(property.propertyid)}
+                                    disabled={addingPropertyValue[property.propertyid] || !newPropertyValues[property.propertyid]?.trim()}
+                                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-1"
+                                  >
+                                    {addingPropertyValue[property.propertyid] ? (
+                                      <>
+                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                        <span>{language === 'bg' ? 'Добавяне...' : 'Adding...'}</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Plus className="w-3 h-3" />
+                                        <span>{language === 'bg' ? 'Добави' : 'Add'}</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            </>
                           ) : (
                             <p className="text-xs text-gray-400">
                               {t.propertyTypeNotSupportVariants}
@@ -1057,6 +1189,7 @@ export default function ProductsPage() {
                       setSelectedVariantIndex(null);
                       setSelectedPropertyValues({});
                       setVariants([]);
+                      setNewPropertyValues({});
                     }}
                     className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
                   >

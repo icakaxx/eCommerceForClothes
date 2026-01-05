@@ -211,7 +211,6 @@ export interface Translations {
   editProductType: string;
 
   // Properties
-  addProperty: string;
   editProperty: string;
   addPropertyValue: string;
   editPropertyValue: string;
@@ -524,6 +523,10 @@ export interface Translations {
   notAvailable: string;
   inStock: string;
   outOfStock: string;
+  selectAProductType: string;
+  allPropertiesAssigned: string;
+  removeProperty: string;
+  addProperty: string;
 
   // Cookie Consent
   cookieConsentTitle: string;
@@ -1121,6 +1124,9 @@ export const translations: Record<Language, Translations> = {
     notAvailable: 'N/A',
     inStock: 'In Stock',
     outOfStock: 'Out of Stock',
+    selectAProductType: 'Select a product type',
+    allPropertiesAssigned: 'All available properties are already assigned.',
+    removeProperty: 'Are you sure you want to remove this property?',
 
     // Cookie Consent
     cookieConsentTitle: 'We use cookies',
@@ -1712,6 +1718,9 @@ export const translations: Record<Language, Translations> = {
   notAvailable: 'Н/Д',
   inStock: 'В наличност',
   outOfStock: 'Изчерпан',
+  selectAProductType: 'Изберете тип продукт',
+  allPropertiesAssigned: 'Всички налични свойства вече са присвоени.',
+  removeProperty: 'Сигурни ли сте, че искате да премахнете това свойство?',
 
   // Cookie Consent
   cookieConsentTitle: 'Използваме бисквитки',

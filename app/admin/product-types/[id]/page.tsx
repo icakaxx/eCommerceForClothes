@@ -4,11 +4,15 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Plus, X, Trash2 } from 'lucide-react';
 import { ProductType, Property } from '@/lib/types/product-types';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/lib/translations';
 
 export default function ProductTypeDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
+  const { language } = useLanguage();
+  const t = translations[language || 'bg'];
 
   const [productType, setProductType] = useState<ProductType | null>(null);
   const [assignedProperties, setAssignedProperties] = useState<any[]>([]);
@@ -73,7 +77,7 @@ export default function ProductTypeDetailsPage() {
   };
 
   const handleRemoveProperty = async (propertyId: string) => {
-    if (!confirm('Are you sure you want to remove this property?')) return;
+    if (!confirm(t.removeProperty)) return;
 
     try {
       const response = await fetch(`/api/product-types/${id}/properties?propertyId=${propertyId}`, {
@@ -122,18 +126,18 @@ export default function ProductTypeDetailsPage() {
 
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Assigned Properties</h2>
+            <h2 className="text-xl font-semibold">{language === 'bg' ? 'Присвоени свойства' : 'Assigned Properties'}</h2>
             <button
               onClick={() => setShowAddModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
               <Plus className="w-5 h-5" />
-              Add Property
+              {t.addProperty}
             </button>
           </div>
 
           {assignedProperties.length === 0 ? (
-            <p className="text-gray-500">No properties assigned yet.</p>
+            <p className="text-gray-500">{language === 'bg' ? 'Няма присвоени свойства все още.' : 'No properties assigned yet.'}</p>
           ) : (
             <div className="space-y-2">
               {assignedProperties.map((ap) => (
@@ -164,14 +168,14 @@ export default function ProductTypeDetailsPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Add Property</h2>
+                <h2 className="text-xl font-bold">{t.addProperty}</h2>
                 <button onClick={() => setShowAddModal(false)}>
                   <X className="w-5 h-5" />
                 </button>
               </div>
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {unassignedProperties.length === 0 ? (
-                  <p className="text-gray-500">All available properties are already assigned.</p>
+                  <p className="text-gray-500">{t.allPropertiesAssigned}</p>
                 ) : (
                   unassignedProperties.map((prop) => (
                     <button

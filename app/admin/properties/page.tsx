@@ -123,7 +123,7 @@ export default function PropertiesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this property?')) return;
+    if (!confirm(t.confirmDeleteProperty)) return;
 
     try {
       const response = await fetch(`/api/properties/${id}`, { method: 'DELETE' });
@@ -164,7 +164,7 @@ export default function PropertiesPage() {
   };
 
   const handleDeleteValue = async (valueId: string) => {
-    if (!confirm('Are you sure you want to delete this property value?')) return;
+    if (!confirm(t.confirmDeletePropertyValue)) return;
 
     try {
       const response = await fetch(`/api/properties/values/${valueId}`, { method: 'DELETE' });
@@ -671,7 +671,7 @@ export default function PropertiesPage() {
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name
+                    {t.name}
                   </label>
                   <input
                     type="text"
@@ -683,7 +683,7 @@ export default function PropertiesPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
+                    {t.description}
                   </label>
                   <textarea
                     value={formData.description}
@@ -694,16 +694,16 @@ export default function PropertiesPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Data Type
+                    {t.dataType}
                   </label>
                   <select
                     value={formData.datatype}
                     onChange={(e) => setFormData({ ...formData, datatype: e.target.value as 'text' | 'select' | 'number' })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   >
-                    <option value="text">Text</option>
-                    <option value="select">Select</option>
-                    <option value="number">Number</option>
+                    <option value="text">{t.text}</option>
+                    <option value="select">{t.select}</option>
+                    <option value="number">{t.number}</option>
                   </select>
                 </div>
                 <div className="flex justify-end gap-2">
@@ -712,13 +712,13 @@ export default function PropertiesPage() {
                     onClick={() => setShowModal(false)}
                     className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
                   >
-                    Cancel
+                    {t.cancel}
                   </button>
                   <button
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
-                    {editingProperty ? 'Update' : 'Create'}
+                    {editingProperty ? t.update : t.create}
                   </button>
                 </div>
               </form>
@@ -739,26 +739,26 @@ export default function PropertiesPage() {
               </div>
               <div className="mb-4 p-3 bg-gray-50 rounded">
                 <p className="text-sm text-gray-600">
-                  Property: <strong>{currentProperty.name}</strong>
+                  {t.propertyColon} <strong>{currentProperty.name}</strong>
                 </p>
               </div>
               <form onSubmit={handleValueSubmit}>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Value *
+                    {t.valueRequired}
                   </label>
                   <input
                     type="text"
                     value={valueFormData.value}
                     onChange={(e) => setValueFormData({ ...valueFormData, value: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    placeholder="Enter value (e.g., Genuine Leather)"
+                    placeholder={language === 'bg' ? 'Въведете стойност (напр. Истинска кожа)' : 'Enter value (e.g., Genuine Leather)'}
                     required
                   />
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Display Order
+                    {t.displayOrder}
                   </label>
                   <input
                     type="number"
@@ -768,7 +768,7 @@ export default function PropertiesPage() {
                     min="0"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Lower numbers appear first in the list
+                    {t.lowerNumbersFirst}
                   </p>
                 </div>
                 <div className="flex justify-end gap-2">
@@ -777,7 +777,7 @@ export default function PropertiesPage() {
                     onClick={() => setShowValueModal(false)}
                     className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
                   >
-                    Cancel
+                    {t.cancel}
                   </button>
                   {!editingValue && (
                     <button
@@ -785,14 +785,14 @@ export default function PropertiesPage() {
                       onClick={handleNextValue}
                       className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                     >
-                      Next
+                      {t.next}
                     </button>
                   )}
                   <button
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
-                    {editingValue ? 'Update' : 'Add'} Value
+                    {editingValue ? t.updateValue : t.addValueBtn}
                   </button>
                 </div>
               </form>
