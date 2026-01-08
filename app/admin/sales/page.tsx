@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Edit2, ChevronDown, ChevronUp, Package } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { getAdminSession } from '@/lib/auth';
+import type { EcontOfficesData, EcontOffice } from '@/types/econt';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/lib/translations';
 
 interface OrderItem {
   OrderItemID: string;
@@ -35,12 +38,32 @@ interface Order {
 
 export default function SalesPage() {
   const router = useRouter();
+  const { language } = useLanguage();
+  const t = translations[language];
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [econtOffices, setEcontOffices] = useState<EcontOfficesData | null>(null);
+
+  const getStatusTranslation = (status: string): string => {
+    switch (status) {
+      case 'pending':
+        return t.pending;
+      case 'confirmed':
+        return t.confirmed;
+      case 'shipped':
+        return t.shipped;
+      case 'delivered':
+        return t.delivered;
+      case 'cancelled':
+        return t.cancelled;
+      default:
+        return status;
+    }
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -65,8 +88,19 @@ export default function SalesPage() {
   useEffect(() => {
     if (isAuthenticated) {
       loadOrders();
+      loadEcontOffices();
     }
   }, [isAuthenticated]);
+
+  const loadEcontOffices = async () => {
+    try {
+      const response = await fetch('/data/econt-offices.json');
+      const data: EcontOfficesData = await response.json();
+      setEcontOffices(data);
+    } catch (error) {
+      console.error('Failed to load Econt offices:', error);
+    }
+  };
 
   const loadOrders = async () => {
     try {
@@ -125,6 +159,27 @@ export default function SalesPage() {
     }
   };
 
+  const getEcontOffice = (officeId: string): EcontOffice | null => {
+    if (!econtOffices || !officeId) return null;
+    
+    // Search through all cities and their offices
+    for (const city in econtOffices.officesByCity) {
+      const offices = econtOffices.officesByCity[city];
+      const office = offices.find((o: EcontOffice) => o.id === officeId);
+      if (office) {
+        return office;
+      }
+    }
+    
+    // If not found, return null
+    return null;
+  };
+
+  const getEcontOfficeName = (officeId: string): string => {
+    const office = getEcontOffice(officeId);
+    return office ? office.name : officeId;
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -157,7 +212,7 @@ export default function SalesPage() {
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-900">Общо приходи</h3>
-            <p className="text-3xl font-bold text-green-600 mt-2">${totalRevenue.toFixed(2)}</p>
+            <p className="text-3xl font-bold text-green-600 mt-2">€{totalRevenue.toFixed(2)}</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-900">Поръчки в очакване</h3>
@@ -216,7 +271,7 @@ export default function SalesPage() {
                             className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
                           >
                             <Package className="w-4 h-4" />
-                            <span>{itemCount} item{itemCount !== 1 ? 's' : ''}</span>
+                            <span>{itemCount} {itemCount !== 1 ? t.items : t.item}</span>
                             {isExpanded ? (
                               <ChevronUp className="w-4 h-4" />
                             ) : (
@@ -228,7 +283,7 @@ export default function SalesPage() {
                           {order.customeremail || 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          ${order.total?.toFixed(2) || '0.00'}
+                          €{order.total?.toFixed(2) || '0.00'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -244,7 +299,7 @@ export default function SalesPage() {
                               ? 'bg-red-100 text-red-800'
                               : 'bg-gray-100 text-gray-800'
                           }`}>
-                            {order.status}
+                            {getStatusTranslation(order.status)}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -257,11 +312,11 @@ export default function SalesPage() {
                             disabled={updatingStatus === order.orderid}
                             className="text-sm border border-gray-300 rounded px-2 py-1 disabled:opacity-50"
                           >
-                            <option value="pending">В очакване</option>
-                            <option value="confirmed">Потвърдена</option>
-                            <option value="shipped">Изпратена</option>
-                            <option value="delivered">Доставена</option>
-                            <option value="cancelled">Отказана</option>
+                            <option value="pending">{t.pending}</option>
+                            <option value="confirmed">{t.confirmed}</option>
+                            <option value="shipped">{t.shipped}</option>
+                            <option value="delivered">{t.delivered}</option>
+                            <option value="cancelled">{t.cancelled}</option>
                           </select>
                           {updatingStatus === order.orderid && (
                             <span className="ml-2 text-xs text-gray-500">Обновяване...</span>
@@ -275,12 +330,21 @@ export default function SalesPage() {
                           <td colSpan={6} className="px-6 py-4 bg-gray-50">
                             <div className="border rounded-lg bg-white p-4">
                               {/* Delivery Information */}
-                              {(order.deliverytype === 'office' && order.econtoffice) && (
-                                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                  <h4 className="text-sm font-medium text-blue-900 mb-1">Econt Office Delivery</h4>
-                                  <p className="text-sm text-blue-700">Office ID: {order.econtoffice}</p>
-                                </div>
-                              )}
+                              {(order.deliverytype === 'office' && order.econtoffice) && (() => {
+                                const office = getEcontOffice(order.econtoffice);
+                                return office ? (
+                                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <h4 className="text-sm font-medium text-blue-900 mb-1">Econt Office Delivery</h4>
+                                    <p className="text-sm text-blue-700 font-medium">{office.name}</p>
+                                    <p className="text-sm text-blue-600 mt-1">{office.address}</p>
+                                  </div>
+                                ) : (
+                                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <h4 className="text-sm font-medium text-blue-900 mb-1">Econt Office Delivery</h4>
+                                    <p className="text-sm text-blue-700">Office ID: {order.econtoffice}</p>
+                                  </div>
+                                );
+                              })()}
                               
                               <h4 className="text-sm font-medium text-gray-900 mb-3">Order Items</h4>
                               <div className="space-y-3">
@@ -331,13 +395,13 @@ export default function SalesPage() {
                                     </div>
                                     <div className="text-right">
                                       <p className="text-sm font-medium text-gray-900">
-                                        ${item.price?.toFixed(2) || '0.00'}
+                                        €{item.price?.toFixed(2) || '0.00'}
                                       </p>
                                       <p className="text-xs text-gray-500">
                                         Qty: {item.quantity}
                                       </p>
                                       <p className="text-xs text-gray-500">
-                                        Subtotal: ${(item.price * item.quantity)?.toFixed(2) || '0.00'}
+                                        Subtotal: €{(item.price * item.quantity)?.toFixed(2) || '0.00'}
                                       </p>
                                     </div>
                                   </div>

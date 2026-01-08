@@ -17,8 +17,10 @@ export default function AdminLayout({ children, currentPath }: AdminLayoutProps)
       style={{ backgroundColor: theme.colors.background }}
     >
       <AdminSidebar currentPath={currentPath} />
-      <div className="flex-1 overflow-auto">
-        {children}
+      <div className="flex-1 overflow-auto lg:ml-0">
+        <div className="lg:pt-0 pt-16">
+          {children}
+        </div>
       </div>
     </div>
   );

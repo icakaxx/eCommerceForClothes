@@ -1085,7 +1085,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                     ? `Качени снимки: ${formData.images.length}` 
                     : `Uploaded images: ${formData.images.length}`}
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-2.5 md:gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
                   {formData.images.map((image, index) => {
                     const isUploading = uploadingImages.some(id => 
                       formData.images.indexOf(image) === formData.images.length - 1
@@ -1093,7 +1093,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                     return (
                       <div
                         key={`${image}-${index}`}
-                        className="relative group aspect-square rounded-lg overflow-hidden border transition-colors duration-300"
+                        className="relative group aspect-square rounded-lg overflow-hidden border transition-colors duration-300 min-w-0 flex-shrink-0"
                         style={{ borderColor: theme.colors.border }}
                       >
                         {isUploading ? (

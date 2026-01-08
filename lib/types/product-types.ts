@@ -72,6 +72,9 @@ export interface ProductVariant {
   updatedat: string;
   // Joined data
   propertyvalues?: ProductVariantPropertyValue[];
+  // Images - can be array of URLs (string[]) or ProductImage[]
+  images?: string[];
+  imageurl?: string; // For backwards compatibility
 }
 
 export interface ProductVariantPropertyValue {
@@ -109,7 +112,7 @@ export interface ProductWithDetails extends Product {
 
 export interface ProductVariantWithDetails extends ProductVariant {
   propertyvalues?: Array<ProductVariantPropertyValue & { property?: Property }>;
-  images?: ProductImage[];
+  // images is already defined in ProductVariant as string[]
 }
 
 export interface PropertyWithProductTypes extends Property {

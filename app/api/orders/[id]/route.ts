@@ -9,11 +9,20 @@ export async function GET(
     const supabase = supabaseAdmin;
     const { id } = await params;
 
-    // Fetch order with items
+    // Fetch order with items and customer details
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select(`
         *,
+        customers (
+          customerid,
+          firstname,
+          lastname,
+          email,
+          telephone,
+          country,
+          city
+        ),
         order_items (
           orderitemid,
           quantity,
@@ -141,12 +150,26 @@ export async function GET(
       })
     );
 
+    // Extract customer data from nested customers object and flatten it
+    const customer = Array.isArray(order.customers) ? order.customers[0] : order.customers;
+    const flattenedOrder = {
+      ...order,
+      // Flatten customer fields to match frontend expectations
+      customerfirstname: customer?.firstname || '',
+      customerlastname: customer?.lastname || '',
+      customeremail: customer?.email || '',
+      customertelephone: customer?.telephone || '',
+      customercountry: customer?.country || '',
+      customercity: customer?.city || '',
+      items: itemsWithDetails
+    };
+    
+    // Remove the nested customers object as it's now flattened
+    delete flattenedOrder.customers;
+
     return NextResponse.json({
       success: true,
-      order: {
-        ...order,
-        items: itemsWithDetails
-      }
+      order: flattenedOrder
     });
 
   } catch (error) {

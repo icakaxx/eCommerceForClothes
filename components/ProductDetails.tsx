@@ -11,7 +11,7 @@ import { ShoppingCart, Heart, Share2 } from 'lucide-react';
 
 interface ProductDetailsProps {
   product: Product;
-  onVariantChange?: (imageUrl: string | undefined) => void;
+  onVariantChange?: (images: string[] | string | undefined) => void;
 }
 
 
@@ -38,6 +38,7 @@ interface Variant {
     value: string;
   }>;
   imageurl?: string;
+  images?: string[];
   IsPrimaryImage?: boolean;
 }
 
@@ -112,9 +113,15 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         console.log('🔍 ProductDetails: Initial selected options:', initialOptions);
         setSelectedOptions(initialOptions);
 
-        // Notify parent of initial variant image (only once on mount)
-        if (onVariantChange && primaryVariant.imageurl) {
-          onVariantChange(primaryVariant.imageurl);
+        // Notify parent of initial variant images (only once on mount)
+        if (onVariantChange) {
+          if (primaryVariant.images && primaryVariant.images.length > 0) {
+            onVariantChange(primaryVariant.images);
+          } else if (primaryVariant.imageurl) {
+            onVariantChange([primaryVariant.imageurl]);
+          } else if (product.images && product.images.length > 0) {
+            onVariantChange(product.images);
+          }
         }
       }
     } else {
@@ -162,12 +169,28 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
       console.log('🔍 ProductDetails: Matched variant:', matchingVariant);
       setSelectedVariant(matchingVariant);
 
-      // Notify parent component of image change
+      // Notify parent component of image change - prioritize variant images, fall back to imageurl, then product images
       if (onVariantChange) {
-        onVariantChange(matchingVariant.imageurl);
+        if (matchingVariant.images && matchingVariant.images.length > 0) {
+          // Variant has specific images - use those
+          onVariantChange(matchingVariant.images);
+        } else if (matchingVariant.imageurl) {
+          // Variant has single image - use that
+          onVariantChange([matchingVariant.imageurl]);
+        } else if (product.images && product.images.length > 0) {
+          // Fall back to product general images
+          onVariantChange(product.images);
+        } else {
+          // No images available
+          onVariantChange(undefined);
+        }
       }
     } else {
       console.log('🔍 ProductDetails: No matching variant found for options:', newOptions);
+      // No matching variant - show general product images
+      if (onVariantChange && product.images && product.images.length > 0) {
+        onVariantChange(product.images);
+      }
     }
   };
 

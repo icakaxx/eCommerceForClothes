@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, Image as ImageIcon, Upload, Save, Package, Settings, List } from 'lucide-react';
+import { X, Plus, Trash2, Image as ImageIcon, Upload, Save, Package, Settings, List, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useProductTypes } from '@/context/ProductTypeContext';
@@ -23,6 +23,7 @@ interface VariantFormData {
   trackquantity: boolean;
   isvisible: boolean;
   propertyvalues: Record<string, string>;
+  images?: string[];
 }
 
 export default function EditProductVariantsModal({ product, onClose, onSave }: EditProductVariantsModalProps) {
@@ -42,20 +43,40 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
   });
 
   const [variants, setVariants] = useState<VariantFormData[]>(
-    product?.variants?.map(v => ({
-      productvariantid: v.productvariantid,
-      sku: v.sku || '',
-      price: v.price || 0,
-      quantity: v.quantity,
-      trackquantity: v.trackquantity,
-      isvisible: v.isvisible,
-      propertyvalues: v.propertyvalues?.reduce((acc, pv) => {
-        if (pv.property) {
-          acc[pv.property.propertyid] = pv.value;
+    product?.variants?.map(v => {
+      // Handle images - can be string[] or ProductImage[]
+      let variantImages: string[] = [];
+      if (v.images) {
+        if (Array.isArray(v.images)) {
+          // Check if it's ProductImage[] or string[]
+          if (v.images.length > 0 && typeof v.images[0] === 'object') {
+            // It's ProductImage[] - extract imageurl
+            variantImages = (v.images as any[]).map(img => img.imageurl || img.ImageURL || img.url).filter(Boolean);
+          } else {
+            // It's string[]
+            variantImages = v.images as string[];
+          }
         }
-        return acc;
-      }, {} as Record<string, string>) || {}
-    })) || []
+      } else if (v.imageurl) {
+        variantImages = [v.imageurl];
+      }
+
+      return {
+        productvariantid: v.productvariantid,
+        sku: v.sku || '',
+        price: v.price || 0,
+        quantity: v.quantity,
+        trackquantity: v.trackquantity,
+        isvisible: v.isvisible,
+        propertyvalues: v.propertyvalues?.reduce((acc, pv) => {
+          if (pv.property) {
+            acc[pv.property.propertyid] = pv.value;
+          }
+          return acc;
+        }, {} as Record<string, string>) || {},
+        images: variantImages
+      };
+    }) || []
   );
 
   const [availableProperties, setAvailableProperties] = useState<Property[]>([]);
@@ -67,7 +88,8 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
     quantity: 0,
     trackquantity: true,
     isvisible: true,
-    propertyvalues: {}
+    propertyvalues: {},
+    images: []
   });
 
   // Get available properties for selected product type
@@ -286,7 +308,8 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
       quantity: 0,
       trackquantity: true,
       isvisible: true,
-      propertyvalues: {}
+      propertyvalues: {},
+      images: []
     });
     setEditingVariantIndex(null);
     setShowVariantModal(true);
@@ -497,95 +520,170 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
               </div>
 
               {/* Variants List */}
-              <div className="space-y-3">
-                {variants.length === 0 ? (
-                  <div
-                    className="text-center py-8 border-2 border-dashed rounded-lg"
-                    style={{ borderColor: theme.colors.border }}
-                  >
-                    <Package size={48} className="mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium">
-                      {language === 'bg' ? 'Няма варианти' : 'No variants yet'}
-                    </p>
-                    <p className="text-sm opacity-75 mt-2">
-                      {language === 'bg'
-                        ? 'Добавете варианти за да управлявате различни комбинации от свойства'
-                        : 'Add variants to manage different property combinations'
-                      }
-                    </p>
-                  </div>
-                ) : (
-                  variants.map((variant, index) => (
-                    <div
-                      key={index}
-                      className="p-4 border rounded-lg"
-                      style={{
-                        backgroundColor: theme.colors.background,
-                        borderColor: theme.colors.border
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-4 mb-2">
-                            <span className="font-medium">
-                              {variant.sku || `${language === 'bg' ? 'Вариант' : 'Variant'} ${index + 1}`}
-                            </span>
-                            <span
-                              className={`px-2 py-1 text-xs rounded ${
-                                variant.isvisible
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                  : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                              }`}
-                            >
-                              {variant.isvisible
-                                ? (language === 'bg' ? 'Видим' : 'Visible')
-                                : (language === 'bg' ? 'Скрит' : 'Hidden')
-                              }
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-4 text-sm">
-                            <span>
-                              {language === 'bg' ? 'Количество:' : 'Qty:'} {variant.quantity}
-                            </span>
-                            {variant.price && (
-                              <span>
-                                {language === 'bg' ? 'Цена:' : 'Price:'} ${variant.price}
-                              </span>
-                            )}
-                            {Object.keys(variant.propertyvalues).length > 0 && (
-                              <span>
-                                {language === 'bg' ? 'Свойства:' : 'Properties:'} {Object.keys(variant.propertyvalues).length}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => editVariant(index)}
-                            className="px-3 py-1 text-sm border rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                            style={{
-                              borderColor: theme.colors.border,
-                              color: theme.colors.text
+              {variants.length === 0 ? (
+                <div
+                  className="text-center py-8 border-2 border-dashed rounded-lg"
+                  style={{ borderColor: theme.colors.border }}
+                >
+                  <Package size={48} className="mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">
+                    {language === 'bg' ? 'Няма варианти' : 'No variants yet'}
+                  </p>
+                  <p className="text-sm opacity-75 mt-2">
+                    {language === 'bg'
+                      ? 'Добавете варианти за да управлявате различни комбинации от свойства'
+                      : 'Add variants to manage different property combinations'
+                    }
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr style={{ borderBottomColor: theme.colors.border }} className="border-b">
+                        <th className="text-left py-2 px-3 font-medium text-sm" style={{ color: theme.colors.text }}>
+                          {language === 'bg' ? 'Вариант' : 'Variant'}
+                        </th>
+                        <th className="text-left py-2 px-3 font-medium text-sm" style={{ color: theme.colors.text }}>
+                          SKU
+                        </th>
+                        <th className="text-left py-2 px-3 font-medium text-sm" style={{ color: theme.colors.text, width: '80px' }}>
+                          {language === 'bg' ? 'Цена' : 'Price'}
+                        </th>
+                        <th className="text-left py-2 px-3 font-medium text-sm" style={{ color: theme.colors.text, width: '90px' }}>
+                          {language === 'bg' ? 'Количество' : 'Quantity'}
+                        </th>
+                        <th className="text-left py-2 px-3 font-medium text-sm" style={{ color: theme.colors.text }}>
+                          {language === 'bg' ? 'Изображение' : 'Image'}
+                        </th>
+                        <th className="text-left py-2 px-3 font-medium text-sm" style={{ color: theme.colors.text, width: '60px' }}>
+                          {language === 'bg' ? 'Действия' : 'Actions'}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {variants.map((variant, index) => {
+                        // Build variant description from property values
+                        const variantDesc: string[] = [];
+                        Object.entries(variant.propertyvalues).forEach(([propId, value]) => {
+                          const property = availableProperties.find(p => p.propertyid === propId);
+                          if (property && value) {
+                            variantDesc.push(`${property.name}: ${value}`);
+                          }
+                        });
+                        const variantDescription = variantDesc.join(', ') || `${language === 'bg' ? 'Вариант' : 'Variant'} ${index + 1}`;
+                        
+                        const variantImage = variant.images && variant.images.length > 0 ? variant.images[0] : null;
+                        
+                        return (
+                          <tr 
+                            key={index}
+                            className="border-b"
+                            style={{ 
+                              borderBottomColor: theme.colors.border,
+                              backgroundColor: theme.colors.background
                             }}
                           >
-                            {language === 'bg' ? 'Редактирай' : 'Edit'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => deleteVariant(index)}
-                            className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                          >
-                            {language === 'bg' ? 'Изтрий' : 'Delete'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+                            <td className="py-3 px-3 text-sm" style={{ color: theme.colors.text }}>
+                              {variantDescription}
+                            </td>
+                            <td className="py-3 px-3">
+                              <input
+                                type="text"
+                                value={variant.sku || ''}
+                                onChange={(e) => {
+                                  const updatedVariants = [...variants];
+                                  updatedVariants[index].sku = e.target.value;
+                                  setVariants(updatedVariants);
+                                }}
+                                className="w-full px-2 py-1.5 text-sm border rounded min-w-0"
+                                style={{
+                                  backgroundColor: theme.colors.surface,
+                                  borderColor: theme.colors.border,
+                                  color: theme.colors.text
+                                }}
+                                placeholder={language === 'bg' ? 'SKU' : 'SKU'}
+                              />
+                            </td>
+                            <td className="py-3 px-3" style={{ width: '80px' }}>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={variant.price || ''}
+                                onChange={(e) => {
+                                  const updatedVariants = [...variants];
+                                  updatedVariants[index].price = e.target.value ? parseFloat(e.target.value) : undefined;
+                                  setVariants(updatedVariants);
+                                }}
+                                className="w-full px-2 py-1.5 text-sm border rounded"
+                                style={{
+                                  backgroundColor: theme.colors.surface,
+                                  borderColor: theme.colors.border,
+                                  color: theme.colors.text
+                                }}
+                              />
+                            </td>
+                            <td className="py-3 px-3" style={{ width: '90px' }}>
+                              <input
+                                type="number"
+                                min="0"
+                                value={variant.quantity}
+                                onChange={(e) => {
+                                  const updatedVariants = [...variants];
+                                  updatedVariants[index].quantity = parseInt(e.target.value) || 0;
+                                  setVariants(updatedVariants);
+                                }}
+                                className="w-full px-2 py-1.5 text-sm border rounded"
+                                style={{
+                                  backgroundColor: theme.colors.surface,
+                                  borderColor: theme.colors.border,
+                                  color: theme.colors.text
+                                }}
+                              />
+                            </td>
+                            <td className="py-3 px-3">
+                              <div className="flex items-center gap-2">
+                                {variantImage && (
+                                  <div className="relative w-10 h-10 rounded overflow-hidden flex-shrink-0 border" style={{ borderColor: theme.colors.border }}>
+                                    <img
+                                      src={variantImage}
+                                      alt="Variant"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => editVariant(index)}
+                                  className="p-1.5 rounded border hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                  style={{
+                                    borderColor: theme.colors.border,
+                                    color: theme.colors.text
+                                  }}
+                                  title={language === 'bg' ? 'Добави/Редактирай снимки' : 'Add/Edit images'}
+                                >
+                                  <ImageIcon size={16} />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="py-3 px-3" style={{ width: '60px' }}>
+                              <button
+                                type="button"
+                                onClick={() => deleteVariant(index)}
+                                className="p-1.5 rounded bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                title={language === 'bg' ? 'Изтрий' : 'Delete'}
+                              >
+                                <Trash2 size={20} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
 
@@ -784,6 +882,9 @@ function VariantModal({
 }) {
   const { language } = useLanguage();
   const { theme } = useTheme();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingImages, setUploadingImages] = useState<string[]>([]);
+  const [dragActive, setDragActive] = useState(false);
 
   const updateVariant = (field: keyof VariantFormData, value: any) => {
     onChange({ ...variant, [field]: value });
@@ -797,6 +898,104 @@ function VariantModal({
         [propertyId]: value
       }
     });
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert(language === 'bg' ? 'Моля изберете снимка (JPG, PNG, etc.)' : 'Please select an image (JPG, PNG, etc.)');
+      return;
+    }
+
+    const tempId = `temp-${Date.now()}-${Math.random()}`;
+    const tempPreviewUrl = URL.createObjectURL(file);
+    
+    // Add temporary preview to images
+    updateVariant('images', [...(variant.images || []), tempPreviewUrl]);
+    setUploadingImages(prev => [...prev, tempId]);
+
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+      uploadFormData.append('folder', 'images');
+
+      const response = await fetch('/api/storage/upload', {
+        method: 'POST',
+        body: uploadFormData
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success && result.url) {
+        // Remove temporary preview and add real URL
+        const currentImages = variant.images || [];
+        const newImages = currentImages
+          .filter(img => img !== tempPreviewUrl)
+          .concat(result.url);
+        
+        updateVariant('images', newImages);
+        URL.revokeObjectURL(tempPreviewUrl);
+      } else {
+        // Remove temporary preview on error
+        const currentImages = variant.images || [];
+        updateVariant('images', currentImages.filter(img => img !== tempPreviewUrl));
+        URL.revokeObjectURL(tempPreviewUrl);
+        alert(language === 'bg' 
+          ? `Грешка при качване: ${result.error || 'Неуспешно качване'}` 
+          : `Upload error: ${result.error || 'Upload failed'}`);
+      }
+    } catch (error) {
+      // Remove temporary preview on error
+      const currentImages = variant.images || [];
+      updateVariant('images', currentImages.filter(img => img !== tempPreviewUrl));
+      URL.revokeObjectURL(tempPreviewUrl);
+      console.error('❌ Upload error:', error);
+      alert(language === 'bg' 
+        ? 'Грешка при качване на снимка' 
+        : 'Error uploading image');
+    } finally {
+      setUploadingImages(prev => prev.filter(id => id !== tempId));
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      Array.from(files).forEach(file => {
+        handleImageUpload(file);
+      });
+    }
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      Array.from(files).forEach(file => {
+        handleImageUpload(file);
+      });
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const currentImages = variant.images || [];
+    updateVariant('images', currentImages.filter((_, i) => i !== index));
   };
 
   return (
@@ -825,58 +1024,62 @@ function VariantModal({
 
         <div className="p-6 space-y-6 max-h-[calc(90vh-120px)] overflow-y-auto">
           {/* Basic Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+          <div className="space-y-4">
+            <div className="w-full">
               <label className="block text-sm font-medium mb-1">SKU</label>
               <input
                 type="text"
                 value={variant.sku || ''}
                 onChange={(e) => updateVariant('sku', e.target.value)}
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-md min-w-0 flex-1"
                 style={{
                   backgroundColor: theme.colors.surface,
                   borderColor: theme.colors.border,
-                  color: theme.colors.text
+                  color: theme.colors.text,
+                  width: '100%'
                 }}
+                placeholder={language === 'bg' ? 'Напр. PROD-001' : 'e.g. PROD-001'}
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                {language === 'bg' ? 'Количество' : 'Quantity'} *
-              </label>
-              <input
-                type="number"
-                required
-                min="0"
-                value={variant.quantity}
-                onChange={(e) => updateVariant('quantity', parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border rounded-md"
-                style={{
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                  color: theme.colors.text
-                }}
-              />
-            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  {language === 'bg' ? 'Количество' : 'Quantity'} *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={variant.quantity}
+                  onChange={(e) => updateVariant('quantity', parseInt(e.target.value) || 0)}
+                  className="w-full px-3 py-2 border rounded-md min-w-0"
+                  style={{
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                    color: theme.colors.text
+                  }}
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                {language === 'bg' ? 'Цена' : 'Price'}
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={variant.price || ''}
-                onChange={(e) => updateVariant('price', e.target.value ? parseFloat(e.target.value) : undefined)}
-                className="w-full px-3 py-2 border rounded-md"
-                style={{
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                  color: theme.colors.text
-                }}
-              />
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  {language === 'bg' ? 'Цена' : 'Price'}
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={variant.price || ''}
+                  onChange={(e) => updateVariant('price', e.target.value ? parseFloat(e.target.value) : undefined)}
+                  className="w-full px-3 py-2 border rounded-md min-w-0"
+                  style={{
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                    color: theme.colors.text
+                  }}
+                />
+              </div>
             </div>
 
           </div>
@@ -942,6 +1145,143 @@ function VariantModal({
               </div>
             </div>
           )}
+
+          {/* Variant Images */}
+          <div className="space-y-4">
+            <h4 className="text-lg font-semibold">
+              {language === 'bg' ? 'Снимки на варианта' : 'Variant Images'}
+            </h4>
+            <p className="text-sm opacity-75">
+              {language === 'bg'
+                ? 'Добавете специфични снимки за този вариант. Те ще се покажат, когато потребителят избере този SKU.'
+                : 'Add specific images for this variant. These will be shown when the user selects this SKU.'}
+            </p>
+            
+            {/* Drag & Drop Area */}
+            <div
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-lg p-4 transition-all duration-300 ${
+                dragActive ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : ''
+              }`}
+              style={{
+                borderColor: dragActive ? theme.colors.primary : theme.colors.border,
+                backgroundColor: dragActive ? 'transparent' : theme.colors.cardBg
+              }}
+            >
+              <div className="flex flex-col items-center justify-center text-center">
+                <ImageIcon 
+                  size={32}
+                  className="mb-2"
+                  style={{ color: theme.colors.textSecondary }}
+                />
+                <p 
+                  className="text-sm mb-3 transition-colors duration-300 px-2"
+                  style={{ color: theme.colors.text }}
+                >
+                  {language === 'bg' 
+                    ? 'Плъзнете снимки тук или кликнете за избор' 
+                    : 'Drag images here or click to select'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-300 flex items-center gap-2 touch-manipulation"
+                  style={{
+                    backgroundColor: theme.colors.primary,
+                    color: '#fff'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '0.9';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                  }}
+                >
+                  <Upload size={16} />
+                  <span>{language === 'bg' ? 'Избери снимки' : 'Select Images'}</span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileInput}
+                  className="hidden"
+                />
+                <p 
+                  className="text-xs mt-2 transition-colors duration-300"
+                  style={{ color: theme.colors.textSecondary }}
+                >
+                  {language === 'bg' 
+                    ? 'JPG, PNG, GIF до 10MB' 
+                    : 'JPG, PNG, GIF up to 10MB'}
+                </p>
+              </div>
+            </div>
+
+            {/* Image Preview Grid */}
+            {variant.images && variant.images.length > 0 && (
+              <div className="space-y-2">
+                <p 
+                  className="text-xs transition-colors duration-300"
+                  style={{ color: theme.colors.textSecondary }}
+                >
+                  {language === 'bg' 
+                    ? `Качени снимки: ${variant.images.length}` 
+                    : `Uploaded images: ${variant.images.length}`}
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
+                  {variant.images.map((image, index) => {
+                    const isUploading = uploadingImages.length > 0 && index === variant.images!.length - 1;
+                    return (
+                      <div
+                        key={`${image}-${index}`}
+                        className="relative group aspect-square rounded-lg overflow-hidden border transition-colors duration-300 min-w-0 flex-shrink-0"
+                        style={{ borderColor: theme.colors.border }}
+                      >
+                        {isUploading ? (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                            <Loader2 size={20} className="animate-spin" style={{ color: theme.colors.primary }} />
+                          </div>
+                        ) : (
+                          <>
+                            <img
+                              src={image}
+                              alt={`Variant image ${index + 1}`}
+                              className="w-full h-full object-cover"
+                              crossOrigin="anonymous"
+                              onError={(e) => {
+                                const target = e.currentTarget;
+                                target.style.display = 'none';
+                                const errorDiv = document.createElement('div');
+                                errorDiv.className = 'w-full h-full flex flex-col items-center justify-center bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs p-2 text-center';
+                                errorDiv.innerHTML = `
+                                  <div>${language === 'bg' ? 'Грешка при зареждане' : 'Load error'}</div>
+                                  <div class="text-[10px] mt-1 break-all">${image.substring(0, 30)}...</div>
+                                `;
+                                target.parentElement?.appendChild(errorDiv);
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(index)}
+                              className="absolute top-1 right-1 p-2 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity duration-300 touch-manipulation z-10"
+                              aria-label={language === 'bg' ? 'Премахни снимка' : 'Remove image'}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Options */}
           <div className="space-y-3">

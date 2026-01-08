@@ -50,36 +50,64 @@ async function validateStock(items: OrderData['items']): Promise<{ valid: boolea
 
   for (const item of items) {
     try {
-      // Check product variants first (for size-specific items)
-      if (item.size) {
+      // Check if item.id is a variant ID (UUID string with length > 10)
+      // This matches the logic in createOrder function
+      const isVariantId = item.id && typeof item.id === 'string' && item.id.length > 10;
+      
+      if (isVariantId) {
+        // This is a variant - use item.id directly as the variant ID
+        const variantId = item.id;
+
+        // Get variant data including trackquantity and quantity
         const { data: variant, error } = await supabase
           .from('product_variants')
-          .select('quantity')
-          .eq('productvariantid', item.id)
+          .select('quantity, trackquantity, isvisible')
+          .eq('productvariantid', variantId)
           .single();
 
-        if (error) {
+        if (error || !variant) {
           console.error('Error checking variant stock:', error);
-          insufficientStock.push({ id: item.id, requested: item.quantity, available: 0 });
+          // If variant not found, assume insufficient stock
+          insufficientStock.push({ 
+            id: item.id, 
+            variantId: variantId,
+            requested: item.quantity, 
+            available: 0,
+            reason: 'Variant not found'
+          });
           continue;
         }
 
-        if (!variant || (variant as any).quantity < item.quantity) {
-          insufficientStock.push({
-            id: item.id,
-            requested: item.quantity,
-            available: (variant as any)?.quantity || 0
-          });
+        // Only check stock if trackquantity is enabled and variant is visible
+        if ((variant as any).trackquantity !== false && (variant as any).isvisible !== false) {
+          const availableQuantity = (variant as any).quantity || 0;
+          
+          if (availableQuantity < item.quantity) {
+            insufficientStock.push({
+              id: item.id,
+              variantId: variantId,
+              requested: item.quantity,
+              available: availableQuantity,
+              reason: 'Insufficient stock'
+            });
+          }
+        } else {
+          // If trackquantity is disabled or variant is not visible, assume sufficient stock
+          console.log(`Skipping stock check for variant ${variantId} - trackquantity disabled or not visible`);
         }
       } else {
         // For products without variants, assume sufficient stock
         // (The products table doesn't have a quantity column in the current schema)
-        // In a full implementation, products table should also have quantity column
-        console.log(`Skipping stock check for product ${item.id} (no variants)`);
+        console.log(`Skipping stock check for product ${item.id} (no variant ID)`);
       }
     } catch (error) {
       console.error('Stock validation error:', error);
-      insufficientStock.push({ id: item.id, requested: item.quantity, available: 0 });
+      insufficientStock.push({ 
+        id: item.id, 
+        requested: item.quantity, 
+        available: 0,
+        reason: 'Validation error'
+      });
     }
   }
 
@@ -94,34 +122,80 @@ async function reduceStock(items: OrderData['items']): Promise<void> {
   const supabase = supabaseAdmin;
   for (const item of items) {
     try {
-      if (item.size) {
-        // Get current variant data
+      // Check if item.id is a variant ID (UUID string with length > 10)
+      // This matches the logic in createOrder function
+      const isVariantId = item.id && typeof item.id === 'string' && item.id.length > 10;
+      
+      if (isVariantId) {
+        // This is a variant - use item.id directly as the variant ID
+        const variantId = item.id;
+
+        console.log(`🔍 Attempting to reduce stock for variant ID: ${variantId}, quantity: ${item.quantity}`);
+
+        // Get current variant data including trackquantity flag
         const { data: variant, error: fetchError } = await supabase
           .from('product_variants')
-          .select('quantity')
-          .eq('productvariantid', item.id)
+          .select('quantity, trackquantity, productvariantid')
+          .eq('productvariantid', variantId)
           .single();
 
-        if (fetchError || !variant) {
-          console.error('Error fetching variant for stock reduction:', fetchError);
-          throw new Error(`Failed to fetch variant ${item.id} for stock reduction`);
+        if (fetchError) {
+          console.error('❌ Error fetching variant for stock reduction:', {
+            error: fetchError,
+            variantId: variantId,
+            errorCode: fetchError.code,
+            errorMessage: fetchError.message
+          });
+          throw new Error(`Failed to fetch variant ${variantId} for stock reduction: ${fetchError.message}`);
         }
 
-        // Reduce variant stock
-        const { error } = await (supabase as any)
-          .from('product_variants')
-          .update({ quantity: (variant as any).quantity - item.quantity })
-          .eq('productvariantid', item.id);
+        if (!variant) {
+          console.error(`❌ Variant ${variantId} not found in database`);
+          throw new Error(`Variant ${variantId} not found`);
+        }
 
-        if (error) {
-          console.error('Error reducing variant stock:', error);
-          throw new Error(`Failed to reduce stock for variant ${item.id}`);
+        console.log(`✅ Found variant:`, {
+          productvariantid: variant.productvariantid,
+          currentQuantity: variant.quantity,
+          trackquantity: variant.trackquantity
+        });
+
+        // Only reduce stock if trackquantity is enabled (default is true, so check for explicit false)
+        const trackQuantity = variant.trackquantity !== false && variant.trackquantity !== null;
+        
+        if (trackQuantity) {
+          const currentQuantity = Number(variant.quantity) || 0;
+          const newQuantity = Math.max(0, currentQuantity - item.quantity); // Prevent negative quantities
+
+          console.log(`📦 Reducing stock for variant ${variantId}: ${currentQuantity} -> ${newQuantity} (ordered: ${item.quantity})`);
+
+          // Reduce variant stock - ensure we use the correct column name from schema
+          const { error: updateError } = await supabase
+            .from('product_variants')
+            .update({ 
+              quantity: newQuantity,
+              updatedat: new Date().toISOString()
+            })
+            .eq('productvariantid', variantId);
+
+          if (updateError) {
+            console.error('❌ Error reducing variant stock:', {
+              error: updateError,
+              variantId: variantId,
+              errorCode: updateError.code,
+              errorMessage: updateError.message
+            });
+            throw new Error(`Failed to reduce stock for variant ${variantId}: ${updateError.message}`);
+          }
+
+          console.log(`✅ Successfully reduced stock for variant ${variantId} from ${currentQuantity} to ${newQuantity}`);
+        } else {
+          console.log(`⚠️ Skipping stock reduction for variant ${variantId} - trackquantity is disabled (trackquantity: ${variant.trackquantity})`);
         }
       } else {
         // For products without variants, skip stock reduction
         // (The products table doesn't have a quantity column in the current schema)
-        // In a full implementation, products table should also have quantity column
-        console.log(`Skipping stock reduction for product ${item.id} (no variants)`);
+        console.log(`Skipping stock reduction for product ${item.id} (no variant ID)`);
       }
     } catch (error) {
       console.error('Stock reduction error:', error);
@@ -317,21 +391,22 @@ export async function POST(request: NextRequest) {
   try {
     const orderData: OrderData = await request.json();
 
-    // Temporarily commented out stock validation
-    // const stockValidation = await validateStock(orderData.items);
-    // if (!stockValidation.valid) {
-    //   return NextResponse.json({
-    //     success: false,
-    //     error: 'Insufficient stock',
-    //     insufficientStock: stockValidation.insufficientStock
-    //   }, { status: 400 });
-    // }
+    // Validate stock availability before creating order
+    const stockValidation = await validateStock(orderData.items);
+    if (!stockValidation.valid) {
+      console.error('❌ Stock validation failed:', stockValidation.insufficientStock);
+      return NextResponse.json({
+        success: false,
+        error: 'Insufficient stock',
+        insufficientStock: stockValidation.insufficientStock
+      }, { status: 400 });
+    }
 
     // Create order record
     const orderId = await createOrder(orderData);
 
-    // Temporarily commented out stock reduction
-    // await reduceStock(orderData.items);
+    // Reduce stock quantities after order is successfully created
+    await reduceStock(orderData.items);
 
     // Prepare order details for emails
     const orderDetails = {

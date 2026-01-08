@@ -955,7 +955,7 @@ export default function CheckoutPage() {
 
                 {!isFormValid() && (
                   <p className="text-sm text-red-600 mt-2 text-center">
-                    Please fill in all required fields
+                    {t.pleaseFillAllRequiredFields}
                   </p>
                 )}
               </div>

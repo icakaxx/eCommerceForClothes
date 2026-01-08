@@ -260,6 +260,7 @@ export async function POST(request: NextRequest) {
           isvisible,
           propertyvalues = [],
           imageurl,
+          images,
           IsPrimaryImage
         } = variantData;
 
@@ -306,33 +307,42 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Create image for this variant if provided
-        if (imageurl) {
-          console.log('🖼️ Saving variant image:', {
+        // Handle variant images - prioritize images array, fall back to imageurl
+        const variantImages = images && Array.isArray(images) && images.length > 0 
+          ? images 
+          : imageurl 
+            ? [imageurl] 
+            : [];
+
+        if (variantImages.length > 0) {
+          console.log('🖼️ Saving variant images:', {
             productid: product.productid,
             productvariantid: variant.productvariantid,
-            imageurl: imageurl,
-            IsPrimary: IsPrimaryImage || false
+            imagesCount: variantImages.length,
+            images: variantImages
           });
           
+          // Insert all images for this variant
+          const imageDataArray = variantImages.map((imgUrl, index) => ({
+            productid: product.productid,
+            productvariantid: variant.productvariantid,
+            imageurl: imgUrl,
+            isprimary: (IsPrimaryImage && index === 0) || index === 0,
+            sortorder: index
+          }));
+
           const { data: imageData, error: imageError } = await supabase
             .from('product_images')
-            .insert({
-              productid: product.productid,
-              productvariantid: variant.productvariantid,
-              imageurl: imageurl,
-              isprimary: IsPrimaryImage || false,
-              sortorder: 0
-            })
+            .insert(imageDataArray)
             .select();
 
           if (imageError) {
-            console.error('❌ Error creating variant image:', imageError);
+            console.error('❌ Error creating variant images:', imageError);
           } else {
-            console.log('✅ Variant image saved:', imageData);
+            console.log(`✅ Saved ${imageData.length} variant image(s):`, imageData);
           }
         } else {
-          console.log('⚠️ No imageurl for variant:', variant.productvariantid);
+          console.log('⚠️ No images for variant:', variant.productvariantid);
         }
       }
 

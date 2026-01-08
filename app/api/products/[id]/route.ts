@@ -191,18 +191,25 @@ export async function GET(
 
     // Attach images to their variants (using variantsWithProps which has property values)
     const variantsWithImages = variantsWithProps?.map(variant => {
-      const variantImage = allImages?.find(img => img.productvariantid === variant.productvariantid);
+      // Get all images for this variant
+      const variantImagesList = allImages?.filter(img => img.productvariantid === variant.productvariantid) || [];
+      const variantImageUrls = variantImagesList.map(img => img.imageurl).filter(Boolean) as string[];
+      
+      // For backwards compatibility, also include single imageurl
+      const firstVariantImage = variantImagesList[0];
+      
       const variantData = {
         ...variant,
-        imageurl: variantImage?.imageurl,
-        IsPrimaryImage: variantImage?.IsPrimary || false
+        images: variantImageUrls.length > 0 ? variantImageUrls : undefined,
+        imageurl: firstVariantImage?.imageurl,
+        IsPrimaryImage: firstVariantImage?.isprimary || false
       };
       
       // Debug: Log the variant structure to ensure property values are preserved
       if (variant.ProductVariantPropertyvalues) {
-        console.log(`✅ Variant ${variant.productvariantid} has ${variant.ProductVariantPropertyvalues.length} property values`);
+        console.log(`✅ Variant ${variant.productvariantid} has ${variant.ProductVariantPropertyvalues.length} property values and ${variantImageUrls.length} images`);
       } else {
-        console.log(`⚠️ Variant ${variant.productvariantid} has NO property values`);
+        console.log(`⚠️ Variant ${variant.productvariantid} has NO property values but has ${variantImageUrls.length} images`);
       }
       
       return variantData;
@@ -415,6 +422,7 @@ export async function PUT(
           isvisible,
           propertyvalues = [],
           imageurl,
+          images,
           IsPrimaryImage
         } = variantData;
 
@@ -464,33 +472,42 @@ export async function PUT(
           }
         }
 
-        // Create image for this variant if provided
-        if (imageurl) {
-          console.log('🖼️ Saving variant image:', {
+        // Handle variant images - prioritize images array, fall back to imageurl
+        const variantImages = images && Array.isArray(images) && images.length > 0 
+          ? images 
+          : imageurl 
+            ? [imageurl] 
+            : [];
+
+        if (variantImages.length > 0) {
+          console.log('🖼️ Saving variant images:', {
             productid: id,
             productvariantid: variant.productvariantid,
-            imageurl: imageurl,
-            IsPrimary: IsPrimaryImage || false
+            imagesCount: variantImages.length,
+            images: variantImages
           });
           
+          // Insert all images for this variant
+          const imageDataArray = variantImages.map((imgUrl, index) => ({
+            productid: id,
+            productvariantid: variant.productvariantid,
+            imageurl: imgUrl,
+            isprimary: (IsPrimaryImage && index === 0) || index === 0,
+            sortorder: index
+          }));
+
           const { data: imageData, error: imageError } = await supabase
             .from('product_images')
-            .insert({
-              productid: id,
-              productvariantid: variant.productvariantid,
-              imageurl: imageurl,
-              isprimary: IsPrimaryImage || false,
-              sortorder: 0
-            })
+            .insert(imageDataArray)
             .select();
 
           if (imageError) {
-            console.error('❌ Error creating variant image:', imageError);
+            console.error('❌ Error creating variant images:', imageError);
           } else {
-            console.log('✅ Variant image saved:', imageData);
+            console.log(`✅ Saved ${imageData.length} variant image(s):`, imageData);
           }
         } else {
-          console.log('⚠️ No imageurl for variant:', variant.productvariantid);
+          console.log('⚠️ No images for variant:', variant.productvariantid);
         }
       }
     }

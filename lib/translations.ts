@@ -232,6 +232,8 @@ export interface Translations {
   // Sales/Order Management
   unknownProduct: string;
   moreItems: string;
+  item: string;
+  items: string;
   viewAndManageOrders: string;
   searchOrders: string;
   allStatuses: string;
@@ -823,6 +825,8 @@ export const translations: Record<Language, Translations> = {
   // Sales/Order Management
   unknownProduct: 'Unknown Product',
   moreItems: 'more items',
+  item: 'item',
+  items: 'items',
   viewAndManageOrders: 'View and manage all orders',
   searchOrders: 'Search orders...',
   allStatuses: 'All Statuses',
@@ -1455,6 +1459,8 @@ export const translations: Record<Language, Translations> = {
 
   unknownProduct: 'Неизвестен продукт',
   moreItems: 'още артикула',
+  item: 'артикул',
+  items: 'артикула',
   viewAndManageOrders: 'Преглед и управление на всички поръчки',
   searchOrders: 'Търсене на поръчки...',
   allStatuses: 'Всички статуси',

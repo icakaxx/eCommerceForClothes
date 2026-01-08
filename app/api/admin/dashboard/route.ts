@@ -112,10 +112,10 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Get unique customers count from orders
+    // Get unique customers count from orders using customerid
     const { data: customersData, error: customersError } = await supabaseAdmin
       .from('orders')
-      .select('customeremail')
+      .select('customerid')
       .gte('createdat', start.toISOString())
       .lte('createdat', end.toISOString());
 
@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    const uniqueCustomers = new Set(customersData?.map(order => order.customeremail) || []);
+    const uniqueCustomers = new Set(customersData?.map(order => order.customerid).filter((id): id is string => !!id) || []);
     const totalCustomers = uniqueCustomers.size;
 
     // Calculate growth (compare with previous period)
@@ -153,10 +153,10 @@ export async function GET(request: NextRequest) {
 
       const { data: prevCustomersData } = await supabaseAdmin
         .from('orders')
-        .select('customeremail')
+        .select('customerid')
         .gte('createdat', prevStart.toISOString())
         .lte('createdat', prevEnd.toISOString());
-      previousTotalCustomers = new Set(prevCustomersData?.map(order => order.customeremail) || []).size;
+      previousTotalCustomers = new Set(prevCustomersData?.map(order => order.customerid).filter((id): id is string => !!id) || []).size;
     } else if (filter === 'thisMonth') {
       const { start: prevStart, end: prevEnd } = getDateRange('lastMonth');
       const { data: prevSalesData } = await supabaseAdmin
@@ -175,10 +175,10 @@ export async function GET(request: NextRequest) {
 
       const { data: prevCustomersData } = await supabaseAdmin
         .from('orders')
-        .select('customeremail')
+        .select('customerid')
         .gte('createdat', prevStart.toISOString())
         .lte('createdat', prevEnd.toISOString());
-      previousTotalCustomers = new Set(prevCustomersData?.map(order => order.customeremail) || []).size;
+      previousTotalCustomers = new Set(prevCustomersData?.map(order => order.customerid).filter((id): id is string => !!id) || []).size;
     } else if (filter === 'thisYear') {
       const { start: prevStart, end: prevEnd } = getDateRange('lastYear');
       const { data: prevSalesData } = await supabaseAdmin
@@ -197,10 +197,10 @@ export async function GET(request: NextRequest) {
 
       const { data: prevCustomersData } = await supabaseAdmin
         .from('orders')
-        .select('customeremail')
+        .select('customerid')
         .gte('createdat', prevStart.toISOString())
         .lte('createdat', prevEnd.toISOString());
-      previousTotalCustomers = new Set(prevCustomersData?.map(order => order.customeremail) || []).size;
+      previousTotalCustomers = new Set(prevCustomersData?.map(order => order.customerid).filter((id): id is string => !!id) || []).size;
     }
 
     const salesGrowth = previousTotalSales > 0
@@ -393,20 +393,42 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Get recent orders (latest 4)
+    // Get recent orders (latest 4) - join with customers table
     const { data: recentOrdersData, error: recentOrdersError } = await supabaseAdmin
       .from('orders')
-      .select('orderid, customerfirstname, customerlastname, total, status, createdat')
+      .select(`
+        orderid,
+        total,
+        status,
+        createdat,
+        customers (
+          firstname,
+          lastname,
+          email
+        )
+      `)
       .order('createdat', { ascending: false })
       .limit(4);
 
-    const recentOrders = recentOrdersData?.map((order: any) => ({
-      id: `#${order.orderid.substring(0, 8).toUpperCase()}`,
-      customer: `${order.customerfirstname} ${order.customerlastname}`,
-      amount: Number(order.total || 0),
-      status: order.status || 'pending',
-      date: new Date(order.createdat).toISOString().split('T')[0]
-    })) || [];
+    const recentOrders = recentOrdersData?.map((order: any) => {
+      // Get customer name from joined customers table or fallback to email or order id
+      let customerName = 'Unknown Customer';
+      if (order.customers?.firstname || order.customers?.lastname) {
+        customerName = `${order.customers.firstname || ''} ${order.customers.lastname || ''}`.trim();
+      } else if (order.customers?.email) {
+        customerName = order.customers.email;
+      } else {
+        customerName = `Order ${order.orderid.substring(0, 8)}`;
+      }
+
+      return {
+        id: `#${order.orderid.substring(0, 8).toUpperCase()}`,
+        customer: customerName,
+        amount: Number(order.total || 0),
+        status: order.status || 'pending',
+        date: new Date(order.createdat).toISOString().split('T')[0]
+      };
+    }) || [];
 
     // Get top products based on order items (tracked by variant for specificity)
     // Fetch all order items with product information

@@ -23,19 +23,26 @@ export default function ProductView({ product }: ProductViewProps) {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    // Get initial images - try multiple sources
+    // Get initial images - prioritize variant-specific images, then fall back to general product images
     const variants = product.variants || product.Variants || [];
-    const primaryVariant = variants.find((v: any) => v.IsPrimaryImage && (v.imageurl || v.ImageURL));
+    const primaryVariant = variants.find((v: any) => v.IsPrimaryImage && (v.images || v.imageurl || v.ImageURL));
+    const firstVariant = variants[0];
 
-    if (primaryVariant?.imageurl) {
+    // Check for variant-specific images arrays first
+    if (primaryVariant?.images && Array.isArray(primaryVariant.images) && primaryVariant.images.length > 0) {
+      setCurrentImages(primaryVariant.images);
+    } else if (firstVariant?.images && Array.isArray(firstVariant.images) && firstVariant.images.length > 0) {
+      setCurrentImages(firstVariant.images);
+    } else if (primaryVariant?.imageurl) {
       setCurrentImages([primaryVariant.imageurl]);
     } else if (primaryVariant?.ImageURL) {
       setCurrentImages([primaryVariant.ImageURL]);
-    } else if (variants[0]?.imageurl) {
-      setCurrentImages([variants[0].imageurl]);
-    } else if (variants[0]?.ImageURL) {
-      setCurrentImages([variants[0].ImageURL]);
+    } else if (firstVariant?.imageurl) {
+      setCurrentImages([firstVariant.imageurl]);
+    } else if (firstVariant?.ImageURL) {
+      setCurrentImages([firstVariant.ImageURL]);
     } else if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+      // Fall back to general product images
       setCurrentImages(product.images);
     } else if (product.Images && Array.isArray(product.Images) && product.Images.length > 0) {
       // Extract imageurl from Images array if it's an array of objects
@@ -68,11 +75,19 @@ export default function ProductView({ product }: ProductViewProps) {
     fetchRelatedProducts();
   }, [product.id, product.productid]);
 
-  const handleVariantImageChange = useCallback((imageUrl: string | undefined) => {
-    if (imageUrl) {
-      setCurrentImages([imageUrl]);
+  const handleVariantImageChange = useCallback((images: string[] | string | undefined) => {
+    if (images) {
+      // Handle both array and single string
+      if (Array.isArray(images)) {
+        setCurrentImages(images.length > 0 ? images : product.images || ['/image.png']);
+      } else {
+        setCurrentImages([images]);
+      }
+    } else if (product.images && product.images.length > 0) {
+      // Fall back to product general images
+      setCurrentImages(product.images);
     }
-  }, []);
+  }, [product.images]);
 
   return (
     <div 

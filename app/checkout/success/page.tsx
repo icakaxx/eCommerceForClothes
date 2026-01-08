@@ -10,6 +10,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useStoreSettings } from '@/context/StoreSettingsContext';
 import { translations } from '@/lib/translations';
 import { CheckCircle, Mail, Clock, Package, Truck, MapPin } from 'lucide-react';
+import type { EcontOfficesData, EcontOffice } from '@/types/econt';
 
 interface OrderItem {
   orderitemid: string;
@@ -66,6 +67,7 @@ function CheckoutSuccessContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [econtOffices, setEcontOffices] = useState<EcontOfficesData | null>(null);
 
   useEffect(() => {
     const adminState = localStorage.getItem('isAdmin');
@@ -83,7 +85,18 @@ function CheckoutSuccessContent() {
 
     setOrderId(orderIdParam);
     fetchOrderDetails(orderIdParam);
+    loadEcontOffices();
   }, [searchParams, router]);
+
+  const loadEcontOffices = async () => {
+    try {
+      const response = await fetch('/data/econt-offices.json');
+      const data: EcontOfficesData = await response.json();
+      setEcontOffices(data);
+    } catch (error) {
+      console.error('Failed to load Econt offices:', error);
+    }
+  };
 
   const fetchOrderDetails = async (id: string) => {
     try {
@@ -135,6 +148,27 @@ function CheckoutSuccessContent() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const getEcontOffice = (officeId: string): EcontOffice | null => {
+    if (!econtOffices || !officeId) return null;
+    
+    // Search through all cities and their offices
+    for (const city in econtOffices.officesByCity) {
+      const offices = econtOffices.officesByCity[city];
+      const office = offices.find((o: EcontOffice) => o.id === officeId);
+      if (office) {
+        return office;
+      }
+    }
+    
+    // If not found, return null
+    return null;
+  };
+
+  const getEcontOfficeName = (officeId: string): string => {
+    const office = getEcontOffice(officeId);
+    return office ? office.name : officeId;
   };
 
   if (!orderId) {
@@ -415,13 +449,27 @@ function CheckoutSuccessContent() {
                 </p>
                 
                 {/* Econt Office Details */}
-                {order.deliverytype === 'office' && order.econtoffice && (
-                  <p style={{ color: theme.colors.textSecondary }}>
-                    <strong style={{ color: theme.colors.text }}>
-                      {language === 'bg' ? 'Офис на Еконт' : 'Econt Office'}:
-                    </strong> {order.econtoffice}
-                  </p>
-                )}
+                {order.deliverytype === 'office' && order.econtoffice && (() => {
+                  const office = getEcontOffice(order.econtoffice);
+                  return office ? (
+                    <div>
+                      <p style={{ color: theme.colors.textSecondary }}>
+                        <strong style={{ color: theme.colors.text }}>
+                          {language === 'bg' ? 'Офис на Еконт' : 'Econt Office'}:
+                        </strong> {office.name}
+                      </p>
+                      <p style={{ color: theme.colors.textSecondary }} className="mt-1">
+                        {office.address}
+                      </p>
+                    </div>
+                  ) : (
+                    <p style={{ color: theme.colors.textSecondary }}>
+                      <strong style={{ color: theme.colors.text }}>
+                        {language === 'bg' ? 'Офис на Еконт' : 'Econt Office'}:
+                      </strong> {order.econtoffice}
+                    </p>
+                  );
+                })()}
                 
                 {/* Address Details */}
                 {order.deliverytype === 'address' && (order.deliverystreet || order.deliverystreetnumber) && (
