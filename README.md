@@ -105,11 +105,13 @@ A comprehensive, modern e-commerce platform built with Next.js 16, featuring a c
    ```
 
 3. **Environment Setup**
-   Create a `.env.local` file with your Supabase credentials:
+   Create a `.env.local` file with your credentials:
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+   NEXT_PUBLIC_EMAIL=your-email@gmail.com
+   NEXT_PUBLIC_EMAIL_PASS=your_gmail_app_password
    ```
 
 4. **Database Setup**
@@ -173,22 +175,31 @@ Customize your store through the admin panel:
 
 Configure email settings in your environment for order notifications:
 ```env
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASS=your-app-password
+NEXT_PUBLIC_EMAIL=your-email@gmail.com
+NEXT_PUBLIC_EMAIL_PASS=your_gmail_app_password
 ```
+
+**Note:** For Gmail, you'll need to create an App Password (not your regular password). Enable 2-Step Verification in your Google Account, then generate an App Password from the Security settings.
 
 ## 🚀 Deployment
 
-### Vercel (Recommended)
-1. Push your code to GitHub
-2. Connect your repository to Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy
+For detailed step-by-step deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)
 
-### Other Platforms
+### Quick Overview
+1. Create a new project on Vercel
+2. Create a new database on Supabase
+3. Run the database schema (from `schema.txt`)
+4. Run database migrations (`migration-add-subtitle.sql`, `migration-add-related-products.sql`)
+5. Create Supabase Storage bucket (`products`)
+6. Add environment variables to Vercel
+7. Create an admin user in Supabase
+8. Deploy and verify
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete instructions with troubleshooting tips.
+
+### Supported Platforms
 The app is compatible with any platform supporting Next.js:
+- **Vercel** (Recommended - see deployment guide)
 - Netlify
 - Railway
 - Digital Ocean App Platform

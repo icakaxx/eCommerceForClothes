@@ -83,10 +83,16 @@ export default function AdminSidebar({ currentPath }: AdminSidebarProps) {
       icon: Users
     },
     {
+      id: 'orders',
+      label: language === 'bg' ? 'Поръчки' : 'Orders',
+      path: '/admin/orders',
+      icon: ShoppingCart
+    },
+    {
       id: 'sales',
       label: language === 'bg' ? 'Продажби' : 'Sales',
       path: '/admin/sales',
-      icon: ShoppingCart
+      icon: BarChart3
     },
     {
       id: 'analytics',

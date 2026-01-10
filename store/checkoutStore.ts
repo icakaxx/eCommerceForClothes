@@ -194,7 +194,9 @@ export const useCheckoutStore = create<CheckoutState>()(
 
       isFormValid: () => {
         const { formData } = get();
-        return !!(
+        
+        // Basic required fields
+        const basicFieldsValid = !!(
           formData.firstName.trim() &&
           formData.lastName.trim() &&
           formData.telephone.trim() &&
@@ -202,6 +204,27 @@ export const useCheckoutStore = create<CheckoutState>()(
           formData.city &&
           formData.deliveryType
         );
+        
+        if (!basicFieldsValid) {
+          return false;
+        }
+        
+        // Validate delivery-specific fields
+        if (formData.deliveryType === 'office') {
+          // Office delivery requires Econt office selection
+          return !!formData.econtOfficeId && formData.econtOfficeId.trim() !== '';
+        }
+        
+        if (formData.deliveryType === 'address') {
+          // Address delivery requires street and street number
+          return !!(
+            formData.street?.trim() &&
+            formData.streetNumber?.trim()
+          );
+        }
+        
+        // For econtomat or other types, basic fields are enough
+        return true;
       },
 
       fullName: () => {

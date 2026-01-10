@@ -601,9 +601,9 @@ export default function ProductsPage() {
 
   return (
     <AdminLayout currentPath="/admin/products">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Продукти</h1>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-6">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+          <h1 className="text-2xl sm:text-3xl font-bold">Продукти</h1>
           <button
             onClick={() => {
               setEditingProduct(null);
@@ -613,449 +613,615 @@ export default function ProductsPage() {
               setVariants([]);
               setShowModal(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation text-sm sm:text-base"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
             {t.addProduct}
           </button>
         </div>
 
         {loading ? (
-          <div className="text-center py-12">Loading...</div>
+          <div className="text-center py-8 sm:py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-2 text-sm sm:text-base text-gray-500">{t.loading || 'Loading...'}</p>
+          </div>
         ) : (
           <>
+            {/* Desktop Table View */}
             <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.name}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.sku}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.productType}
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.actions}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {currentProducts.map((product) => (
-                  <tr key={product.productid}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {product.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {product.sku || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {productTypes.find(pt => pt.producttypeid === product.producttypeid)?.name || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(product)}
-                          className="text-indigo-600 hover:text-indigo-900"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(product.productid)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.name}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.sku}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.productType}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.actions}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {currentProducts.map((product) => (
+                      <tr key={product.productid} className="hover:bg-gray-50">
+                        <td className="px-4 xl:px-6 py-4 text-sm font-medium text-gray-900">
+                          <div className="truncate max-w-xs">{product.name}</div>
+                        </td>
+                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="font-mono text-xs">{product.sku || '-'}</span>
+                        </td>
+                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {productTypes.find(pt => pt.producttypeid === product.producttypeid)?.name || '-'}
+                        </td>
+                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => handleEdit(product)}
+                              className="p-1.5 sm:p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded transition-colors touch-manipulation"
+                              title={t.edit}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(product.productid)}
+                              className="p-1.5 sm:p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors touch-manipulation"
+                              title={language === 'bg' ? 'Изтрий' : 'Delete'}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {products.length === 0 && (
+                <div className="text-center py-8 sm:py-12 text-gray-500">
+                  <p className="text-sm sm:text-base">{t.noProductsFound}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Mobile/Tablet Card Layout */}
+            <div className="md:hidden space-y-3">
+              {currentProducts.map((product) => (
+                <div key={product.productid} className="bg-white p-3 sm:p-4 rounded-lg shadow border">
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-1 truncate">{product.name}</h3>
+                      <div className="space-y-1 text-xs sm:text-sm text-gray-500">
+                        <p><span className="font-medium">SKU:</span> <span className="font-mono">{product.sku || '-'}</span></p>
+                        <p>
+                          <span className="font-medium">{t.productType}:</span> {productTypes.find(pt => pt.producttypeid === product.producttypeid)?.name || '-'}
+                        </p>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {products.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
-                {t.noProductsFound}
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleEdit(product)}
+                        className="p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 active:bg-indigo-100 rounded transition-colors touch-manipulation"
+                        title={t.edit}
+                      >
+                        <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(product.productid)}
+                        className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 active:bg-red-100 rounded transition-colors touch-manipulation"
+                        title={language === 'bg' ? 'Изтрий' : 'Delete'}
+                      >
+                        <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {products.length === 0 && (
+                <div className="bg-white p-4 rounded-lg shadow border text-center">
+                  <p className="text-sm text-gray-500">{t.noProductsFound}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-4 sm:mt-6 bg-white rounded-lg shadow px-3 sm:px-4 lg:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-200">
+                <div className="text-xs sm:text-sm text-gray-700 text-center sm:text-left">
+                  {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, products.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{products.length}</span>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
+                  <button
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 sm:px-4 py-2 text-xs sm:text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                  >
+                    {t.previous || 'Previous'}
+                  </button>
+
+                  <div className="flex gap-1 overflow-x-auto">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const pageNumber = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                      if (pageNumber > totalPages) return null;
+                      return (
+                        <button
+                          key={pageNumber}
+                          onClick={() => setCurrentPage(pageNumber)}
+                          className={`px-3 py-2 text-xs sm:text-sm border rounded min-w-[2.5rem] transition-colors touch-manipulation ${
+                            currentPage === pageNumber
+                              ? 'bg-blue-600 text-white border-blue-600'
+                              : 'hover:bg-gray-50 active:bg-gray-100'
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 sm:px-4 py-2 text-xs sm:text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                  >
+                    {t.next || 'Next'}
+                  </button>
+                </div>
               </div>
             )}
-
-            {/* Mobile Card Layout */}
-            <div className="block md:hidden space-y-4 mt-4">
-            {currentProducts.map((product) => (
-              <div key={product.productid} className="bg-white p-4 rounded-lg shadow border">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-medium text-gray-900">{product.name}</h3>
-                    <p className="text-sm text-gray-500">SKU: {product.sku || '-'}</p>
-                    <p className="text-sm text-gray-500">
-                      {t.productType}: {productTypes.find(pt => pt.producttypeid === product.producttypeid)?.name || '-'}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEdit(product)}
-                      className="p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(product.productid)}
-                      className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-            </div>
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="mt-6 flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                {language === 'bg'
-                  ? `Показване на ${startIndex + 1} до ${Math.min(endIndex, products.length)} от ${products.length} продукта`
-                  : `Showing ${startIndex + 1} to ${Math.min(endIndex, products.length)} of ${products.length} products`
-                }
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  {language === 'bg' ? 'Предишна' : 'Previous'}
-                </button>
-
-                <div className="flex gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const pageNumber = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
-                    if (pageNumber > totalPages) return null;
-                    return (
-                      <button
-                        key={pageNumber}
-                        onClick={() => setCurrentPage(pageNumber)}
-                        className={`px-3 py-1 text-sm border rounded ${
-                          currentPage === pageNumber
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        {pageNumber}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <button
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  {t.next}
-                </button>
-              </div>
-            </div>
-          )}
           </>
         )}
 
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-lg w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto my-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex justify-between items-center z-10">
+                <h2 className="text-lg sm:text-xl font-bold">
                   {editingProduct ? t.editProduct : t.addProduct}
                 </h2>
-                <button onClick={() => {
-                  setShowModal(false);
-                  // Don't clear the data here - only clear when starting a new product
-                }}>
+                <button 
+                  onClick={() => {
+                    setShowModal(false);
+                    // Don't clear the data here - only clear when starting a new product
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded transition-colors touch-manipulation"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
+              <div className="p-4 sm:p-6">
               <form onSubmit={handleSubmit}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t.productName}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    required
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t.productSKU}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.sku}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {language === 'bg' ? 'Описание' : 'Description'}
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    rows={3}
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {language === 'bg' ? 'Основна категория' : 'Main Category'}
-                  </label>
-                  <select
-                    value={formData.rfproducttypeid}
-                    onChange={(e) => {
-                      const newRfProductTypeId = parseInt(e.target.value);
-                      setFormData({ 
-                        ...formData, 
-                        rfproducttypeid: newRfProductTypeId,
-                        producttypeid: '' // Reset product type when main category changes
-                      });
-                      setProductTypeProperties([]);
-                      setSelectedPropertyValues({});
-                      setVariants([]);
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    required
-                  >
-                    {rfProductTypes.map((rpt) => (
-                      <option key={rpt.rfproducttypeid} value={rpt.rfproducttypeid}>
-                        {rpt.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {language === 'bg' ? 'Тип продукт' : 'Product Type'}
-                  </label>
-                  <select
-                    value={formData.producttypeid}
-                    onChange={(e) => handleProductTypeChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    required
-                    disabled={!formData.rfproducttypeid}
-                  >
-                    <option value="">{t.selectAProductType}</option>
-                    {filteredProductTypes.map((pt) => (
-                      <option key={pt.producttypeid} value={pt.producttypeid}>
-                        {pt.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mb-4">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={formData.isfeatured || false}
-                      onChange={(e) => setFormData({ ...formData, isfeatured: e.target.checked })}
-                      className="mr-2"
-                    />
-                    <span className="text-sm font-medium text-gray-700">
-                      {language === 'bg' ? 'Избран продукт (показва се на началната страница)' : 'Featured Product (displayed on home page)'}
-                    </span>
-                  </label>
-                  <p className="text-xs text-gray-500 mt-1 ml-6">
-                    {language === 'bg' ? 'Максимум 4 избрани продукта ще се покажат на началната страница' : 'Maximum 4 featured products will be displayed on the home page'}
-                  </p>
-                </div>
-
-                {formData.producttypeid && productTypeProperties.length > 0 && (
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {language === 'bg' ? 'Свойства на вариантите' : 'Variant Properties'}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                      {t.productName}
                     </label>
-                    <p className="text-xs text-gray-500 mb-3">
-                      {language === 'bg'
-                        ? 'Изберете няколко стойности за всяко свойство, за да генерирате варианти'
-                        : 'Select multiple values for each property to generate variants'
-                      }
-                    </p>
-                    <div className="space-y-3">
-                      {productTypeProperties.map((property) => (
-                        <div key={property.propertyid} className="border rounded-md p-3">
-                          <label className="block text-xs font-medium text-gray-700 mb-2">
-                            {property.name}
-                            {property.description && (
-                              <span className="text-gray-400 ml-1">({property.description})</span>
-                            )}
-                          </label>
-                          {property.datatype === 'select' ? (
-                            <>
-                              {property.values && property.values.length > 0 ? (
-                                <div className="space-y-1">
-                                  {property.values
-                                    .filter(v => v.isactive)
-                                    .sort((a, b) => a.displayorder - b.displayorder)
-                                    .map((value) => (
-                                      <label key={value.propertyvalueid} className="flex items-center">
-                                        <input
-                                          type="checkbox"
-                                          checked={selectedPropertyValues[property.propertyid]?.includes(value.value) || false}
-                                          onChange={(e) => {
-                                            const currentValues = selectedPropertyValues[property.propertyid] || [];
-                                            const newValues = e.target.checked
-                                              ? [...currentValues, value.value]
-                                              : currentValues.filter(v => v !== value.value);
-                                            setSelectedPropertyValues({
-                                              ...selectedPropertyValues,
-                                              [property.propertyid]: newValues
-                                            });
-                                          }}
-                                          className="mr-2"
-                                        />
-                                        <span className="text-sm">{value.value}</span>
-                                      </label>
-                                    ))}
-                                </div>
-                              ) : (
-                                <p className="text-xs text-gray-400 mb-2">
-                                  {language === 'bg' ? 'Няма налични стойности' : 'No values available'}
-                                </p>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                      {t.productSKU}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.sku}
+                      onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                      className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                      {language === 'bg' ? 'Описание' : 'Description'}
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                      {language === 'bg' ? 'Основна категория' : 'Main Category'}
+                    </label>
+                    <select
+                      value={formData.rfproducttypeid}
+                      onChange={(e) => {
+                        const newRfProductTypeId = parseInt(e.target.value);
+                        setFormData({ 
+                          ...formData, 
+                          rfproducttypeid: newRfProductTypeId,
+                          producttypeid: '' // Reset product type when main category changes
+                        });
+                        setProductTypeProperties([]);
+                        setSelectedPropertyValues({});
+                        setVariants([]);
+                      }}
+                      className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    >
+                      {rfProductTypes.map((rpt) => (
+                        <option key={rpt.rfproducttypeid} value={rpt.rfproducttypeid}>
+                          {rpt.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                      {language === 'bg' ? 'Тип продукт' : 'Product Type'}
+                    </label>
+                    <select
+                      value={formData.producttypeid}
+                      onChange={(e) => handleProductTypeChange(e.target.value)}
+                      className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      required
+                      disabled={!formData.rfproducttypeid}
+                    >
+                      <option value="">{t.selectAProductType || 'Select a product type'}</option>
+                      {filteredProductTypes.map((pt) => (
+                        <option key={pt.producttypeid} value={pt.producttypeid}>
+                          {pt.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.isfeatured || false}
+                        onChange={(e) => setFormData({ ...formData, isfeatured: e.target.checked })}
+                        className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <div>
+                        <span className="text-xs sm:text-sm font-medium text-gray-700 block">
+                          {language === 'bg' ? 'Избран продукт (показва се на началната страница)' : 'Featured Product (displayed on home page)'}
+                        </span>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {language === 'bg' ? 'Максимум 4 избрани продукта ще се покажат на началната страница' : 'Maximum 4 featured products will be displayed on the home page'}
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+
+                  {formData.producttypeid && productTypeProperties.length > 0 && (
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                        {language === 'bg' ? 'Свойства на вариантите' : 'Variant Properties'}
+                      </label>
+                      <p className="text-xs text-gray-500 mb-3">
+                        {language === 'bg'
+                          ? 'Изберете няколко стойности за всяко свойство, за да генерирате варианти'
+                          : 'Select multiple values for each property to generate variants'
+                        }
+                      </p>
+                      <div className="space-y-3 max-h-64 sm:max-h-none overflow-y-auto">
+                        {productTypeProperties.map((property) => (
+                          <div key={property.propertyid} className="border rounded-md p-2 sm:p-3">
+                            <label className="block text-xs font-medium text-gray-700 mb-2">
+                              {property.name}
+                              {property.description && (
+                                <span className="text-gray-400 ml-1 text-xs">({property.description})</span>
                               )}
-                              {/* Add new value input */}
-                              <div className="mt-2 pt-2 border-t border-gray-200">
-                                <div className="flex gap-2">
+                            </label>
+                            {property.datatype === 'select' ? (
+                              <>
+                                {property.values && property.values.length > 0 ? (
+                                  <div className="space-y-1.5 max-h-32 sm:max-h-40 overflow-y-auto">
+                                    {property.values
+                                      .filter(v => v.isactive)
+                                      .sort((a, b) => a.displayorder - b.displayorder)
+                                      .map((value) => (
+                                        <label key={value.propertyvalueid} className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 px-1 rounded">
+                                          <input
+                                            type="checkbox"
+                                            checked={selectedPropertyValues[property.propertyid]?.includes(value.value) || false}
+                                            onChange={(e) => {
+                                              const currentValues = selectedPropertyValues[property.propertyid] || [];
+                                              const newValues = e.target.checked
+                                                ? [...currentValues, value.value]
+                                                : currentValues.filter(v => v !== value.value);
+                                              setSelectedPropertyValues({
+                                                ...selectedPropertyValues,
+                                                [property.propertyid]: newValues
+                                              });
+                                            }}
+                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                          />
+                                          <span className="text-xs sm:text-sm">{value.value}</span>
+                                        </label>
+                                      ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-gray-400 mb-2">
+                                    {language === 'bg' ? 'Няма налични стойности' : 'No values available'}
+                                  </p>
+                                )}
+                                {/* Add new value input */}
+                                <div className="mt-2 pt-2 border-t border-gray-200">
+                                  <div className="flex flex-col sm:flex-row gap-2">
+                                    <input
+                                      type="text"
+                                      value={newPropertyValues[property.propertyid] || ''}
+                                      onChange={(e) => setNewPropertyValues(prev => ({ ...prev, [property.propertyid]: e.target.value }))}
+                                      onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          handleAddPropertyValue(property.propertyid);
+                                        }
+                                      }}
+                                      placeholder={language === 'bg' ? 'Добави нова стойност...' : 'Add new value...'}
+                                      className="flex-1 px-2 py-1.5 text-xs sm:text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                      disabled={addingPropertyValue[property.propertyid]}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAddPropertyValue(property.propertyid)}
+                                      disabled={addingPropertyValue[property.propertyid] || !newPropertyValues[property.propertyid]?.trim()}
+                                      className="px-3 py-1.5 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-1 transition-colors touch-manipulation whitespace-nowrap"
+                                    >
+                                      {addingPropertyValue[property.propertyid] ? (
+                                        <>
+                                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                          <span>{language === 'bg' ? 'Добавяне...' : 'Adding...'}</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Plus className="w-3 h-3" />
+                                          <span>{language === 'bg' ? 'Добави' : 'Add'}</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <p className="text-xs text-gray-400">
+                                {t.propertyTypeNotSupportVariants}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={generateVariants}
+                        className="mt-3 w-full px-4 py-2 text-sm sm:text-base bg-green-600 text-white rounded hover:bg-green-700 active:bg-green-800 transition-colors touch-manipulation"
+                      >
+                        {t.generateVariants} ({Object.values(selectedPropertyValues).reduce((acc, vals) => acc * (vals.length || 1), 1)} {t.combinations})
+                      </button>
+                    </div>
+                  )}
+
+                  {variants.length > 0 && (
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                        {t.variant}s ({variants.length})
+                      </label>
+                      <div className="max-h-96 overflow-y-auto border rounded-md">
+                        {/* Desktop Variants Table */}
+                        <div className="hidden md:block overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50 sticky top-0">
+                              <tr>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.variant}</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.sku}</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.price}</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.quantity}</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.image}</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.primary}</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.actions}</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {variants.map((variant, index) => (
+                                <tr key={index} className="hover:bg-gray-50">
+                                  <td className="px-3 py-2 text-xs">
+                                    <div className="max-w-xs truncate">
+                                      {variant.propertyvalues.map(pv => {
+                                        const prop = productTypeProperties.find(p => p.propertyid === pv.propertyid);
+                                        return `${prop?.name}: ${pv.value}`;
+                                      }).join(', ')}
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <input
+                                      type="text"
+                                      value={variant.sku || ''}
+                                      onChange={(e) => updateVariant(index, 'sku', e.target.value)}
+                                      className="w-full px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                                    />
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      value={variant.price}
+                                      onChange={(e) => updateVariant(index, 'price', parseFloat(e.target.value) || 0)}
+                                      className="w-20 px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <input
+                                      type="number"
+                                      value={variant.quantity}
+                                      onChange={(e) => updateVariant(index, 'quantity', parseInt(e.target.value) || 0)}
+                                      className="w-20 px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <div className="flex items-center gap-1">
+                                      {variant.imageurl ? (
+                                        <div className="relative group">
+                                          <img 
+                                            src={variant.imageurl} 
+                                            alt="Variant" 
+                                            className="w-12 h-12 object-cover rounded border"
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => updateVariant(index, 'imageurl', undefined)}
+                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity touch-manipulation"
+                                            title={language === 'bg' ? 'Премахни изображение' : 'Remove Image'}
+                                          >
+                                            ×
+                                          </button>
+                                        </div>
+                                      ) : null}
+                                      <div className="flex gap-1">
+                                        <label className="cursor-pointer">
+                                          <input
+                                            type="file"
+                                            accept="image/*,.heic,.heif,.avif"
+                                            className="hidden"
+                                            onChange={(e) => {
+                                              const file = e.target.files?.[0];
+                                              if (file) handleImageUpload(index, file);
+                                            }}
+                                          />
+                                          <div className="w-10 h-10 border border-gray-300 rounded flex items-center justify-center hover:border-blue-500 active:border-blue-600 transition-colors bg-gray-50 touch-manipulation" title={language === 'bg' ? 'Качи ново изображение' : 'Upload new image'}>
+                                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                            </svg>
+                                          </div>
+                                        </label>
+                                        <button
+                                          type="button"
+                                          onClick={() => openMediaModal(index)}
+                                          className="w-10 h-10 border border-gray-300 rounded flex items-center justify-center hover:border-green-500 active:border-green-600 transition-colors bg-gray-50 touch-manipulation"
+                                          title={language === 'bg' ? 'Избери от медията' : 'Select from media'}
+                                        >
+                                          <ImageIcon className="w-5 h-5 text-gray-400" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={variant.IsPrimaryImage || false}
+                                      onChange={() => handlePrimaryImageChange(index)}
+                                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                      title={t.setAsPrimaryImage}
+                                    />
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => deleteVariant(index)}
+                                      className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors touch-manipulation"
+                                      title={language === 'bg' ? 'Изтрий' : 'Delete'}
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Mobile Variants Cards */}
+                        <div className="md:hidden divide-y divide-gray-200">
+                          {variants.map((variant, index) => (
+                            <div key={index} className="p-3 space-y-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-xs font-medium text-gray-700 mb-1">
+                                    {variant.propertyvalues.map(pv => {
+                                      const prop = productTypeProperties.find(p => p.propertyid === pv.propertyid);
+                                      return `${prop?.name}: ${pv.value}`;
+                                    }).join(', ')}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteVariant(index)}
+                                  className="p-1.5 text-red-600 hover:text-red-900 hover:bg-red-50 rounded flex-shrink-0 transition-colors touch-manipulation"
+                                  title={language === 'bg' ? 'Изтрий' : 'Delete'}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                  <label className="block text-gray-500 mb-1">SKU</label>
                                   <input
                                     type="text"
-                                    value={newPropertyValues[property.propertyid] || ''}
-                                    onChange={(e) => setNewPropertyValues(prev => ({ ...prev, [property.propertyid]: e.target.value }))}
-                                    onKeyPress={(e) => {
-                                      if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        handleAddPropertyValue(property.propertyid);
-                                      }
-                                    }}
-                                    placeholder={language === 'bg' ? 'Добави нова стойност...' : 'Add new value...'}
-                                    className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    disabled={addingPropertyValue[property.propertyid]}
+                                    value={variant.sku || ''}
+                                    onChange={(e) => updateVariant(index, 'sku', e.target.value)}
+                                    className="w-full px-2 py-1.5 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
                                   />
-                                  <button
-                                    type="button"
-                                    onClick={() => handleAddPropertyValue(property.propertyid)}
-                                    disabled={addingPropertyValue[property.propertyid] || !newPropertyValues[property.propertyid]?.trim()}
-                                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-1"
-                                  >
-                                    {addingPropertyValue[property.propertyid] ? (
-                                      <>
-                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                                        <span>{language === 'bg' ? 'Добавяне...' : 'Adding...'}</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Plus className="w-3 h-3" />
-                                        <span>{language === 'bg' ? 'Добави' : 'Add'}</span>
-                                      </>
-                                    )}
-                                  </button>
+                                </div>
+                                <div>
+                                  <label className="block text-gray-500 mb-1">{t.price}</label>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={variant.price}
+                                    onChange={(e) => updateVariant(index, 'price', parseFloat(e.target.value) || 0)}
+                                    className="w-full px-2 py-1.5 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-gray-500 mb-1">{t.quantity}</label>
+                                  <input
+                                    type="number"
+                                    value={variant.quantity}
+                                    onChange={(e) => updateVariant(index, 'quantity', parseInt(e.target.value) || 0)}
+                                    className="w-full px-2 py-1.5 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-gray-500 mb-1">{t.primary}</label>
+                                  <div className="flex items-center h-[34px]">
+                                    <input
+                                      type="checkbox"
+                                      checked={variant.IsPrimaryImage || false}
+                                      onChange={() => handlePrimaryImageChange(index)}
+                                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                      title={t.setAsPrimaryImage}
+                                    />
+                                  </div>
                                 </div>
                               </div>
-                            </>
-                          ) : (
-                            <p className="text-xs text-gray-400">
-                              {t.propertyTypeNotSupportVariants}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={generateVariants}
-                      className="mt-3 w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                    >
-                      {t.generateVariants} ({Object.values(selectedPropertyValues).reduce((acc, vals) => acc * (vals.length || 1), 1)} {t.combinations})
-                    </button>
-                  </div>
-                )}
-
-                {variants.length > 0 && (
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-{t.variant}s ({variants.length})
-                    </label>
-                    <div className="max-h-96 overflow-y-auto border rounded-md">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50 sticky top-0">
-                          <tr>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.variant}</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.sku}</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.price}</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.quantity}</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.image}</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.primary}</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.actions}</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {variants.map((variant, index) => (
-                            <tr key={index}>
-                              <td className="px-3 py-2 text-xs">
-                                {variant.propertyvalues.map(pv => {
-                                  const prop = productTypeProperties.find(p => p.propertyid === pv.propertyid);
-                                  return `${prop?.name}: ${pv.value}`;
-                                }).join(', ')}
-                              </td>
-                              <td className="px-3 py-2">
-                                <input
-                                  type="text"
-                                  value={variant.sku || ''}
-                                  onChange={(e) => updateVariant(index, 'sku', e.target.value)}
-                                  className="w-full px-2 py-1 text-xs border rounded"
-                                />
-                              </td>
-                              <td className="px-3 py-2">
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  value={variant.price}
-                                  onChange={(e) => updateVariant(index, 'price', parseFloat(e.target.value) || 0)}
-                                  className="w-20 px-2 py-1 text-xs border rounded"
-                                />
-                              </td>
-                              <td className="px-3 py-2">
-                                <input
-                                  type="number"
-                                  value={variant.quantity}
-                                  onChange={(e) => updateVariant(index, 'quantity', parseInt(e.target.value) || 0)}
-                                  className="w-20 px-2 py-1 text-xs border rounded"
-                                />
-                              </td>
-                              <td className="px-3 py-2">
-                                <div className="flex items-center gap-1">
+                              <div>
+                                <label className="block text-gray-500 mb-1 text-xs">{t.image}</label>
+                                <div className="flex items-center gap-2">
                                   {variant.imageurl ? (
                                     <div className="relative group">
                                       <img 
                                         src={variant.imageurl} 
                                         alt="Variant" 
-                                        className="w-12 h-12 object-cover rounded border"
+                                        className="w-16 h-16 object-cover rounded border"
                                       />
                                       <button
                                         type="button"
                                         onClick={() => updateVariant(index, 'imageurl', undefined)}
-                                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity touch-manipulation"
                                         title={language === 'bg' ? 'Премахни изображение' : 'Remove Image'}
                                       >
                                         ×
                                       </button>
                                     </div>
-                                  ) : null}
-                                  <div className="flex gap-1">
+                                  ) : (
+                                    <div className="w-16 h-16 border border-gray-300 rounded flex items-center justify-center bg-gray-50">
+                                      <ImageIcon className="w-6 h-6 text-gray-400" />
+                                    </div>
+                                  )}
+                                  <div className="flex gap-2">
                                     <label className="cursor-pointer">
                                       <input
                                         type="file"
@@ -1066,7 +1232,7 @@ export default function ProductsPage() {
                                           if (file) handleImageUpload(index, file);
                                         }}
                                       />
-                                      <div className="w-10 h-10 border border-gray-300 rounded flex items-center justify-center hover:border-blue-500 transition-colors bg-gray-50" title={language === 'bg' ? 'Качи ново изображение' : 'Upload new image'}>
+                                      <div className="w-10 h-10 border border-gray-300 rounded flex items-center justify-center hover:border-blue-500 active:border-blue-600 transition-colors bg-gray-50 touch-manipulation" title={language === 'bg' ? 'Качи' : 'Upload'}>
                                         <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                         </svg>
@@ -1075,125 +1241,108 @@ export default function ProductsPage() {
                                     <button
                                       type="button"
                                       onClick={() => openMediaModal(index)}
-                                      className="w-10 h-10 border border-gray-300 rounded flex items-center justify-center hover:border-green-500 transition-colors bg-gray-50"
-                                      title={language === 'bg' ? 'Избери от медията' : 'Select from media'}
+                                      className="w-10 h-10 border border-gray-300 rounded flex items-center justify-center hover:border-green-500 active:border-green-600 transition-colors bg-gray-50 touch-manipulation"
+                                      title={language === 'bg' ? 'Медия' : 'Media'}
                                     >
                                       <ImageIcon className="w-5 h-5 text-gray-400" />
                                     </button>
                                   </div>
                                 </div>
-                              </td>
-                              <td className="px-3 py-2 text-center">
-                                <input
-                                  type="checkbox"
-                                  checked={variant.IsPrimaryImage || false}
-                                  onChange={() => handlePrimaryImageChange(index)}
-                                  className="w-4 h-4 text-blue-600 rounded"
-                                  title={t.setAsPrimaryImage}
-                                />
-                              </td>
-                              <td className="px-3 py-2">
-                                <button
-                                  type="button"
-                                  onClick={() => deleteVariant(index)}
-                                  className="text-red-600 hover:text-red-900"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </td>
-                            </tr>
+                              </div>
+                            </div>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* Media Selection Modal */}
-                {showMediaModal && (
-                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
-                      <div className="flex justify-between items-center p-4 border-b">
-                        <h3 className="text-lg font-semibold">
-                          {language === 'bg' ? 'Избери изображение от медията' : 'Select Image from Media'}
-                        </h3>
-                        <button
-                          onClick={() => {
-                            setShowMediaModal(false);
-                            setSelectedVariantIndex(null);
-                          }}
-                          className="text-gray-500 hover:text-gray-700"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-                      <div className="flex-1 overflow-y-auto p-4">
-                        {loadingMedia ? (
-                          <div className="text-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-                            <p className="mt-2 text-sm text-gray-500">
-                              {language === 'bg' ? 'Зареждане...' : 'Loading...'}
-                            </p>
-                          </div>
-                        ) : mediaFiles.length === 0 ? (
-                          <div className="text-center py-8 text-gray-500">
-                            {language === 'bg' ? 'Няма налични изображения' : 'No images available'}
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                            {mediaFiles.map((file, idx) => (
-                              <button
-                                key={idx}
-                                type="button"
-                                onClick={() => selectImageFromMedia(file.url)}
-                                className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-500 transition-colors group"
-                              >
-                                <img
-                                  src={file.url}
-                                  alt={file.name}
-                                  className="w-full h-full object-cover"
-                                />
-                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center">
-                                  <span className="text-white text-xs opacity-0 group-hover:opacity-100">
-                                    {language === 'bg' ? 'Избери' : 'Select'}
-                                  </span>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                    </div>
 
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowModal(false);
-                      setProductTypeProperties([]);
-                      setShowMediaModal(false);
-                      setSelectedVariantIndex(null);
-                      setSelectedPropertyValues({});
-                      setVariants([]);
-                      setNewPropertyValues({});
-                    }}
-                    className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
-                  >
-                    {language === 'bg' ? 'Отказ' : 'Cancel'}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    {editingProduct
-                      ? (language === 'bg' ? 'Актуализиране' : 'Update')
-                      : (language === 'bg' ? 'Създаване' : 'Create')
-                    }
-                  </button>
+                    <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 sm:p-6 flex flex-col sm:flex-row justify-end gap-2 sm:gap-2 mt-6 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowModal(false);
+                          setProductTypeProperties([]);
+                          setShowMediaModal(false);
+                          setSelectedVariantIndex(null);
+                          setSelectedPropertyValues({});
+                          setVariants([]);
+                          setNewPropertyValues({});
+                        }}
+                        className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                      >
+                        {language === 'bg' ? 'Отказ' : 'Cancel'}
+                      </button>
+                      <button
+                        type="submit"
+                        className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation"
+                      >
+                        {editingProduct
+                          ? (language === 'bg' ? 'Актуализиране' : 'Update')
+                          : (language === 'bg' ? 'Създаване' : 'Create')
+                        }
+                      </button>
+                    </div>
+                  </form>
                 </div>
-              </form>
+              </div>
+            </div>
+          )}
+
+        {/* Media Selection Modal */}
+        {showMediaModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] sm:max-h-[80vh] overflow-hidden flex flex-col my-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 p-3 sm:p-4 flex justify-between items-center z-10">
+                <h3 className="text-base sm:text-lg font-semibold">
+                  {language === 'bg' ? 'Избери изображение от медията' : 'Select Image from Media'}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowMediaModal(false);
+                    setSelectedVariantIndex(null);
+                  }}
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors touch-manipulation"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+                {loadingMedia ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                    <p className="mt-2 text-xs sm:text-sm text-gray-500">
+                      {language === 'bg' ? 'Зареждане...' : 'Loading...'}
+                    </p>
+                  </div>
+                ) : mediaFiles.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <p className="text-sm">{language === 'bg' ? 'Няма налични изображения' : 'No images available'}</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4">
+                    {mediaFiles.map((file, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => selectImageFromMedia(file.url)}
+                        className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-500 active:border-blue-600 transition-colors group touch-manipulation"
+                      >
+                        <img
+                          src={file.url}
+                          alt={file.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 group-active:bg-opacity-50 transition-opacity flex items-center justify-center">
+                          <span className="text-white text-xs font-medium opacity-0 group-hover:opacity-100">
+                            {language === 'bg' ? 'Избери' : 'Select'}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

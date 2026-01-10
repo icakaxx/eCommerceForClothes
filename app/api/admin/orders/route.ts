@@ -42,6 +42,7 @@ interface OrderWithItems {
       color: string | undefined;
       size: string | undefined;
       images?: string[];
+      allProperties?: Record<string, string>;
     };
   }>;
 }
@@ -90,7 +91,8 @@ export async function GET(request: NextRequest) {
           model: undefined as string | undefined,
           color: undefined as string | undefined,
           size: undefined as string | undefined,
-          images: []
+          images: [],
+          allProperties: {} as Record<string, string>
         };
 
         // Fetch product and variant details separately
@@ -130,23 +132,32 @@ export async function GET(request: NextRequest) {
 
               productInfo.name = productName;
 
-              // Extract property values
+              // Extract ALL property values
               if (variant.product_variant_property_values && Array.isArray(variant.product_variant_property_values)) {
+                const allProperties: Record<string, string> = {};
                 variant.product_variant_property_values.forEach((pvv: any) => {
-                  const propName = pvv.properties?.name?.toLowerCase();
+                  const propName = pvv.properties?.name;
                   const value = pvv.value;
-
-                  // Handle both English and Bulgarian property names
-                  if (propName?.includes('color') || propName?.includes('цвят') || propName === 'цвят') {
-                    productInfo.color = value;
-                  } else if (propName?.includes('size') || propName?.includes('размер') || propName === 'размер') {
-                    productInfo.size = value;
-                  } else if (propName?.includes('brand') || propName?.includes('марка') || propName === 'марка') {
-                    productInfo.brand = value;
-                  } else if (propName?.includes('model') || propName?.includes('модел') || propName === 'модел') {
-                    productInfo.model = value;
+                  
+                  if (propName && value) {
+                    // Store all properties with their original names
+                    allProperties[propName] = value;
+                    
+                    // Also set legacy fields for backward compatibility
+                    const propNameLower = propName.toLowerCase();
+                    if (propNameLower?.includes('color') || propNameLower?.includes('цвят') || propNameLower === 'цвят') {
+                      productInfo.color = value;
+                    } else if (propNameLower?.includes('size') || propNameLower?.includes('размер') || propNameLower === 'размер') {
+                      productInfo.size = value;
+                    } else if (propNameLower?.includes('brand') || propNameLower?.includes('марка') || propNameLower === 'марка') {
+                      productInfo.brand = value;
+                    } else if (propNameLower?.includes('model') || propNameLower?.includes('модел') || propNameLower === 'модел') {
+                      productInfo.model = value;
+                    }
                   }
                 });
+                // Add all properties to productInfo
+                (productInfo as any).allProperties = allProperties;
               }
             }
           } else if (item.productid) {

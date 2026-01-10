@@ -84,85 +84,128 @@ export default function CustomersPage() {
 
   return (
     <AdminLayout currentPath="/admin/customers">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">{t.customers}</h1>
-          <p className="text-gray-600 mt-2">{t.manageAndViewCustomerBase}</p>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-6">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold">{t.customers}</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">{t.manageAndViewCustomerBase}</p>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-900">{t.totalCustomers}</h3>
-            <p className="text-3xl font-bold text-blue-600 mt-2">{totalCustomers}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
+            <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">{t.totalCustomers}</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-blue-600 mt-1 sm:mt-2">{totalCustomers}</p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-900">{t.activeCustomers}</h3>
-            <p className="text-3xl font-bold text-green-600 mt-2">{activeCustomers}</p>
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
+            <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">{t.activeCustomers}</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-green-600 mt-1 sm:mt-2">{activeCustomers}</p>
           </div>
         </div>
 
         {/* Customers Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           {loading ? (
-            <div className="text-center py-12">
+            <div className="text-center py-8 sm:py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-              <p className="mt-2 text-gray-500">{t.loadingCustomers}</p>
+              <p className="mt-2 text-sm sm:text-base text-gray-500">{t.loadingCustomers}</p>
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.nameHeader}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.emailHeader}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.totalOrdersHeader}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.totalSpentHeader}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.lastOrderHeader}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.joinedHeader}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.nameHeader}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.emailHeader}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.totalOrdersHeader}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.totalSpentHeader}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.lastOrderHeader}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.joinedHeader}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {customers.map((customer) => (
+                      <tr key={customer.customerid} className="hover:bg-gray-50">
+                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <div className="truncate max-w-xs">{customer.name || t.na}</div>
+                        </td>
+                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="truncate max-w-xs">{customer.email || t.na}</div>
+                        </td>
+                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {customer.totalorders || 0}
+                        </td>
+                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          €{customer.totalspent?.toFixed(2) || '0.00'}
+                        </td>
+                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {customer.lastorder ? new Date(customer.lastorder).toLocaleDateString() : t.never}
+                        </td>
+                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(customer.createdat).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile/Tablet Card View */}
+              <div className="lg:hidden divide-y divide-gray-200">
                 {customers.map((customer) => (
-                  <tr key={customer.customerid}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {customer.name || t.na}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {customer.email || t.na}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {customer.totalorders || 0}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      €{customer.totalspent?.toFixed(2) || '0.00'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {customer.lastorder ? new Date(customer.lastorder).toLocaleDateString() : t.never}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(customer.createdat).toLocaleDateString()}
-                    </td>
-                  </tr>
+                  <div key={customer.customerid} className="p-3 sm:p-4 hover:bg-gray-50 transition-colors">
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-sm sm:text-base font-medium text-gray-900 truncate">
+                            {customer.name || t.na}
+                          </h3>
+                          <p className="text-xs sm:text-sm text-gray-500 truncate mt-1">
+                            {customer.email || t.na}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+                        <div>
+                          <p className="text-xs text-gray-500">{t.totalOrdersHeader}</p>
+                          <p className="text-sm font-medium text-gray-900">{customer.totalorders || 0}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">{t.totalSpentHeader}</p>
+                          <p className="text-sm font-medium text-gray-900">€{customer.totalspent?.toFixed(2) || '0.00'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">{t.lastOrderHeader}</p>
+                          <p className="text-sm text-gray-700">{customer.lastorder ? new Date(customer.lastorder).toLocaleDateString() : t.never}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">{t.joinedHeader}</p>
+                          <p className="text-sm text-gray-700">{new Date(customer.createdat).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </>
           )}
 
           {customers.length === 0 && !loading && (
-            <div className="text-center py-12 text-gray-500">
-              {t.noCustomersFound}
+            <div className="text-center py-8 sm:py-12 px-4 text-gray-500">
+              <p className="text-sm sm:text-base">{t.noCustomersFound}</p>
             </div>
           )}
         </div>

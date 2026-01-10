@@ -120,14 +120,8 @@ CREATE TABLE public.product_variants (
   productid uuid NOT NULL,
   sku text UNIQUE,
   price numeric CHECK (price >= 0::numeric),
-  compareatprice numeric,
-  cost numeric,
   quantity integer NOT NULL DEFAULT 0 CHECK (quantity >= 0),
-  weight numeric CHECK (weight >= 0::numeric),
-  weightunit text DEFAULT 'kg'::text CHECK (weightunit = ANY (ARRAY['kg'::text, 'g'::text, 'lb'::text, 'oz'::text])),
-  barcode text,
   trackquantity boolean NOT NULL DEFAULT true,
-  continuesellingwhenoutofstock boolean NOT NULL DEFAULT false,
   isvisible boolean NOT NULL DEFAULT true,
   createdat timestamp with time zone NOT NULL DEFAULT now(),
   updatedat timestamp with time zone NOT NULL DEFAULT now(),
@@ -145,6 +139,7 @@ CREATE TABLE public.products (
   isdeleted boolean NOT NULL DEFAULT false,
   rfproducttypeid integer DEFAULT 1,
   isfeatured boolean NOT NULL DEFAULT false,
+  subtitle text,
   CONSTRAINT products_pkey PRIMARY KEY (productid),
   CONSTRAINT products_producttypeid_fkey FOREIGN KEY (producttypeid) REFERENCES public.product_types(producttypeid),
   CONSTRAINT products_rfproducttypeid_fkey FOREIGN KEY (rfproducttypeid) REFERENCES public.rfproducttype(rfproducttypeid)
@@ -177,6 +172,16 @@ CREATE TABLE public.property_values (
   updatedat timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT property_values_pkey PRIMARY KEY (propertyvalueid),
   CONSTRAINT property_values_propertyid_fkey FOREIGN KEY (propertyid) REFERENCES public.properties(propertyid)
+);
+CREATE TABLE public.related_products (
+  relatedproductid uuid NOT NULL DEFAULT gen_random_uuid(),
+  productid uuid NOT NULL,
+  relatedproductid_ref uuid NOT NULL,
+  displayorder integer NOT NULL DEFAULT 0,
+  createdat timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT related_products_pkey PRIMARY KEY (relatedproductid),
+  CONSTRAINT related_products_productid_fkey FOREIGN KEY (productid) REFERENCES public.products(productid),
+  CONSTRAINT related_products_relatedproductid_fkey FOREIGN KEY (relatedproductid_ref) REFERENCES public.products(productid)
 );
 CREATE TABLE public.rfproducttype (
   rfproducttypeid integer NOT NULL,

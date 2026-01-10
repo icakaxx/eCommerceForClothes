@@ -93,12 +93,39 @@ const CartDrawer: React.FC = () => {
                         <h3 className="font-medium text-gray-900 truncate">
                           {item.brand} {item.model}
                         </h3>
-                        <p className="text-sm text-gray-600">
-                          {item.color}
-                          {item.size && ` • ${item.size}`}
-                          {item.type && ` • ${item.type}`}
-                        </p>
-                        <p className="text-sm text-gray-600">
+                        <div className="text-sm text-gray-600 space-y-1 mt-1">
+                          {/* Property Values - display all properties */}
+                          {item.propertyValues && Object.keys(item.propertyValues).length > 0 ? (
+                            <div className="space-y-1">
+                              {Object.entries(item.propertyValues).map(([propertyName, propertyValue]) => {
+                                // Format property name (capitalize first letter, replace underscores)
+                                const formattedName = propertyName
+                                  .replace(/_/g, ' ')
+                                  .replace(/\b\w/g, l => l.toUpperCase());
+                                return (
+                                  <div key={propertyName}>
+                                    <span className="font-medium">{formattedName}:</span> {propertyValue}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            // Fallback: show color and size if no propertyValues are available
+                            <>
+                              {item.color && (
+                                <div>
+                                  <span className="font-medium">{t.color}:</span> {item.color}
+                                </div>
+                              )}
+                              {item.size && (
+                                <div>
+                                  <span className="font-medium">{t.size}:</span> {item.size}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 mt-2">
                           {formatPrice(item.price)} {t.each}
                         </p>
                       </div>

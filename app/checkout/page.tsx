@@ -49,6 +49,7 @@ export default function CheckoutPage() {
     email?: string;
     street?: string;
     streetNumber?: string;
+    econtOfficeId?: string;
   }>({});
   const [econtOffices, setEcontOffices] = useState<EcontOfficesData | null>(null);
   const [selectedOffice, setSelectedOffice] = useState<EcontOffice | null>(null);
@@ -200,10 +201,28 @@ export default function CheckoutPage() {
   const handleDeliveryTypeChange = (deliveryType: DeliveryType) => {
     updateFormData({ deliveryType, econtOfficeId: '' });
     setSelectedOffice(null);
+    
+    // Clear validation errors when delivery type changes
+    setValidationErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.econtOfficeId;
+      delete newErrors.street;
+      delete newErrors.streetNumber;
+      return newErrors;
+    });
   };
 
   const handleOfficeSelect = (officeId: string) => {
     updateFormData({ econtOfficeId: officeId });
+    
+    // Clear validation error when office is selected
+    if (validationErrors.econtOfficeId) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.econtOfficeId;
+        return newErrors;
+      });
+    }
     
     // Find and set the selected office for displaying working hours
     if (econtOffices && formData.city) {
@@ -260,6 +279,7 @@ export default function CheckoutPage() {
 
     // Validate Econt office selection for office delivery
     if (formData.deliveryType === 'office' && !formData.econtOfficeId) {
+      setValidationErrors(prev => ({ ...prev, econtOfficeId: t.selectEcontOffice }));
       setError(t.selectEcontOffice);
       return;
     }
@@ -725,7 +745,9 @@ export default function CheckoutPage() {
                       <select
                         value={formData.econtOfficeId || ''}
                         onChange={(e) => handleOfficeSelect(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                          validationErrors.econtOfficeId ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         required
                       >
                         <option value="">{t.selectEcontOffice}</option>
@@ -735,6 +757,9 @@ export default function CheckoutPage() {
                           </option>
                         ))}
                       </select>
+                      {validationErrors.econtOfficeId && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.econtOfficeId}</p>
+                      )}
                       
                       {/* Show office details when selected */}
                       {selectedOffice && (

@@ -362,6 +362,48 @@ export interface Translations {
   failedToSaveDiscount: string;
   unexpectedError: string;
 
+  // Email Translations
+  emailOrderConfirmation: string;
+  emailThankYouForOrder: string;
+  emailOrderSummary: string;
+  emailDeliveryInformation: string;
+  emailMethod: string;
+  emailAddress: string;
+  emailNotes: string;
+  emailContactInformation: string;
+  emailPhone: string;
+  emailWhatHappensNext: string;
+  emailWillReceiveConfirmation: string;
+  emailOrderProcessed: string;
+  emailWillReceiveTracking: string;
+  emailContactUs: string;
+  emailOrderDate: string;
+  emailNewOrderReceived: string;
+  emailCustomerInformation: string;
+  emailName: string;
+  emailOrderDetails: string;
+  emailOrderNotes: string;
+  emailActionRequired: string;
+  emailProcessOrder: string;
+  emailUpdateInventory: string;
+  emailSendTracking: string;
+  emailAutomatedNotification: string;
+  emailOrderConfirmed: string;
+  emailOrderConfirmedMessage: string;
+  emailOrderDispatched: string;
+  emailOrderDispatchedMessage: string;
+  emailOrderDelivered: string;
+  emailOrderDeliveredMessage: string;
+  emailOrderCancelled: string;
+  emailOrderCancelledMessage: string;
+  emailTrackingInformation: string;
+  emailOrderOnWay: string;
+  emailTrackingDetailsSoon: string;
+  emailHopeLovePurchase: string;
+  emailContactSupport: string;
+  emailNeedHelp: string;
+  emailQuestionsAboutCancellation: string;
+
   // Confirm Dialogs
   confirmDeleteDiscount: string;
   failedToDeleteDiscount: string;
@@ -955,6 +997,48 @@ export const translations: Record<Language, Translations> = {
   expiryDateFutureMsg: 'Expiry date must be in the future',
   failedToSaveDiscount: 'Failed to save discount',
   unexpectedError: 'An unexpected error occurred',
+
+  // Email Translations
+  emailOrderConfirmation: 'Order Confirmation',
+  emailThankYouForOrder: 'Thank You for Your Order!',
+  emailOrderSummary: 'Order Summary',
+  emailDeliveryInformation: 'Delivery Information:',
+  emailMethod: 'Method:',
+  emailAddress: 'Address:',
+  emailNotes: 'Notes:',
+  emailContactInformation: 'Contact Information:',
+  emailPhone: 'Phone:',
+  emailWhatHappensNext: 'What happens next?',
+  emailWillReceiveConfirmation: 'You will receive an email confirmation shortly',
+  emailOrderProcessed: 'Your order will be processed within 1-2 business days',
+  emailWillReceiveTracking: 'You will receive tracking information once shipped',
+  emailContactUs: 'If you have any questions, please contact us at',
+  emailOrderDate: 'Order Date:',
+  emailNewOrderReceived: 'New Order Received!',
+  emailCustomerInformation: 'Customer Information',
+  emailName: 'Name:',
+  emailOrderDetails: 'Order Details',
+  emailOrderNotes: 'Order Notes:',
+  emailActionRequired: 'Action Required:',
+  emailProcessOrder: 'Process the order within 1-2 business days',
+  emailUpdateInventory: 'Update inventory quantities',
+  emailSendTracking: 'Send tracking information to customer',
+  emailAutomatedNotification: 'This is an automated notification from your store system.',
+  emailOrderConfirmed: 'Order Confirmed!',
+  emailOrderConfirmedMessage: 'Your order has been confirmed and is being prepared for shipment.',
+  emailOrderDispatched: 'Order Dispatched!',
+  emailOrderDispatchedMessage: 'Great news! Your order has been dispatched and is on its way to you.',
+  emailOrderDelivered: 'Order Delivered!',
+  emailOrderDeliveredMessage: 'Your order has been delivered. Thank you for shopping with us!',
+  emailOrderCancelled: 'Order Cancelled',
+  emailOrderCancelledMessage: 'Your order has been cancelled. If you have any questions, please contact us.',
+  emailTrackingInformation: 'Tracking Information:',
+  emailOrderOnWay: 'Your order is on its way!',
+  emailTrackingDetailsSoon: 'You will receive tracking details soon.',
+  emailHopeLovePurchase: 'We hope you love your purchase!',
+  emailContactSupport: 'If you have any questions or concerns, please don\'t hesitate to contact us.',
+  emailNeedHelp: 'Need Help?',
+  emailQuestionsAboutCancellation: 'If you have any questions about this cancellation, please contact our support team.',
 
   // Confirm Dialogs
   confirmDeleteDiscount: 'Are you sure you want to delete the discount code',
@@ -1589,6 +1673,48 @@ export const translations: Record<Language, Translations> = {
   expiryDateFutureMsg: 'Датата на изтичане трябва да бъде в бъдещето',
   failedToSaveDiscount: 'Неуспешно запазване на отстъпка',
   unexpectedError: 'Възникна неочаквана грешка',
+
+  // Email Translations
+  emailOrderConfirmation: 'Потвърждение на поръчка',
+  emailThankYouForOrder: 'Благодарим ви за поръчката!',
+  emailOrderSummary: 'Резюме на поръчката',
+  emailDeliveryInformation: 'Информация за доставка:',
+  emailMethod: 'Метод:',
+  emailAddress: 'Адрес:',
+  emailNotes: 'Бележки:',
+  emailContactInformation: 'Информация за контакт:',
+  emailPhone: 'Телефон:',
+  emailWhatHappensNext: 'Какво следва?',
+  emailWillReceiveConfirmation: 'Ще получите имейл потвърждение скоро',
+  emailOrderProcessed: 'Вашата поръчка ще бъде обработена в рамките на 1-2 работни дни',
+  emailWillReceiveTracking: 'Ще получите информация за проследяване след изпращането',
+  emailContactUs: 'Ако имате въпроси, моля свържете се с нас на',
+  emailOrderDate: 'Дата на поръчка:',
+  emailNewOrderReceived: 'Получена е нова поръчка!',
+  emailCustomerInformation: 'Информация за клиента',
+  emailName: 'Име:',
+  emailOrderDetails: 'Детайли на поръчката',
+  emailOrderNotes: 'Бележки към поръчката:',
+  emailActionRequired: 'Необходимо действие:',
+  emailProcessOrder: 'Обработете поръчката в рамките на 1-2 работни дни',
+  emailUpdateInventory: 'Актуализирайте наличностите',
+  emailSendTracking: 'Изпратете информация за проследяване на клиента',
+  emailAutomatedNotification: 'Това е автоматично известие от системата на вашия магазин.',
+  emailOrderConfirmed: 'Поръчката е потвърдена!',
+  emailOrderConfirmedMessage: 'Вашата поръчка е потвърдена и се подготвя за изпращане.',
+  emailOrderDispatched: 'Поръчката е изпратена!',
+  emailOrderDispatchedMessage: 'Добра новина! Вашата поръчка е изпратена и е на път към вас.',
+  emailOrderDelivered: 'Поръчката е доставена!',
+  emailOrderDeliveredMessage: 'Вашата поръчка е доставена. Благодарим ви за покупката!',
+  emailOrderCancelled: 'Поръчката е отменена',
+  emailOrderCancelledMessage: 'Вашата поръчка е отменена. Ако имате въпроси, моля свържете се с нас.',
+  emailTrackingInformation: 'Информация за проследяване:',
+  emailOrderOnWay: 'Вашата поръчка е на път!',
+  emailTrackingDetailsSoon: 'Ще получите детайли за проследяване скоро.',
+  emailHopeLovePurchase: 'Надяваме се да харесате покупката си!',
+  emailContactSupport: 'Ако имате въпроси или притеснения, моля не се колебайте да се свържете с нас.',
+  emailNeedHelp: 'Нуждаете се от помощ?',
+  emailQuestionsAboutCancellation: 'Ако имате въпроси относно тази отмяна, моля свържете се с нашия екип за поддръжка.',
 
   // Confirm Dialogs
   confirmDeleteDiscount: 'Сигурни ли сте, че искате да изтриете кода за отстъпка',

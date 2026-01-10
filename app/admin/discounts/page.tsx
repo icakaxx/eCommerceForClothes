@@ -251,148 +251,217 @@ export default function DiscountsPage() {
 
   return (
     <AdminLayout currentPath="/admin/discounts">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">{t.discounts}</h1>
-          <p className="text-gray-600 mt-2">{t.manageDiscountCodesAndPromotions}</p>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-6">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">{t.discounts}</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">{t.manageDiscountCodesAndPromotions}</p>
+          </div>
+          <button
+            onClick={openCreateModal}
+            className="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation text-sm sm:text-base"
+          >
+            <Plus size={18} className="sm:w-5 sm:h-5 mr-2" />
+            {t.addDiscountCode}
+          </button>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-900">{t.totalDiscounts}</h3>
-            <p className="text-3xl font-bold text-blue-600 mt-2">{discounts.length}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
+            <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">{t.totalDiscounts}</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-blue-600 mt-1 sm:mt-2">{discounts.length}</p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-900">{t.activeDiscounts}</h3>
-            <p className="text-3xl font-bold text-green-600 mt-2">{activeDiscounts}</p>
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
+            <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">{t.activeDiscounts}</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-green-600 mt-1 sm:mt-2">{activeDiscounts}</p>
           </div>
-        </div>
-
-        {/* Add Discount Button */}
-        <div className="mb-6">
-          <button
-            onClick={openCreateModal}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus size={20} className="mr-2" />
-            {t.addDiscountCode}
-          </button>
         </div>
 
         {/* Discounts Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           {loading ? (
-            <div className="text-center py-12">
+            <div className="text-center py-8 sm:py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-              <p className="mt-2 text-gray-500">{t.loadingDiscounts}</p>
+              <p className="mt-2 text-sm sm:text-base text-gray-500">{t.loadingDiscounts}</p>
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.codeHeader}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.descriptionHeader}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.typeHeader}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.valueHeader}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.statusHeader}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.expiresHeader}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.actionsHeader}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.codeHeader}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.descriptionHeader}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.typeHeader}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.valueHeader}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.statusHeader}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.expiresHeader}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.actionsHeader}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {discounts.map((discount) => (
+                      <tr key={discount.discountid} className="hover:bg-gray-50">
+                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <span className="font-mono text-xs">{discount.code}</span>
+                        </td>
+                        <td className="px-4 xl:px-6 py-4 text-sm text-gray-500">
+                          <div className="max-w-xs truncate">{discount.description || t.na}</div>
+                        </td>
+                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="px-2 py-0.5 bg-gray-100 rounded text-xs">
+                            {discount.type === 'percentage' ? t.percentage : t.fixedAmount}
+                          </span>
+                        </td>
+                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {discount.type === 'percentage' ? `${discount.value}%` : `€${discount.value.toFixed(2)}`}
+                        </td>
+                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            discount.isactive
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {discount.isactive ? t.active : t.inactive}
+                          </span>
+                        </td>
+                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {discount.expiresat ? new Date(discount.expiresat).toLocaleDateString() : t.never}
+                        </td>
+                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => openEditModal(discount)}
+                              className="p-1.5 sm:p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors touch-manipulation"
+                              title={t.editDiscountCode || 'Edit discount'}
+                            >
+                              <Edit2 size={16} className="sm:w-4 sm:h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(discount)}
+                              className="p-1.5 sm:p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors touch-manipulation"
+                              title={language === 'bg' ? 'Изтрий отстъпка' : 'Delete discount'}
+                            >
+                              <Trash2 size={16} className="sm:w-4 sm:h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile/Tablet Card View */}
+              <div className="lg:hidden divide-y divide-gray-200">
                 {discounts.map((discount) => (
-                  <tr key={discount.discountid}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {discount.code}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {discount.description || t.na}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {discount.type === 'percentage' ? t.percentage : t.fixedAmount}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {discount.type === 'percentage' ? `${discount.value}%` : `€${discount.value.toFixed(2)}`}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        discount.isactive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {discount.isactive ? t.active : t.inactive}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {discount.expiresat ? new Date(discount.expiresat).toLocaleDateString() : t.never}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => openEditModal(discount)}
-                          className="text-blue-600 hover:text-blue-900 p-1"
-                          title="Edit discount"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(discount)}
-                          className="text-red-600 hover:text-red-900 p-1"
-                          title="Delete discount"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                  <div key={discount.discountid} className="p-3 sm:p-4 hover:bg-gray-50 transition-colors">
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-sm sm:text-base font-medium text-gray-900 font-mono">{discount.code}</h3>
+                            <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full flex-shrink-0 ${
+                              discount.isactive
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {discount.isactive ? t.active : t.inactive}
+                            </span>
+                          </div>
+                          {discount.description && (
+                            <p className="text-xs sm:text-sm text-gray-500 line-clamp-2">{discount.description}</p>
+                          )}
+                        </div>
+                        <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => openEditModal(discount)}
+                            className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 active:bg-blue-100 rounded transition-colors touch-manipulation"
+                            title={t.editDiscountCode || 'Edit'}
+                          >
+                            <Edit2 size={18} className="sm:w-5 sm:h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(discount)}
+                            className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 active:bg-red-100 rounded transition-colors touch-manipulation"
+                            title={language === 'bg' ? 'Изтрий' : 'Delete'}
+                          >
+                            <Trash2 size={18} className="sm:w-5 sm:h-5" />
+                          </button>
+                        </div>
                       </div>
-                    </td>
-                  </tr>
+                      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+                        <div>
+                          <p className="text-xs text-gray-500">{t.typeHeader}</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {discount.type === 'percentage' ? t.percentage : t.fixedAmount}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">{t.valueHeader}</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {discount.type === 'percentage' ? `${discount.value}%` : `€${discount.value.toFixed(2)}`}
+                          </p>
+                        </div>
+                        {discount.expiresat && (
+                          <div className="col-span-2">
+                            <p className="text-xs text-gray-500">{t.expiresHeader}</p>
+                            <p className="text-sm text-gray-700">{new Date(discount.expiresat).toLocaleDateString()}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </>
           )}
 
           {discounts.length === 0 && !loading && (
-            <div className="text-center py-12 text-gray-500">
-              {t.noDiscountsFoundEmpty}
+            <div className="text-center py-8 sm:py-12 px-4 text-gray-500">
+              <p className="text-sm sm:text-base">{t.noDiscountsFoundEmpty}</p>
             </div>
           )}
         </div>
 
         {/* Discount Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-              <div className="flex items-center justify-between p-6 border-b">
-                <h3 className="text-lg font-semibold text-gray-900">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto my-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex items-center justify-between z-10">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                   {editingDiscount ? t.editDiscountCode : t.createDiscountCode}
                 </h3>
                 <button
                   onClick={closeModal}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors touch-manipulation"
+                  disabled={submitting}
                 >
-                  <X size={24} />
+                  <X size={20} className="sm:w-6 sm:h-6" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
                 {/* Form Errors */}
                 {formErrors.length > 0 && (
                   <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                    <ul className="text-sm text-red-600 space-y-1">
+                    <ul className="text-xs sm:text-sm text-red-600 space-y-1">
                       {formErrors.map((error, index) => (
                         <li key={index}>• {error}</li>
                       ))}
@@ -402,14 +471,14 @@ export default function DiscountsPage() {
 
                 {/* Code */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     {t.discountCodeRequired}
                   </label>
                   <input
                     type="text"
                     value={formData.code}
                     onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
                     placeholder={t.discountCodePlaceholder}
                     required
                   />
@@ -420,27 +489,27 @@ export default function DiscountsPage() {
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     {t.discountDescription}
                   </label>
                   <input
                     type="text"
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder={t.discountDescriptionPlaceholder}
                   />
                 </div>
 
                 {/* Type */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     {t.discountTypeRequired}
                   </label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'percentage' | 'fixed' }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="percentage">{t.percentage}</option>
                     <option value="fixed">{t.fixedAmount}</option>
@@ -449,7 +518,7 @@ export default function DiscountsPage() {
 
                 {/* Value */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     {t.discountValueRequired}
                   </label>
                   <div className="flex">
@@ -457,13 +526,13 @@ export default function DiscountsPage() {
                       type="number"
                       value={formData.value}
                       onChange={(e) => setFormData(prev => ({ ...prev, value: e.target.value }))}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="flex-1 px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder={formData.type === 'percentage' ? '10' : '5.00'}
                       min="0"
                       step={formData.type === 'percentage' ? '1' : '0.01'}
                       required
                     />
-                    <span className="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-r-md">
+                    <span className="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-xs sm:text-sm rounded-r-md">
                       {formData.type === 'percentage' ? '%' : '€'}
                     </span>
                   </div>
@@ -471,37 +540,37 @@ export default function DiscountsPage() {
 
                 {/* Expiry Date */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     {t.expiryDateOptional}
                   </label>
                   <input
                     type="datetime-local"
                     value={formData.expiresat}
                     onChange={(e) => setFormData(prev => ({ ...prev, expiresat: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
 
                 {/* Active Status */}
-                <div className="flex items-center">
+                <div className="flex items-start gap-2">
                   <input
                     type="checkbox"
                     id="isactive"
                     checked={formData.isactive}
                     onChange={(e) => setFormData(prev => ({ ...prev, isactive: e.target.checked }))}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="mt-0.5 w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
-                  <label htmlFor="isactive" className="ml-2 block text-sm text-gray-700">
+                  <label htmlFor="isactive" className="block text-xs sm:text-sm text-gray-700 cursor-pointer">
                     {t.activeStatus}
                   </label>
                 </div>
 
                 {/* Buttons */}
-                <div className="flex justify-end space-x-3 pt-4">
+                <div className="sticky bottom-0 bg-white border-t border-gray-200 pt-4 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
                   <button
                     type="button"
                     onClick={closeModal}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 active:bg-gray-300 transition-colors touch-manipulation"
                     disabled={submitting}
                   >
                     {t.cancel}
@@ -509,7 +578,7 @@ export default function DiscountsPage() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                    className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors touch-manipulation"
                   >
                     {submitting ? t.saving : (editingDiscount ? t.updateDiscount : t.createDiscountBtn)}
                   </button>

@@ -371,262 +371,315 @@ export default function PropertiesPage() {
 
   return (
     <AdminLayout currentPath="/admin/properties">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Свойства</h1>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-6">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+          <h1 className="text-2xl sm:text-3xl font-bold">Свойства</h1>
           <button
             onClick={() => {
               setEditingProperty(null);
               setFormData({ name: '', description: '', datatype: 'text' });
               setShowModal(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation text-sm sm:text-base"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
             {t.addProperty}
           </button>
         </div>
 
         {loading ? (
-          <div className="text-center py-12">Зареждане...</div>
+          <div className="text-center py-8 sm:py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-2 text-sm sm:text-base text-gray-500">{language === 'bg' ? 'Зареждане...' : 'Loading...'}</p>
+          </div>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.name}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.description}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.dataType}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.propertyValues}
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t.actions}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {currentProperties.map((prop) => (
-                  <React.Fragment key={prop.propertyid}>
-                    <tr className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        <div className="flex items-center gap-2">
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.name}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.description}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.dataType || 'Data Type'}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.propertyValues}
+                      </th>
+                      <th className="px-4 xl:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t.actions}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {currentProperties.map((prop) => (
+                      <React.Fragment key={prop.propertyid}>
+                        <tr className="hover:bg-gray-50">
+                          <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <div className="flex items-center gap-2">
+                              {prop.datatype === 'select' && (
+                                <button
+                                  onClick={() => togglePropertyExpansion(prop.propertyid)}
+                                  className="text-gray-400 hover:text-gray-600 transition-colors touch-manipulation"
+                                  title={expandedProperties.has(prop.propertyid) ? 'Collapse' : 'Expand'}
+                                >
+                                  {expandedProperties.has(prop.propertyid) ? (
+                                    <ChevronDown className="w-4 h-4" />
+                                  ) : (
+                                    <ChevronRight className="w-4 h-4" />
+                                  )}
+                                </button>
+                              )}
+                              <span className="truncate max-w-xs">{prop.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 xl:px-6 py-4 text-sm text-gray-500">
+                            <div className="max-w-xs truncate">{prop.description || '-'}</div>
+                          </td>
+                          <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <span className="px-2 py-1 bg-gray-100 rounded text-xs">{prop.datatype}</span>
+                          </td>
+                          <td className="px-4 xl:px-6 py-4 text-sm text-gray-500">
+                            {prop.datatype === 'select' ? (
+                              <span>{prop.values?.length || 0} {language === 'bg' ? 'стойности' : 'values'}</span>
+                            ) : (
+                              <span className="text-gray-300">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex justify-end gap-2">
+                              {prop.datatype === 'select' && (
+                                <button
+                                  onClick={() => handleAddValue(prop)}
+                                  className="p-1.5 sm:p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded transition-colors touch-manipulation"
+                                  title={t.addPropertyValue || 'Add Value'}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleEdit(prop)}
+                                className="p-1.5 sm:p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded transition-colors touch-manipulation"
+                                title={t.editProperty || 'Edit Property'}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(prop.propertyid)}
+                                className="p-1.5 sm:p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors touch-manipulation"
+                                title={language === 'bg' ? 'Изтрий свойство' : 'Delete Property'}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* Expanded property values - Desktop */}
+                        {expandedProperties.has(prop.propertyid) && prop.datatype === 'select' && (
+                          <tr>
+                            <td colSpan={5} className="px-4 xl:px-6 py-0">
+                              <div className="bg-gray-50 rounded-md p-3 sm:p-4 m-2">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
+                                  <h4 className="text-xs sm:text-sm font-medium text-gray-700">
+                                    {language === 'bg' ? 'Стойности на свойство' : 'Property Values'}
+                                  </h4>
+                                  <button
+                                    onClick={() => handleAddValue(prop)}
+                                    className="flex items-center justify-center gap-1 text-xs px-2 sm:px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 active:bg-green-800 transition-colors touch-manipulation w-full sm:w-auto"
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                    {language === 'bg' ? 'Добавяне на стойност' : 'Add Value'}
+                                  </button>
+                                </div>
+
+                                {prop.values && prop.values.length > 0 ? (
+                                  <div className="space-y-2 max-h-64 sm:max-h-80 overflow-y-auto">
+                                    {prop.values.map((value) => (
+                                      <div
+                                        key={value.propertyvalueid}
+                                        className="flex items-center justify-between bg-white p-2 sm:p-3 rounded border hover:bg-gray-50 transition-colors"
+                                      >
+                                        <span className="text-xs sm:text-sm flex-1 min-w-0 truncate">{value.value}</span>
+                                        <div className="flex gap-1 sm:gap-2 ml-2 flex-shrink-0">
+                                          <button
+                                            onClick={() => handleEditValue(prop, value)}
+                                            className="p-1.5 sm:p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded transition-colors touch-manipulation"
+                                            title={t.editPropertyValue || 'Edit Value'}
+                                          >
+                                            <Edit2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                                          </button>
+                                          <button
+                                            onClick={() => handleDeleteValue(value.propertyvalueid)}
+                                            className="p-1.5 sm:p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors touch-manipulation"
+                                            title={language === 'bg' ? 'Изтрий стойност' : 'Delete Value'}
+                                          >
+                                            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-4 text-gray-500 text-xs sm:text-sm">
+                                    {t.noValuesDefined || (language === 'bg' ? 'Не са дефинирани стойности. Натиснете "Добавяне на стойност", за да създадете опции за този свойство.' : 'No values defined. Click "Add Value" to create options for this property.')}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {properties.length === 0 && (
+                <div className="text-center py-8 sm:py-12 text-gray-500">
+                  <p className="text-sm sm:text-base">{t.noPropertiesFound || (language === 'bg' ? 'Не са намерили свойства. Създайте едно, за да започнете.' : 'No properties found. Create one to get started.')}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Card Layout */}
+            <div className="md:hidden space-y-3">
+              {currentProperties.map((prop) => {
+                const isExpanded = expandedProperties.has(prop.propertyid);
+                return (
+                  <div key={prop.propertyid} className="bg-white p-3 sm:p-4 rounded-lg shadow border">
+                    <div className="flex justify-between items-start gap-3 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
                           {prop.datatype === 'select' && (
                             <button
                               onClick={() => togglePropertyExpansion(prop.propertyid)}
-                              className="text-gray-400 hover:text-gray-600"
+                              className="text-gray-400 hover:text-gray-600 transition-colors touch-manipulation flex-shrink-0"
+                              title={isExpanded ? 'Collapse' : 'Expand'}
                             >
-                              {expandedProperties.has(prop.propertyid) ? (
+                              {isExpanded ? (
                                 <ChevronDown className="w-4 h-4" />
                               ) : (
                                 <ChevronRight className="w-4 h-4" />
                               )}
                             </button>
                           )}
-                          {prop.name}
+                          <h3 className="text-sm sm:text-base font-medium text-gray-900 truncate">{prop.name}</h3>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {prop.description || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {prop.datatype}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {prop.datatype === 'select' ? (
-                          <span>{prop.values?.length || 0} values</span>
-                        ) : (
-                          <span className="text-gray-300">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end gap-2">
+                        <p className="text-xs sm:text-sm text-gray-500 mt-1 line-clamp-2">{prop.description || (language === 'bg' ? 'Без описание' : 'No description')}</p>
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs text-gray-500">
+                          <span className="px-2 py-0.5 bg-gray-100 rounded">{prop.datatype}</span>
                           {prop.datatype === 'select' && (
-                            <button
-                              onClick={() => handleAddValue(prop)}
-                              className="text-green-600 hover:text-green-900"
-                              title="Add Value"
-                            >
-                              <Plus className="w-4 h-4" />
-                            </button>
+                            <span>{prop.values?.length || 0} {language === 'bg' ? 'стойности' : 'values'}</span>
                           )}
+                        </div>
+                      </div>
+                      <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+                        {prop.datatype === 'select' && (
                           <button
-                            onClick={() => handleEdit(prop)}
-                            className="text-indigo-600 hover:text-indigo-900"
-                            title="Edit Property"
+                            onClick={() => handleAddValue(prop)}
+                            className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 active:bg-green-100 rounded transition-colors touch-manipulation"
+                            title={t.addPropertyValue || 'Add Value'}
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Plus className="w-4 h-4" />
                           </button>
+                        )}
+                        <button
+                          onClick={() => handleEdit(prop)}
+                          className="p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 active:bg-indigo-100 rounded transition-colors touch-manipulation"
+                          title={t.editProperty || 'Edit Property'}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(prop.propertyid)}
+                          className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 active:bg-red-100 rounded transition-colors touch-manipulation"
+                          title={language === 'bg' ? 'Изтрий свойство' : 'Delete Property'}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Expanded values for mobile */}
+                    {isExpanded && prop.datatype === 'select' && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-xs sm:text-sm font-medium text-gray-700">
+                            {t.propertyValues || 'Property Values'}:
+                          </h4>
                           <button
-                            onClick={() => handleDelete(prop.propertyid)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Delete Property"
+                            onClick={() => handleAddValue(prop)}
+                            className="flex items-center gap-1 text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 active:bg-green-800 transition-colors touch-manipulation"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Plus className="w-3 h-3" />
+                            {language === 'bg' ? 'Добави' : 'Add'}
                           </button>
                         </div>
-                      </td>
-                    </tr>
-
-                    {/* Expanded property values */}
-                    {expandedProperties.has(prop.propertyid) && prop.datatype === 'select' && (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-0">
-                          <div className="bg-gray-50 rounded-md p-4 m-2">
-                            <div className="flex items-center justify-between mb-3">
-                              <h4 className="text-sm font-medium text-gray-700">
-                                Стойности на свойство
-                              </h4>
-                              <button
-                                onClick={() => handleAddValue(prop)}
-                                className="flex items-center gap-1 text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                              >
-                                <Plus className="w-3 h-3" />
-                                Добавяне на стойност
-                              </button>
-                            </div>
-
-                            {prop.values && prop.values.length > 0 ? (
-                              <div className="space-y-2">
-                                {prop.values.map((value) => (
-                                  <div
-                                    key={value.propertyvalueid}
-                                    className="flex items-center justify-between bg-white p-2 rounded border"
+                        {prop.values && prop.values.length > 0 ? (
+                          <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                            {prop.values.map((value) => (
+                              <div key={value.propertyvalueid} className="flex items-center justify-between py-1.5 px-2 bg-gray-50 rounded text-xs sm:text-sm hover:bg-gray-100 transition-colors">
+                                <span className="flex-1 min-w-0 truncate">{value.value}</span>
+                                <div className="flex gap-1 ml-2 flex-shrink-0">
+                                  <button
+                                    onClick={() => handleEditValue(prop, value)}
+                                    className="p-1 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded transition-colors touch-manipulation"
+                                    title={t.editPropertyValue || 'Edit Value'}
                                   >
-                                    <span className="text-sm">{value.value}</span>
-                                    <div className="flex gap-1">
-                                      <button
-                                        onClick={() => handleEditValue(prop, value)}
-                                        className="text-indigo-600 hover:text-indigo-900 p-1"
-                                        title="Edit Value"
-                                      >
-                                        <Edit2 className="w-3 h-3" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteValue(value.propertyvalueid)}
-                                        className="text-red-600 hover:text-red-900 p-1"
-                                        title="Delete Value"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                ))}
+                                    <Edit2 className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteValue(value.propertyvalueid)}
+                                    className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors touch-manipulation"
+                                    title={language === 'bg' ? 'Изтрий стойност' : 'Delete Value'}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
                               </div>
-                            ) : (
-                              <div className="text-center py-4 text-gray-500 text-sm">
-                                Не са дефинирани стойности. Натиснете "Добавяне на стойност", за да създадете опции за този свойство.
-                              </div>
-                            )}
+                            ))}
                           </div>
-                        </td>
-                      </tr>
+                        ) : (
+                          <div className="text-center py-3 text-gray-500 text-xs">
+                            {t.noValuesDefined || (language === 'bg' ? 'Няма стойности' : 'No values defined')}
+                          </div>
+                        )}
+                      </div>
                     )}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-            {properties.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
-                Не са намерили свойства. Създайте едно, за да започнете.
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Mobile Card Layout */}
-        {!loading && (
-          <div className="block md:hidden space-y-4">
-            {currentProperties.map((prop) => (
-              <div key={prop.propertyid} className="bg-white p-4 rounded-lg shadow border">
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900">{prop.name}</h3>
-                    <p className="text-sm text-gray-500 mt-1">{prop.description || 'No description'}</p>
-                    <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                      <span>{t.dataType}: {prop.datatype}</span>
-                      {prop.datatype === 'select' && (
-                        <span>{prop.values?.length || 0} {t.propertyValues.toLowerCase()}</span>
-                      )}
-                    </div>
                   </div>
-                  <div className="flex gap-2 ml-4">
-                    {prop.datatype === 'select' && (
-                      <button
-                        onClick={() => handleAddValue(prop)}
-                        className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded"
-                        title="Add Value"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleEdit(prop)}
-                      className="p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded"
-                      title="Edit Property"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(prop.propertyid)}
-                      className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded"
-                      title="Delete Property"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                );
+              })}
+              {properties.length === 0 && (
+                <div className="bg-white p-4 rounded-lg shadow border text-center">
+                  <p className="text-sm text-gray-500">{t.noPropertiesFound || (language === 'bg' ? 'Не са намерили свойства' : 'No properties found')}</p>
                 </div>
-
-                {/* Expanded values for mobile */}
-                {expandedProperties.has(prop.propertyid) && prop.datatype === 'select' && prop.values && prop.values.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">{t.propertyValues}:</h4>
-                    <div className="space-y-1">
-                      {prop.values.map((value) => (
-                        <div key={value.propertyvalueid} className="flex items-center justify-between py-1 px-2 bg-gray-50 rounded text-sm">
-                          <span>{value.value}</span>
-                          <button
-                            onClick={() => handleDeleteValue(value.propertyvalueid)}
-                            className="text-red-500 hover:text-red-700 ml-2"
-                            title="Delete Value"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+              )}
+            </div>
+          </>
         )}
 
         {/* Pagination */}
         {!loading && totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-between">
-            <div className="text-sm text-gray-700">
-              {language === 'bg'
-                ? `Показване на ${startIndex + 1} до ${Math.min(endIndex, properties.length)} от ${properties.length} свойства`
-                : `Showing ${startIndex + 1} to ${Math.min(endIndex, properties.length)} of ${properties.length} properties`
-              }
+          <div className="mt-4 sm:mt-6 bg-white rounded-lg shadow px-3 sm:px-4 lg:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-200">
+            <div className="text-xs sm:text-sm text-gray-700 text-center sm:text-left">
+              {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, properties.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{properties.length}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
               >
-                {language === 'bg' ? 'Предишна' : 'Previous'}
+                {t.previous || 'Previous'}
               </button>
 
-              <div className="flex gap-1">
+              <div className="flex gap-1 overflow-x-auto">
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   const pageNumber = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
                   if (pageNumber > totalPages) return null;
@@ -634,10 +687,10 @@ export default function PropertiesPage() {
                     <button
                       key={pageNumber}
                       onClick={() => setCurrentPage(pageNumber)}
-                      className={`px-3 py-1 text-sm border rounded ${
+                      className={`px-3 py-2 text-xs sm:text-sm border rounded min-w-[2.5rem] transition-colors touch-manipulation ${
                         currentPage === pageNumber
                           ? 'bg-blue-600 text-white border-blue-600'
-                          : 'hover:bg-gray-50'
+                          : 'hover:bg-gray-50 active:bg-gray-100'
                       }`}
                     >
                       {pageNumber}
@@ -649,153 +702,167 @@ export default function PropertiesPage() {
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
               >
-                {language === 'bg' ? 'Следваща' : 'Next'}
+                {t.next || 'Next'}
               </button>
             </div>
           </div>
         )}
 
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-lg w-full max-w-md max-h-[95vh] sm:max-h-[90vh] overflow-y-auto my-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex justify-between items-center z-10">
+                <h2 className="text-lg sm:text-xl font-bold">
                   {editingProperty ? t.editProperty : t.addProperty}
                 </h2>
-                <button onClick={() => setShowModal(false)}>
+                <button 
+                  onClick={() => setShowModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded transition-colors touch-manipulation"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <form onSubmit={handleSubmit}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t.name}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    required
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t.description}
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    rows={3}
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t.dataType}
-                  </label>
-                  <select
-                    value={formData.datatype}
-                    onChange={(e) => setFormData({ ...formData, datatype: e.target.value as 'text' | 'select' | 'number' })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="text">{t.text}</option>
-                    <option value="select">{t.select}</option>
-                    <option value="number">{t.number}</option>
-                  </select>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
-                  >
-                    {t.cancel}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    {editingProperty ? t.update : t.create}
-                  </button>
-                </div>
-              </form>
+              <div className="p-4 sm:p-6">
+                <form onSubmit={handleSubmit}>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                        {t.name}
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                        {t.description}
+                      </label>
+                      <textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        rows={3}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                        {t.dataType || 'Data Type'}
+                      </label>
+                      <select
+                        value={formData.datatype}
+                        onChange={(e) => setFormData({ ...formData, datatype: e.target.value as 'text' | 'select' | 'number' })}
+                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="text">{t.text || 'Text'}</option>
+                        <option value="select">{t.select || 'Select'}</option>
+                        <option value="number">{t.number || 'Number'}</option>
+                      </select>
+                    </div>
+                    <div className="sticky bottom-0 bg-white border-t border-gray-200 pt-4 flex flex-col sm:flex-row justify-end gap-2 sm:gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowModal(false)}
+                        className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                      >
+                        {t.cancel}
+                      </button>
+                      <button
+                        type="submit"
+                        className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation"
+                      >
+                        {editingProperty ? t.update : t.create}
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         )}
 
         {showValueModal && currentProperty && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-lg w-full max-w-md max-h-[95vh] sm:max-h-[90vh] overflow-y-auto my-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex justify-between items-center z-10">
+                <h2 className="text-lg sm:text-xl font-bold">
                   {editingValue ? t.editPropertyValue : t.addPropertyValue}
                 </h2>
-                <button onClick={() => setShowValueModal(false)}>
+                <button 
+                  onClick={() => setShowValueModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded transition-colors touch-manipulation"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="mb-4 p-3 bg-gray-50 rounded">
-                <p className="text-sm text-gray-600">
-                  {t.propertyColon} <strong>{currentProperty.name}</strong>
-                </p>
-              </div>
-              <form onSubmit={handleValueSubmit}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t.valueRequired}
-                  </label>
-                  <input
-                    type="text"
-                    value={valueFormData.value}
-                    onChange={(e) => setValueFormData({ ...valueFormData, value: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    placeholder={language === 'bg' ? 'Въведете стойност (напр. Истинска кожа)' : 'Enter value (e.g., Genuine Leather)'}
-                    required
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t.displayOrder}
-                  </label>
-                  <input
-                    type="number"
-                    value={valueFormData.displayorder}
-                    onChange={(e) => setValueFormData({ ...valueFormData, displayorder: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    min="0"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {t.lowerNumbersFirst}
+              <div className="p-4 sm:p-6">
+                <div className="mb-4 p-3 bg-gray-50 rounded">
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    {t.propertyColon || 'Property'}: <strong>{currentProperty.name}</strong>
                   </p>
                 </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowValueModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
-                  >
-                    {t.cancel}
-                  </button>
-                  {!editingValue && (
-                    <button
-                      type="button"
-                      onClick={handleNextValue}
-                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                    >
-                      {t.next}
-                    </button>
-                  )}
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    {editingValue ? t.updateValue : t.addValueBtn}
-                  </button>
-                </div>
-              </form>
+                <form onSubmit={handleValueSubmit}>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                        {t.valueRequired || 'Value'} *
+                      </label>
+                      <input
+                        type="text"
+                        value={valueFormData.value}
+                        onChange={(e) => setValueFormData({ ...valueFormData, value: e.target.value })}
+                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder={language === 'bg' ? 'Въведете стойност (напр. Истинска кожа)' : 'Enter value (e.g., Genuine Leather)'}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                        {t.displayOrder || 'Display Order'}
+                      </label>
+                      <input
+                        type="number"
+                        value={valueFormData.displayorder}
+                        onChange={(e) => setValueFormData({ ...valueFormData, displayorder: parseInt(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        min="0"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {t.lowerNumbersFirst || 'Lower numbers appear first'}
+                      </p>
+                    </div>
+                    <div className="sticky bottom-0 bg-white border-t border-gray-200 pt-4 flex flex-col sm:flex-row justify-end gap-2 sm:gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowValueModal(false)}
+                        className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                      >
+                        {t.cancel}
+                      </button>
+                      {!editingValue && (
+                        <button
+                          type="button"
+                          onClick={handleNextValue}
+                          className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-green-600 text-white rounded hover:bg-green-700 active:bg-green-800 transition-colors touch-manipulation"
+                        >
+                          {t.next || 'Next'}
+                        </button>
+                      )}
+                      <button
+                        type="submit"
+                        className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation"
+                      >
+                        {editingValue ? (t.updateValue || t.update) : (t.addValueBtn || (language === 'bg' ? 'Добави' : 'Add'))}
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         )}
