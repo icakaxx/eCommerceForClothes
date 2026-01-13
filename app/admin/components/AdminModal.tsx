@@ -39,7 +39,7 @@ export default function AdminModal({
       const rect = modalRef.current.getBoundingClientRect();
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
       const defaultWidth = isMobile ? window.innerWidth - 32 : 600;
-      const defaultHeight = isMobile ? 'auto' : 400;
+      const defaultHeight = 400;
       setSize({
         width: isMobile ? defaultWidth : Math.max(minWidth, rect.width || defaultWidth),
         height: isMobile ? 0 : Math.max(minHeight, rect.height || defaultHeight),
