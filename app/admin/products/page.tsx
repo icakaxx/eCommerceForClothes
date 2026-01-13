@@ -864,8 +864,8 @@ export default function ProductsPage() {
             : (language === 'bg' ? 'Създайте нов продукт с варианти и свойства' : 'Create a new product with variants and properties')
           }
           maxWidth="max-w-4xl"
-          minWidth={600}
-          minHeight={500}
+          minWidth={320}
+          minHeight={400}
         >
               <form onSubmit={handleSubmit}>
                 <div className="space-y-4">
@@ -1368,7 +1368,7 @@ export default function ProductsPage() {
           title={language === 'bg' ? 'Избери изображение от медията' : 'Select Image from Media'}
           subheader={language === 'bg' ? 'Изберете изображение от вашата медийна библиотека' : 'Select an image from your media library'}
           maxWidth="max-w-4xl"
-          minWidth={500}
+          minWidth={320}
           minHeight={400}
         >
                 {loadingMedia ? (

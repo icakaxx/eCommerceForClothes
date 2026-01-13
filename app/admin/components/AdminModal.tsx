@@ -37,9 +37,12 @@ export default function AdminModal({
   useEffect(() => {
     if (isOpen && modalRef.current) {
       const rect = modalRef.current.getBoundingClientRect();
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      const defaultWidth = isMobile ? window.innerWidth - 32 : 600;
+      const defaultHeight = isMobile ? 'auto' : 400;
       setSize({
-        width: Math.max(minWidth, rect.width || 600),
-        height: Math.max(minHeight, rect.height || 400),
+        width: isMobile ? defaultWidth : Math.max(minWidth, rect.width || defaultWidth),
+        height: isMobile ? 0 : Math.max(minHeight, rect.height || defaultHeight),
       });
       setPosition({ x: 0, y: 0 });
     }
@@ -198,15 +201,15 @@ export default function AdminModal({
   const modalStyle: React.CSSProperties = {
     width: size.width > 0 ? `${size.width}px` : 'auto',
     height: size.height > 0 ? `${size.height}px` : 'auto',
-    minWidth: `${minWidth}px`,
-    minHeight: `${minHeight}px`,
+    minWidth: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : `${minWidth}px`,
+    minHeight: typeof window !== 'undefined' && window.innerWidth < 768 ? 'auto' : `${minHeight}px`,
     maxWidth: '95vw',
     maxHeight: '95vh',
   };
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-hidden"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-3 md:p-4 overflow-y-auto"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isResizing) {
           onClose();
@@ -222,15 +225,15 @@ export default function AdminModal({
     >
       <div
         ref={modalRef}
-        className={`bg-white rounded-lg shadow-2xl flex flex-col ${maxWidth} overflow-hidden relative`}
+        className={`bg-white rounded-lg shadow-2xl flex flex-col ${maxWidth} overflow-hidden relative w-full md:w-auto`}
         style={modalStyle}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header - Blue with white text */}
-        <div className="bg-blue-600 text-white px-4 sm:px-6 py-4 flex-shrink-0">
-          <div className="flex items-start justify-between gap-4">
+        <div className="bg-blue-600 text-white px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex-shrink-0">
+          <div className="flex items-start justify-between gap-3 sm:gap-4">
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg sm:text-xl font-bold text-white">
+              <h2 className="text-base sm:text-lg md:text-xl font-bold text-white">
                 {title}
               </h2>
               {subheader && (
@@ -241,16 +244,16 @@ export default function AdminModal({
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 hover:bg-blue-700 rounded transition-colors touch-manipulation flex-shrink-0"
+              className="p-1.5 sm:p-2 hover:bg-blue-700 active:bg-blue-800 rounded transition-colors touch-manipulation flex-shrink-0"
               aria-label="Close"
             >
-              <X className="w-5 h-5 text-white" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </button>
           </div>
         </div>
 
         {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
           {children}
         </div>
 
