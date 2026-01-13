@@ -40,10 +40,13 @@ export async function GET(request: NextRequest) {
         break;
     }
 
-    // Fetch current period orders
+    // Fetch current period orders with customer data
     let query = supabaseAdmin
       .from('orders')
-      .select('*')
+      .select(`
+        *,
+        customers(firstname, lastname, email)
+      `)
       .order('createdat', { ascending: false });
 
     if (period !== 'all') {
@@ -63,7 +66,10 @@ export async function GET(request: NextRequest) {
     // Fetch previous period orders for comparison
     let previousQuery = supabaseAdmin
       .from('orders')
-      .select('*');
+      .select(`
+        *,
+        customers(firstname, lastname, email)
+      `);
 
     if (period !== 'all') {
       previousQuery = previousQuery
@@ -91,14 +97,24 @@ export async function GET(request: NextRequest) {
     const orders_change = prev_orders > 0 ? ((total_orders - prev_orders) / prev_orders) * 100 : 0;
 
     // Create transactions list
-    const transactions = currentOrders.map(order => ({
-      orderid: order.orderid,
-      date: order.createdat,
-      customer: `${order.customerfirstname} ${order.customerlastname}`,
-      amount: parseFloat(order.total),
-      status: order.status,
-      type: 'order' as const
-    }));
+    const transactions = currentOrders.map(order => {
+      // Build customer name from joined customers table
+      const customer = order.customers;
+      const firstName = customer?.firstname || '';
+      const lastName = customer?.lastname || '';
+      const customerName = (firstName || lastName) 
+        ? `${firstName} ${lastName}`.trim()
+        : (customer?.email || 'Unknown Customer');
+      
+      return {
+        orderid: order.orderid,
+        date: order.createdat,
+        customer: customerName,
+        amount: parseFloat(order.total),
+        status: order.status,
+        type: 'order' as const
+      };
+    });
 
     return NextResponse.json({
       success: true,

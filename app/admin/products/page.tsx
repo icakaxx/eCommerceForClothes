@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit2, Trash2, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Image as ImageIcon, ChevronDown } from 'lucide-react';
 import { ProductType, Property } from '@/lib/types/product-types';
 import AdminLayout from '../components/AdminLayout';
+import AdminModal from '../components/AdminModal';
 import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
+import { AdminPage, PageHeader, Section, SectionSurface, EmptyState, DataTableShell, TableHeader, TableHeaderRow, TableHeaderCell, TableBody, TableRow, TableCell } from '../components/layout';
+import { Package } from 'lucide-react';
 
 interface Product {
   productid: string;
@@ -42,6 +45,9 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
@@ -419,13 +425,21 @@ export default function ProductsPage() {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+  const handleDeleteClick = (product: Product) => {
+    setProductToDelete(product);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!productToDelete) return;
 
     try {
-      const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      setDeleting(true);
+      const response = await fetch(`/api/products/${productToDelete.productid}`, { method: 'DELETE' });
       const result = await response.json();
       if (result.success) {
+        setShowDeleteModal(false);
+        setProductToDelete(null);
         loadProducts();
       } else {
         alert('Error: ' + result.error);
@@ -433,6 +447,8 @@ export default function ProductsPage() {
     } catch (error) {
       console.error('Failed to delete product:', error);
       alert('Failed to delete product');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -601,7 +617,7 @@ export default function ProductsPage() {
 
   return (
     <AdminLayout currentPath="/admin/products">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-6">
+      <AdminPage>
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
           <h1 className="text-2xl sm:text-3xl font-bold">Продукти</h1>
           <button
@@ -613,7 +629,7 @@ export default function ProductsPage() {
               setVariants([]);
               setShowModal(true);
             }}
-            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation text-sm sm:text-base"
+            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation text-sm sm:text-base"
           >
             <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
             {t.addProduct}
@@ -627,70 +643,88 @@ export default function ProductsPage() {
           </div>
         ) : (
           <>
-            {/* Desktop Table View */}
-            <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t.name}
-                      </th>
-                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t.sku}
-                      </th>
-                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t.productType}
-                      </th>
-                      <th className="px-4 xl:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t.actions}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {currentProducts.map((product) => (
-                      <tr key={product.productid} className="hover:bg-gray-50">
-                        <td className="px-4 xl:px-6 py-4 text-sm font-medium text-gray-900">
-                          <div className="truncate max-w-xs">{product.name}</div>
-                        </td>
-                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <span className="font-mono text-xs">{product.sku || '-'}</span>
-                        </td>
-                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {productTypes.find(pt => pt.producttypeid === product.producttypeid)?.name || '-'}
-                        </td>
-                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              onClick={() => handleEdit(product)}
-                              className="p-1.5 sm:p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded transition-colors touch-manipulation"
-                              title={t.edit}
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(product.productid)}
-                              className="p-1.5 sm:p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors touch-manipulation"
-                              title={language === 'bg' ? 'Изтрий' : 'Delete'}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {products.length === 0 && (
-                <div className="text-center py-8 sm:py-12 text-gray-500">
-                  <p className="text-sm sm:text-base">{t.noProductsFound}</p>
+          <Section
+            title={language === 'bg' ? 'Списък с продукти' : 'Products List'}
+            description={language === 'bg' ? 'Управлявайте продуктите и техните варианти' : 'Manage products and their variants'}
+          >
+            {products.length === 0 ? (
+              <EmptyState
+                title={language === 'bg' ? 'Няма продукти' : 'No Products'}
+                description={language === 'bg' ? 'Създайте първия продукт, за да започнете да продавате.' : 'Create your first product to start selling.'}
+                action={
+                  <button
+                    onClick={() => {
+                      setEditingProduct(null);
+                      setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, propertyvalues: {} });
+                      setProductTypeProperties([]);
+                      setSelectedPropertyValues({});
+                      setVariants([]);
+                      setShowModal(true);
+                    }}
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
+                  >
+                    <Plus className="w-4 h-4" />
+                    {t.addProduct}
+                  </button>
+                }
+                icon={Package}
+              />
+            ) : (
+              <SectionSurface tone="soft" padding="md">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-hidden">
+                  <DataTableShell>
+                    <TableHeader>
+                      <TableHeaderRow>
+                        <TableHeaderCell>{t.name}</TableHeaderCell>
+                        <TableHeaderCell>{t.sku}</TableHeaderCell>
+                        <TableHeaderCell>{t.productType}</TableHeaderCell>
+                        <TableHeaderCell align="right">{t.actions}</TableHeaderCell>
+                      </TableHeaderRow>
+                    </TableHeader>
+                    <TableBody>
+                      {currentProducts.map((product) => (
+                        <TableRow key={product.productid}>
+                          <TableCell>
+                            <div className="truncate max-w-xs font-medium">{product.name}</div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-mono text-xs">{product.sku || '-'}</span>
+                          </TableCell>
+                          <TableCell>
+                            {productTypes.find(pt => pt.producttypeid === product.producttypeid)?.name || '-'}
+                          </TableCell>
+                          <TableCell align="right">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => handleEdit(product)}
+                                className="p-1.5 sm:p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded transition-colors touch-manipulation"
+                                title={t.edit}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteClick(product)}
+                                className="p-1.5 sm:p-2 text-danger hover:text-danger-text hover:bg-danger-bg rounded transition-colors touch-manipulation"
+                                title={language === 'bg' ? 'Изтрий' : 'Delete'}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </DataTableShell>
                 </div>
-              )}
-            </div>
+              </SectionSurface>
+            )}
+          </Section>
 
-            {/* Mobile/Tablet Card Layout */}
-            <div className="md:hidden space-y-3">
+          {/* Mobile/Tablet Card Layout */}
+          {products.length > 0 && (
+            <Section className="md:hidden">
+              <div className="space-y-3">
               {currentProducts.map((product) => (
                 <div key={product.productid} className="bg-white p-3 sm:p-4 rounded-lg shadow border">
                   <div className="flex justify-between items-start gap-3">
@@ -712,8 +746,8 @@ export default function ProductsPage() {
                         <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(product.productid)}
-                        className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 active:bg-red-100 rounded transition-colors touch-manipulation"
+                        onClick={() => handleDeleteClick(product)}
+                        className="p-2 text-danger hover:text-danger-text hover:bg-danger-bg active:bg-danger-bg/80 rounded transition-colors touch-manipulation"
                         title={language === 'bg' ? 'Изтрий' : 'Delete'}
                       >
                         <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -722,79 +756,117 @@ export default function ProductsPage() {
                   </div>
                 </div>
               ))}
-              {products.length === 0 && (
-                <div className="bg-white p-4 rounded-lg shadow border text-center">
-                  <p className="text-sm text-gray-500">{t.noProductsFound}</p>
-                </div>
-              )}
-            </div>
+              </div>
+            </Section>
+          )}
 
-            {/* Pagination */}
+          {/* Pagination */}
             {totalPages > 1 && (
-              <div className="mt-4 sm:mt-6 bg-white rounded-lg shadow px-3 sm:px-4 lg:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-200">
-                <div className="text-xs sm:text-sm text-gray-700 text-center sm:text-left">
-                  {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, products.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{products.length}</span>
-                </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
+              <div className="bg-white px-3 sm:px-4 lg:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-200">
+                {/* Mobile: Simple Prev/Next */}
+                <div className="flex-1 flex justify-between sm:hidden w-full">
                   <button
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="px-3 sm:px-4 py-2 text-xs sm:text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                    className="relative inline-flex items-center justify-center px-4 py-2.5 min-w-[100px] border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
                   >
                     {t.previous || 'Previous'}
                   </button>
-
-                  <div className="flex gap-1 overflow-x-auto">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      const pageNumber = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
-                      if (pageNumber > totalPages) return null;
-                      return (
-                        <button
-                          key={pageNumber}
-                          onClick={() => setCurrentPage(pageNumber)}
-                          className={`px-3 py-2 text-xs sm:text-sm border rounded min-w-[2.5rem] transition-colors touch-manipulation ${
-                            currentPage === pageNumber
-                              ? 'bg-blue-600 text-white border-blue-600'
-                              : 'hover:bg-gray-50 active:bg-gray-100'
-                          }`}
-                        >
-                          {pageNumber}
-                        </button>
-                      );
-                    })}
+                  <div className="flex items-center px-4">
+                    <span className="text-sm text-gray-700">
+                      <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
+                    </span>
                   </div>
-
                   <button
-                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-3 sm:px-4 py-2 text-xs sm:text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                    className="relative inline-flex items-center justify-center px-4 py-2.5 min-w-[100px] border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
                   >
                     {t.next || 'Next'}
                   </button>
+                </div>
+
+                {/* Tablet/Desktop: Full Pagination */}
+                <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between w-full">
+                  <div>
+                    <p className="text-xs sm:text-sm text-gray-700">
+                      {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, products.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{products.length}</span> {language === 'bg' ? 'продукти' : 'products'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center px-2 sm:px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                      >
+                        <span className="sr-only">{t.previous || 'Previous'}</span>
+                        <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 rotate-90" />
+                      </button>
+                      <div className="hidden md:flex">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                          // Show first page, last page, current page, and pages around current
+                          if (
+                            page === 1 ||
+                            page === totalPages ||
+                            (page >= currentPage - 1 && page <= currentPage + 1)
+                          ) {
+                            return (
+                              <button
+                                key={page}
+                                onClick={() => setCurrentPage(page)}
+                                className={`relative inline-flex items-center px-3 sm:px-4 py-2 border text-sm font-medium transition-colors touch-manipulation ${
+                                  currentPage === page
+                                    ? 'z-10 bg-primary/10 border-primary text-primary'
+                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 active:bg-gray-100'
+                                }`}
+                              >
+                                {page}
+                              </button>
+                            );
+                          } else if (page === currentPage - 2 || page === currentPage + 2) {
+                            return <span key={page} className="relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">...</span>;
+                          }
+                          return null;
+                        })}
+                      </div>
+                      <div className="md:hidden flex items-center px-3 border-t border-b border-gray-300 bg-white">
+                        <span className="text-sm text-gray-700">
+                          <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="relative inline-flex items-center px-2 sm:px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                      >
+                        <span className="sr-only">{t.next || 'Next'}</span>
+                        <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 -rotate-90" />
+                      </button>
+                    </nav>
+                  </div>
                 </div>
               </div>
             )}
           </>
         )}
+      </AdminPage>
 
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white rounded-lg w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto my-auto">
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex justify-between items-center z-10">
-                <h2 className="text-lg sm:text-xl font-bold">
-                  {editingProduct ? t.editProduct : t.addProduct}
-                </h2>
-                <button 
-                  onClick={() => {
-                    setShowModal(false);
-                    // Don't clear the data here - only clear when starting a new product
-                  }}
-                  className="p-2 hover:bg-gray-100 rounded transition-colors touch-manipulation"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="p-4 sm:p-6">
+      <AdminModal
+          isOpen={showModal}
+          onClose={() => {
+            setShowModal(false);
+            // Don't clear the data here - only clear when starting a new product
+          }}
+          title={editingProduct ? t.editProduct : t.addProduct}
+          subheader={editingProduct
+            ? (language === 'bg' ? 'Редактирайте информацията за продукта и неговите варианти' : 'Edit the product information and its variants')
+            : (language === 'bg' ? 'Създайте нов продукт с варианти и свойства' : 'Create a new product with variants and properties')
+          }
+          maxWidth="max-w-4xl"
+          minWidth={600}
+          minHeight={500}
+        >
               <form onSubmit={handleSubmit}>
                 <div className="space-y-4">
                   <div>
@@ -883,7 +955,7 @@ export default function ProductsPage() {
                         type="checkbox"
                         checked={formData.isfeatured || false}
                         onChange={(e) => setFormData({ ...formData, isfeatured: e.target.checked })}
-                        className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="mt-0.5 w-4 h-4 text-primary border-border rounded focus:ring-primary"
                       />
                       <div>
                         <span className="text-xs sm:text-sm font-medium text-gray-700 block">
@@ -970,7 +1042,7 @@ export default function ProductsPage() {
                                       type="button"
                                       onClick={() => handleAddPropertyValue(property.propertyid)}
                                       disabled={addingPropertyValue[property.propertyid] || !newPropertyValues[property.propertyid]?.trim()}
-                                      className="px-3 py-1.5 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-1 transition-colors touch-manipulation whitespace-nowrap"
+                                      className="px-3 py-1.5 text-xs sm:text-sm bg-primary text-primary-foreground rounded hover:opacity-90 active:opacity-80 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed flex items-center justify-center gap-1 transition-opacity touch-manipulation whitespace-nowrap"
                                     >
                                       {addingPropertyValue[property.propertyid] ? (
                                         <>
@@ -998,7 +1070,7 @@ export default function ProductsPage() {
                       <button
                         type="button"
                         onClick={generateVariants}
-                        className="mt-3 w-full px-4 py-2 text-sm sm:text-base bg-green-600 text-white rounded hover:bg-green-700 active:bg-green-800 transition-colors touch-manipulation"
+                        className="mt-3 w-full px-4 py-2 text-sm sm:text-base bg-success text-success-foreground rounded hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation"
                       >
                         {t.generateVariants} ({Object.values(selectedPropertyValues).reduce((acc, vals) => acc * (vals.length || 1), 1)} {t.combinations})
                       </button>
@@ -1257,7 +1329,7 @@ export default function ProductsPage() {
                   )}
                     </div>
 
-                    <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 sm:p-6 flex flex-col sm:flex-row justify-end gap-2 sm:gap-2 mt-6 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6">
+                    <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-2 pt-4 border-t border-gray-200 mt-6">
                       <button
                         type="button"
                         onClick={() => {
@@ -1275,7 +1347,7 @@ export default function ProductsPage() {
                       </button>
                       <button
                         type="submit"
-                        className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation"
+                        className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-primary text-primary-foreground rounded hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation"
                       >
                         {editingProduct
                           ? (language === 'bg' ? 'Актуализиране' : 'Update')
@@ -1284,30 +1356,21 @@ export default function ProductsPage() {
                       </button>
                     </div>
                   </form>
-                </div>
-              </div>
-            </div>
-          )}
+        </AdminModal>
 
         {/* Media Selection Modal */}
-        {showMediaModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] sm:max-h-[80vh] overflow-hidden flex flex-col my-auto">
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-3 sm:p-4 flex justify-between items-center z-10">
-                <h3 className="text-base sm:text-lg font-semibold">
-                  {language === 'bg' ? 'Избери изображение от медията' : 'Select Image from Media'}
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowMediaModal(false);
-                    setSelectedVariantIndex(null);
-                  }}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors touch-manipulation"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+        <AdminModal
+          isOpen={showMediaModal}
+          onClose={() => {
+            setShowMediaModal(false);
+            setSelectedVariantIndex(null);
+          }}
+          title={language === 'bg' ? 'Избери изображение от медията' : 'Select Image from Media'}
+          subheader={language === 'bg' ? 'Изберете изображение от вашата медийна библиотека' : 'Select an image from your media library'}
+          maxWidth="max-w-4xl"
+          minWidth={500}
+          minHeight={400}
+        >
                 {loadingMedia ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
@@ -1342,11 +1405,58 @@ export default function ProductsPage() {
                     ))}
                   </div>
                 )}
+        </AdminModal>
+
+        {/* Delete Confirmation Modal */}
+        <AdminModal
+          isOpen={showDeleteModal}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setProductToDelete(null);
+          }}
+          title={language === 'bg' ? 'Потвърди изтриване' : 'Confirm Delete'}
+          subheader={language === 'bg' 
+            ? 'Сигурни ли сте, че искате да изтриете този продукт? Това действие не може да бъде отменено.'
+            : 'Are you sure you want to delete this product? This action cannot be undone.'}
+          maxWidth="max-w-md"
+          minWidth={400}
+          minHeight={200}
+        >
+          <div className="space-y-4">
+            {productToDelete && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm font-medium text-gray-900 mb-1">
+                  {language === 'bg' ? 'Продукт:' : 'Product:'}
+                </p>
+                <p className="text-sm text-gray-700">{productToDelete.name}</p>
+                {productToDelete.sku && (
+                  <p className="text-xs text-gray-500 mt-1 font-mono">SKU: {productToDelete.sku}</p>
+                )}
               </div>
+            )}
+            <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setProductToDelete(null);
+                }}
+                disabled={deleting}
+                className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation disabled:opacity-50"
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-danger text-danger-foreground rounded hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? (language === 'bg' ? 'Изтриване...' : 'Deleting...') : (language === 'bg' ? 'Изтрий' : 'Delete')}
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </AdminModal>
     </AdminLayout>
   );
 }

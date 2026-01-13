@@ -5,6 +5,7 @@ import { Search, Edit2, Eye, EyeOff, Upload, Image as ImageIcon, X, Plus, Trash2
 import { useRouter } from 'next/navigation';
 import EditProductVariantsModal from '@/components/EditProductVariantsModal';
 import LanguageToggle from '@/components/LanguageToggle';
+import AdminModal from './AdminModal';
 import { useProducts } from '@/context/ProductContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -738,35 +739,15 @@ export default function AdminPanel() {
         )}
 
         {/* Upload Modal */}
-        {showUploadModal && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={() => !uploading && setShowUploadModal(false)}
+        <AdminModal
+          isOpen={showUploadModal}
+          onClose={() => !uploading && setShowUploadModal(false)}
+          title={language === 'bg' ? 'Качи снимка в Storage' : 'Upload Image to Storage'}
+          subheader={language === 'bg' ? 'Качете изображения във вашата медийна библиотека' : 'Upload images to your media library'}
+          maxWidth="max-w-2xl"
+          minWidth={500}
+          minHeight={400}
         >
-          <div 
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: theme.colors.surface,
-              color: theme.colors.text
-            }}
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 
-                  className="text-xl font-semibold"
-                  style={{ color: theme.colors.text }}
-                >
-                  {language === 'bg' ? 'Качи снимка в Storage' : 'Upload Image to Storage'}
-                </h2>
-                <button
-                  onClick={() => !uploading && setShowUploadModal(false)}
-                  className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                  disabled={uploading}
-                >
-                  <X size={20} style={{ color: theme.colors.text }} />
-                </button>
-              </div>
 
               <div className="mb-6">
                 <label 
@@ -903,10 +884,7 @@ export default function AdminPanel() {
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-      )}
+        </AdminModal>
     </>
   );
 }

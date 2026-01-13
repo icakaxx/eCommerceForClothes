@@ -226,9 +226,9 @@ export async function GET(request: NextRequest) {
       .gte('createdat', lastWeekStart.toISOString())
       .lte('createdat', lastWeekEnd.toISOString());
 
-    // Get category performance data from orders
+    // Get product type performance data from orders
     // Fetch orders with their items and product information
-    const { data: ordersWithItems, error: categoryError } = await supabaseAdmin
+    const { data: ordersWithItems, error: productTypeError } = await supabaseAdmin
       .from('orders')
       .select(`
         orderid,
@@ -242,33 +242,10 @@ export async function GET(request: NextRequest) {
       .gte('createdat', start.toISOString())
       .lte('createdat', end.toISOString());
 
-    // Category mapping function
-    const mapProductTypeToCategory = (code: string | null | undefined): 'clothes' | 'shoes' | 'accessories' => {
-      if (!code) return 'clothes';
-      const codeLower = code.toLowerCase();
-      const categoryMap: Record<string, 'clothes' | 'shoes' | 'accessories'> = {
-        'clothes': 'clothes',
-        'shoes': 'shoes',
-        'accessories': 'accessories',
-        'shirts': 'clothes',
-        'pants': 'clothes',
-        'jackets': 'clothes',
-        'sneakers': 'shoes',
-        'boots': 'shoes',
-        'bags': 'accessories',
-        'watches': 'accessories'
-      };
-      return categoryMap[codeLower] || 'clothes';
-    };
+    // Process orders to get product type data
+    const productTypeData: Record<string, { orders: number; sales: number }> = {};
 
-    // Process orders to get category data
-    const categoryData: Record<string, { orders: number; sales: number }> = {
-      'Clothes': { orders: 0, sales: 0 },
-      'Shoes': { orders: 0, sales: 0 },
-      'Accessories': { orders: 0, sales: 0 }
-    };
-
-    if (ordersWithItems && !categoryError) {
+    if (ordersWithItems && !productTypeError) {
       // Get all unique product variant IDs and product IDs from order items
       const variantIds = new Set<string>();
       const productIds = new Set<string>();
@@ -290,7 +267,7 @@ export async function GET(request: NextRequest) {
       const variantIdsArray = Array.from(variantIds);
       const productIdsArray = Array.from(productIds);
       
-      const productTypeMap: Record<string, string> = {};
+      const productTypeMap: Record<string, { name: string; id: string }> = {};
 
       if (variantIdsArray.length > 0) {
         const { data: variants } = await supabaseAdmin
@@ -302,7 +279,8 @@ export async function GET(request: NextRequest) {
               productid,
               producttypeid,
               product_types (
-                code
+                producttypeid,
+                name
               )
             )
           `)
@@ -311,7 +289,10 @@ export async function GET(request: NextRequest) {
         if (variants) {
           variants.forEach((variant: any) => {
             if (variant.products && variant.products.product_types) {
-              productTypeMap[variant.productvariantid] = variant.products.product_types.code;
+              productTypeMap[variant.productvariantid] = {
+                name: variant.products.product_types.name,
+                id: variant.products.product_types.producttypeid
+              };
             }
           });
         }
@@ -324,7 +305,8 @@ export async function GET(request: NextRequest) {
             productid,
             producttypeid,
             product_types (
-              code
+              producttypeid,
+              name
             )
           `)
           .in('productid', productIdsArray);
@@ -332,66 +314,67 @@ export async function GET(request: NextRequest) {
         if (products) {
           products.forEach((product: any) => {
             if (product.product_types) {
-              productTypeMap[product.productid] = product.product_types.code;
+              productTypeMap[product.productid] = {
+                name: product.product_types.name,
+                id: product.product_types.producttypeid
+              };
             }
           });
         }
       }
 
-      // Process orders and categorize them
+      // Process orders and group by product type
       ordersWithItems.forEach((order: any) => {
-        const orderCategories = new Set<string>();
+        const orderProductTypes = new Set<string>();
         
         if (order.order_items && order.order_items.length > 0) {
           order.order_items.forEach((item: any) => {
-            let category: string;
+            let productTypeName: string | null = null;
             if (item.productvariantid && productTypeMap[item.productvariantid]) {
-              category = mapProductTypeToCategory(productTypeMap[item.productvariantid]);
+              productTypeName = productTypeMap[item.productvariantid].name;
             } else if (item.productid && productTypeMap[item.productid]) {
-              category = mapProductTypeToCategory(productTypeMap[item.productid]);
-            } else {
-              category = 'clothes'; // Default
+              productTypeName = productTypeMap[item.productid].name;
             }
-            orderCategories.add(category);
+            
+            if (productTypeName) {
+              orderProductTypes.add(productTypeName);
+            }
           });
-        } else {
-          // If no items, default to clothes
-          orderCategories.add('clothes');
         }
 
-        // Count order and sales for each category in this order
-        orderCategories.forEach(category => {
-          const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
-          if (categoryData[categoryName]) {
-            categoryData[categoryName].orders += 1;
-            // Distribute order total evenly across categories, or use full amount if single category
+        // Count order and sales for each product type in this order
+        if (orderProductTypes.size > 0) {
+          orderProductTypes.forEach(productTypeName => {
+            if (!productTypeData[productTypeName]) {
+              productTypeData[productTypeName] = { orders: 0, sales: 0 };
+            }
+            productTypeData[productTypeName].orders += 1;
+            // Distribute order total evenly across product types, or use full amount if single type
             const orderTotal = Number(order.total || 0);
-            const salesPerCategory = orderCategories.size > 1 
-              ? orderTotal / orderCategories.size 
+            const salesPerType = orderProductTypes.size > 1 
+              ? orderTotal / orderProductTypes.size 
               : orderTotal;
-            categoryData[categoryName].sales += salesPerCategory;
-          }
-        });
+            productTypeData[productTypeName].sales += salesPerType;
+          });
+        }
       });
     }
 
     // Calculate percentages based on total sales
-    const totalCategorySales = Object.values(categoryData).reduce((sum, cat) => sum + cat.sales, 0);
-    const categoryPerformance = Object.entries(categoryData).map(([category, data]) => {
-      const percentage = totalCategorySales > 0 ? (data.sales / totalCategorySales) * 100 : 0;
-      const colorMap: Record<string, string> = {
-        'Clothes': 'bg-blue-500',
-        'Shoes': 'bg-green-500',
-        'Accessories': 'bg-yellow-500'
-      };
-      return {
-        category,
-        percentage: Number(percentage.toFixed(1)),
-        orders: data.orders,
-        sales: data.sales,
-        color: colorMap[category] || 'bg-gray-500'
-      };
-    });
+    const totalProductTypeSales = Object.values(productTypeData).reduce((sum, type) => sum + type.sales, 0);
+    const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500'];
+    const productTypePerformance = Object.entries(productTypeData)
+      .map(([productTypeName, data], index) => {
+        const percentage = totalProductTypeSales > 0 ? (data.sales / totalProductTypeSales) * 100 : 0;
+        return {
+          productType: productTypeName,
+          percentage: Number(percentage.toFixed(1)),
+          orders: data.orders,
+          sales: data.sales,
+          color: colors[index % colors.length]
+        };
+      })
+      .sort((a, b) => b.sales - a.sales); // Sort by sales descending
 
     // Get recent orders (latest 4) - join with customers table
     const { data: recentOrdersData, error: recentOrdersError } = await supabaseAdmin
@@ -418,11 +401,11 @@ export async function GET(request: NextRequest) {
       } else if (order.customers?.email) {
         customerName = order.customers.email;
       } else {
-        customerName = `Order ${order.orderid.substring(0, 8)}`;
+        customerName = `Order ${order.orderid}`;
       }
 
       return {
-        id: `#${order.orderid.substring(0, 8).toUpperCase()}`,
+        id: `#ORD-${order.orderid.toUpperCase()}`,
         customer: customerName,
         amount: Number(order.total || 0),
         status: order.status || 'pending',
@@ -575,7 +558,7 @@ export async function GET(request: NextRequest) {
         productsGrowth,
         customersGrowth: Number(customersGrowth.toFixed(1)),
         weeklySales,
-        categoryPerformance,
+        productTypePerformance,
         recentOrders,
         topProducts
       }

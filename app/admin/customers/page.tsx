@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ChevronDown } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { getAdminSession } from '@/lib/auth';
 import { useLanguage } from '@/context/LanguageContext';
@@ -25,6 +26,10 @@ export default function CustomersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -82,6 +87,12 @@ export default function CustomersPage() {
   const totalCustomers = customers.length;
   const activeCustomers = customers.filter(c => c.totalorders && c.totalorders > 0).length;
 
+  // Pagination calculations
+  const totalPages = Math.ceil(customers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedCustomers = customers.slice(startIndex, endIndex);
+
   return (
     <AdminLayout currentPath="/admin/customers">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-6">
@@ -137,7 +148,7 @@ export default function CustomersPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {customers.map((customer) => (
+                    {paginatedCustomers.map((customer) => (
                       <tr key={customer.customerid} className="hover:bg-gray-50">
                         <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           <div className="truncate max-w-xs">{customer.name || t.na}</div>
@@ -165,7 +176,7 @@ export default function CustomersPage() {
 
               {/* Mobile/Tablet Card View */}
               <div className="lg:hidden divide-y divide-gray-200">
-                {customers.map((customer) => (
+                {paginatedCustomers.map((customer) => (
                   <div key={customer.customerid} className="p-3 sm:p-4 hover:bg-gray-50 transition-colors">
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-2">
@@ -206,6 +217,95 @@ export default function CustomersPage() {
           {customers.length === 0 && !loading && (
             <div className="text-center py-8 sm:py-12 px-4 text-gray-500">
               <p className="text-sm sm:text-base">{t.noCustomersFound}</p>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="bg-white px-3 sm:px-4 lg:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-200">
+              {/* Mobile: Simple Prev/Next */}
+              <div className="flex-1 flex justify-between sm:hidden w-full">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center justify-center px-4 py-2.5 min-w-[100px] border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                >
+                  {t.previous || 'Previous'}
+                </button>
+                <div className="flex items-center px-4">
+                  <span className="text-sm text-gray-700">
+                    <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
+                  </span>
+                </div>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="relative inline-flex items-center justify-center px-4 py-2.5 min-w-[100px] border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                >
+                  {t.next || 'Next'}
+                </button>
+              </div>
+
+              {/* Tablet/Desktop: Full Pagination */}
+              <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between w-full">
+                <div>
+                  <p className="text-xs sm:text-sm text-gray-700">
+                    {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, customers.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{customers.length}</span> {language === 'bg' ? 'клиенти' : 'customers'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="relative inline-flex items-center px-2 sm:px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                    >
+                      <span className="sr-only">{t.previous || 'Previous'}</span>
+                      <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 rotate-90" />
+                    </button>
+                    <div className="hidden md:flex">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                        // Show first page, last page, current page, and pages around current
+                        if (
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 1 && page <= currentPage + 1)
+                        ) {
+                          return (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={`relative inline-flex items-center px-3 sm:px-4 py-2 border text-sm font-medium transition-colors touch-manipulation ${
+                                currentPage === page
+                                  ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                  : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 active:bg-gray-100'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          );
+                        } else if (page === currentPage - 2 || page === currentPage + 2) {
+                          return <span key={page} className="relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">...</span>;
+                        }
+                        return null;
+                      })}
+                    </div>
+                    <div className="md:hidden flex items-center px-3 border-t border-b border-gray-300 bg-white">
+                      <span className="text-sm text-gray-700">
+                        <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="relative inline-flex items-center px-2 sm:px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                    >
+                      <span className="sr-only">{t.next || 'Next'}</span>
+                      <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 -rotate-90" />
+                    </button>
+                  </nav>
+                </div>
+              </div>
             </div>
           )}
         </div>

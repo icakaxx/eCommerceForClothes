@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Plus, X, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { ProductType, Property } from '@/lib/types/product-types';
+import AdminModal from '../../components/AdminModal';
 import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
 
@@ -164,16 +165,16 @@ export default function ProductTypeDetailsPage() {
           )}
         </div>
 
-        {showAddModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">{t.addProperty}</h2>
-                <button onClick={() => setShowAddModal(false)}>
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
+        <AdminModal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          title={t.addProperty}
+          subheader={language === 'bg' ? 'Добавете свойство към този тип продукт' : 'Add a property to this product type'}
+          maxWidth="max-w-md"
+          minWidth={400}
+          minHeight={300}
+        >
+          <div className="space-y-2 max-h-96 overflow-y-auto">
                 {unassignedProperties.length === 0 ? (
                   <p className="text-gray-500">{t.allPropertiesAssigned}</p>
                 ) : (
@@ -191,10 +192,8 @@ export default function ProductTypeDetailsPage() {
                     </button>
                   ))
                 )}
-              </div>
-            </div>
           </div>
-        )}
+        </AdminModal>
       </div>
     </div>
   );

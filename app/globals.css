@@ -1,8 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@keyframes zoom-in {
+@tailwind base;@tailwind components;@tailwind utilities;@layer base {  :root {    --primary: 239 84% 67%;    --primary-foreground: 0 0% 100%;    --primary-hover: 239 84% 62%;    --primary-active: 239 84% 57%;    --success: 142 71% 45%;    --success-foreground: 0 0% 100%;    --success-bg: 142 71% 96%;    --success-text: 142 71% 30%;    --warning: 38 92% 50%;    --warning-foreground: 0 0% 100%;    --warning-bg: 38 92% 96%;    --warning-text: 38 92% 25%;    --danger: 0 84% 60%;    --danger-foreground: 0 0% 100%;    --danger-bg: 0 84% 97%;    --danger-text: 0 84% 40%;    --info: 199 89% 48%;    --info-foreground: 0 0% 100%;    --info-bg: 199 89% 96%;    --info-text: 199 89% 30%;    --background: 0 0% 100%;    --foreground: 222 47% 11%;    --surface: 0 0% 100%;    --surface-2: 210 40% 98%;    --border: 214 32% 91%;    --muted: 210 40% 96%;    --muted-foreground: 215 16% 47%;    --text: 222 47% 11%;    --text-secondary: 215 16% 47%;  }}@keyframes zoom-in {
   from {
     transform: scale(1);
   }
@@ -89,4 +85,5 @@
 .prose * {
   color: inherit;
 }
+
 

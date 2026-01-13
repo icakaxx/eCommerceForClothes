@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminLayout from '../components/AdminLayout';
+import AdminModal from '../components/AdminModal';
+import { Badge } from '../components/layout';
 import { getAdminSession } from '@/lib/auth';
 import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
-import { Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, ChevronDown } from 'lucide-react';
 
 interface Discount {
   discountid: string;
@@ -37,6 +39,10 @@ export default function DiscountsPage() {
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [editingDiscount, setEditingDiscount] = useState<Discount | null>(null);
   const [formData, setFormData] = useState<DiscountFormData>({
     code: '',
@@ -249,6 +255,12 @@ export default function DiscountsPage() {
 
   const activeDiscounts = discounts.filter(d => d.isactive).length;
 
+  // Pagination calculations
+  const totalPages = Math.ceil(discounts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedDiscounts = discounts.slice(startIndex, endIndex);
+
   return (
     <AdminLayout currentPath="/admin/discounts">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-6">
@@ -259,7 +271,7 @@ export default function DiscountsPage() {
           </div>
           <button
             onClick={openCreateModal}
-            className="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation text-sm sm:text-base"
+            className="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation text-sm sm:text-base"
           >
             <Plus size={18} className="sm:w-5 sm:h-5 mr-2" />
             {t.addDiscountCode}
@@ -274,7 +286,7 @@ export default function DiscountsPage() {
           </div>
           <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
             <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">{t.activeDiscounts}</h3>
-            <p className="text-2xl sm:text-3xl font-bold text-green-600 mt-1 sm:mt-2">{activeDiscounts}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-success mt-1 sm:mt-2">{activeDiscounts}</p>
           </div>
         </div>
 
@@ -316,7 +328,7 @@ export default function DiscountsPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {discounts.map((discount) => (
+                    {paginatedDiscounts.map((discount) => (
                       <tr key={discount.discountid} className="hover:bg-gray-50">
                         <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           <span className="font-mono text-xs">{discount.code}</span>
@@ -333,13 +345,9 @@ export default function DiscountsPage() {
                           {discount.type === 'percentage' ? `${discount.value}%` : `€${discount.value.toFixed(2)}`}
                         </td>
                         <td className="px-4 xl:px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            discount.isactive
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
+                          <Badge variant={discount.isactive ? 'success' : 'danger'}>
                             {discount.isactive ? t.active : t.inactive}
-                          </span>
+                          </Badge>
                         </td>
                         <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {discount.expiresat ? new Date(discount.expiresat).toLocaleDateString() : t.never}
@@ -370,7 +378,7 @@ export default function DiscountsPage() {
 
               {/* Mobile/Tablet Card View */}
               <div className="lg:hidden divide-y divide-gray-200">
-                {discounts.map((discount) => (
+                {paginatedDiscounts.map((discount) => (
                   <div key={discount.discountid} className="p-3 sm:p-4 hover:bg-gray-50 transition-colors">
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-2">
@@ -438,26 +446,111 @@ export default function DiscountsPage() {
               <p className="text-sm sm:text-base">{t.noDiscountsFoundEmpty}</p>
             </div>
           )}
-        </div>
 
-        {/* Discount Modal */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto my-auto">
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex items-center justify-between z-10">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                  {editingDiscount ? t.editDiscountCode : t.createDiscountCode}
-                </h3>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="bg-white px-3 sm:px-4 lg:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-200">
+              {/* Mobile: Simple Prev/Next */}
+              <div className="flex-1 flex justify-between sm:hidden w-full">
                 <button
-                  onClick={closeModal}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors touch-manipulation"
-                  disabled={submitting}
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center justify-center px-4 py-2.5 min-w-[100px] border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
                 >
-                  <X size={20} className="sm:w-6 sm:h-6" />
+                  {t.previous || 'Previous'}
+                </button>
+                <div className="flex items-center px-4">
+                  <span className="text-sm text-gray-700">
+                    <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
+                  </span>
+                </div>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="relative inline-flex items-center justify-center px-4 py-2.5 min-w-[100px] border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                >
+                  {t.next || 'Next'}
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
+              {/* Tablet/Desktop: Full Pagination */}
+              <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between w-full">
+                <div>
+                  <p className="text-xs sm:text-sm text-gray-700">
+                    {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, discounts.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{discounts.length}</span> {language === 'bg' ? 'отстъпки' : 'discounts'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="relative inline-flex items-center px-2 sm:px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                    >
+                      <span className="sr-only">{t.previous || 'Previous'}</span>
+                      <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 rotate-90" />
+                    </button>
+                    <div className="hidden md:flex">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                        // Show first page, last page, current page, and pages around current
+                        if (
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 1 && page <= currentPage + 1)
+                        ) {
+                          return (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={`relative inline-flex items-center px-3 sm:px-4 py-2 border text-sm font-medium transition-colors touch-manipulation ${
+                                currentPage === page
+                                  ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                  : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 active:bg-gray-100'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          );
+                        } else if (page === currentPage - 2 || page === currentPage + 2) {
+                          return <span key={page} className="relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">...</span>;
+                        }
+                        return null;
+                      })}
+                    </div>
+                    <div className="md:hidden flex items-center px-3 border-t border-b border-gray-300 bg-white">
+                      <span className="text-sm text-gray-700">
+                        <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="relative inline-flex items-center px-2 sm:px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                    >
+                      <span className="sr-only">{t.next || 'Next'}</span>
+                      <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 -rotate-90" />
+                    </button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Discount Modal */}
+        <AdminModal
+          isOpen={showModal}
+          onClose={closeModal}
+          title={editingDiscount ? t.editDiscountCode : t.createDiscountCode}
+          subheader={editingDiscount
+            ? (language === 'bg' ? 'Редактирайте информацията за отстъпката' : 'Edit the discount code information')
+            : (language === 'bg' ? 'Създайте нов код за отстъпка за вашите клиенти' : 'Create a new discount code for your customers')
+          }
+          maxWidth="max-w-md"
+          minWidth={400}
+          minHeight={500}
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Form Errors */}
                 {formErrors.length > 0 && (
                   <div className="bg-red-50 border border-red-200 rounded-md p-3">
@@ -566,7 +659,7 @@ export default function DiscountsPage() {
                 </div>
 
                 {/* Buttons */}
-                <div className="sticky bottom-0 bg-white border-t border-gray-200 pt-4 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
+                <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
                   <button
                     type="button"
                     onClick={closeModal}
@@ -578,15 +671,13 @@ export default function DiscountsPage() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                    className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-primary text-primary-foreground rounded-lg hover:opacity-90 active:opacity-80 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-opacity touch-manipulation"
                   >
                     {submitting ? t.saving : (editingDiscount ? t.updateDiscount : t.createDiscountBtn)}
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
+        </AdminModal>
       </div>
     </AdminLayout>
   );

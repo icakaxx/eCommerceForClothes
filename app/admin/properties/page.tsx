@@ -6,8 +6,10 @@ import { Plus, Edit2, Trash2, X, List, ChevronDown, ChevronRight } from 'lucide-
 import { Property, PropertyValue } from '@/lib/types/product-types';
 import { PropertyValuesStorage } from '@/lib/propertyValuesStorage';
 import AdminLayout from '../components/AdminLayout';
+import AdminModal from '../components/AdminModal';
 import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
+import { AdminPage, PageHeader, DataTableShell, TableHeader, TableHeaderRow, TableHeaderCell, TableBody, TableRow, TableCell, SectionSurface, EmptyState, Section } from '../components/layout';
 
 export default function PropertiesPage() {
   const router = useRouter();
@@ -17,6 +19,11 @@ export default function PropertiesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(null);
+  const [showDeleteValueModal, setShowDeleteValueModal] = useState(false);
+  const [valueToDelete, setValueToDelete] = useState<{ propertyId: string; valueId: string; value: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -32,7 +39,7 @@ export default function PropertiesPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [properties.length]);
-  const [formData, setFormData] = useState({ name: '', description: '', datatype: 'text' as 'text' | 'select' | 'number' });
+  const [formData, setFormData] = useState({ name: '', description: '', datatype: 'select' as 'text' | 'select' | 'number' });
   const [expandedProperties, setExpandedProperties] = useState<Set<string>>(new Set());
   const [showValueModal, setShowValueModal] = useState(false);
   const [editingValue, setEditingValue] = useState<PropertyValue | null>(null);
@@ -94,13 +101,16 @@ export default function PropertiesPage() {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          datatype: 'select' // Always use 'select' type
+        })
       });
 
       const result = await response.json();
       if (result.success) {
         setShowModal(false);
-        setFormData({ name: '', description: '', datatype: 'text' });
+        setFormData({ name: '', description: '', datatype: 'select' });
         setEditingProperty(null);
         loadProperties();
       } else {
@@ -117,18 +127,26 @@ export default function PropertiesPage() {
     setFormData({
       name: property.name,
       description: property.description || '',
-      datatype: property.datatype
+      datatype: 'select' // Always use 'select' type
     });
     setShowModal(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(t.confirmDeleteProperty)) return;
+  const handleDeleteClick = (property: Property) => {
+    setPropertyToDelete(property);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!propertyToDelete) return;
 
     try {
-      const response = await fetch(`/api/properties/${id}`, { method: 'DELETE' });
+      setDeleting(true);
+      const response = await fetch(`/api/properties/${propertyToDelete.propertyid}`, { method: 'DELETE' });
       const result = await response.json();
       if (result.success) {
+        setShowDeleteModal(false);
+        setPropertyToDelete(null);
         loadProperties();
       } else {
         alert('Error: ' + result.error);
@@ -136,6 +154,8 @@ export default function PropertiesPage() {
     } catch (error) {
       console.error('Failed to delete property:', error);
       alert('Failed to delete property');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -163,26 +183,34 @@ export default function PropertiesPage() {
     setShowValueModal(true);
   };
 
-  const handleDeleteValue = async (valueId: string) => {
-    if (!confirm(t.confirmDeletePropertyValue)) return;
+  const handleDeleteValueClick = (property: Property, value: PropertyValue) => {
+    setValueToDelete({ propertyId: property.propertyid, valueId: value.propertyvalueid, value: value.value });
+    setShowDeleteValueModal(true);
+  };
+
+  const handleDeleteValueConfirm = async () => {
+    if (!valueToDelete) return;
 
     try {
-      const response = await fetch(`/api/properties/values/${valueId}`, { method: 'DELETE' });
+      setDeleting(true);
+      const response = await fetch(`/api/properties/values/${valueToDelete.valueId}`, { method: 'DELETE' });
       const result = await response.json();
       if (result.success) {
         // If it's a temporary/local value, also remove from local storage
-        if (valueId.startsWith('temp-') || result.warning) {
+        if (valueToDelete.valueId.startsWith('temp-') || result.warning) {
           // Find which property this value belongs to and remove it from local storage
           const allLocalData = PropertyValuesStorage.getAllPropertyValues();
           for (const [propertyId, values] of Object.entries(allLocalData)) {
-            const valueIndex = values.findIndex(v => v.propertyvalueid === valueId);
+            const valueIndex = values.findIndex(v => v.propertyvalueid === valueToDelete.valueId);
             if (valueIndex !== -1) {
-              PropertyValuesStorage.deletePropertyValue(propertyId, valueId);
+              PropertyValuesStorage.deletePropertyValue(propertyId, valueToDelete.valueId);
               break;
             }
           }
         }
 
+        setShowDeleteValueModal(false);
+        setValueToDelete(null);
         loadProperties();
 
         if (result.warning) {
@@ -197,9 +225,11 @@ export default function PropertiesPage() {
       // Fallback to local storage
       const allLocalData = PropertyValuesStorage.getAllPropertyValues();
       for (const [propertyId, values] of Object.entries(allLocalData)) {
-        const valueIndex = values.findIndex(v => v.propertyvalueid === valueId);
+        const valueIndex = values.findIndex(v => v.propertyvalueid === valueToDelete.valueId);
         if (valueIndex !== -1) {
-          PropertyValuesStorage.deletePropertyValue(propertyId, valueId);
+          PropertyValuesStorage.deletePropertyValue(propertyId, valueToDelete.valueId);
+          setShowDeleteValueModal(false);
+          setValueToDelete(null);
           loadProperties();
           alert('Property value deleted locally. Database migration needed for full functionality.');
           return;
@@ -207,6 +237,8 @@ export default function PropertiesPage() {
       }
 
       alert('Failed to delete property value');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -371,21 +403,23 @@ export default function PropertiesPage() {
 
   return (
     <AdminLayout currentPath="/admin/properties">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-6">
-        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-          <h1 className="text-2xl sm:text-3xl font-bold">Свойства</h1>
-          <button
-            onClick={() => {
-              setEditingProperty(null);
-              setFormData({ name: '', description: '', datatype: 'text' });
-              setShowModal(true);
-            }}
-            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation text-sm sm:text-base"
-          >
-            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-            {t.addProperty}
-          </button>
-        </div>
+      <AdminPage className="space-y-6">
+        <PageHeader
+          title={language === 'bg' ? 'Свойства' : 'Properties'}
+          actions={
+            <button
+              onClick={() => {
+                setEditingProperty(null);
+                setFormData({ name: '', description: '', datatype: 'select' });
+                setShowModal(true);
+              }}
+              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation text-sm sm:text-base"
+            >
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              {t.addProperty}
+            </button>
+          }
+        />
 
         {loading ? (
           <div className="text-center py-8 sm:py-12">
@@ -394,8 +428,33 @@ export default function PropertiesPage() {
           </div>
         ) : (
           <>
-            {/* Desktop Table View */}
-            <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
+            <Section
+              title={language === 'bg' ? 'Списък със свойства' : 'Properties List'}
+              description={language === 'bg' ? 'Управлявайте свойствата на продуктите и техните стойности' : 'Manage product properties and their values'}
+            >
+              {properties.length === 0 ? (
+                <EmptyState
+                  title={language === 'bg' ? 'Няма свойства' : 'No Properties'}
+                  description={language === 'bg' ? 'Създайте първото свойство, за да започнете да организирате продуктите си.' : 'Create your first property to start organizing your products.'}
+                  action={
+                    <button
+                      onClick={() => {
+                        setEditingProperty(null);
+                        setFormData({ name: '', description: '', datatype: 'select' });
+                        setShowModal(true);
+                      }}
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      {t.addProperty}
+                    </button>
+                  }
+                  icon={List}
+                />
+              ) : (
+                <SectionSurface tone="soft" padding="md">
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -471,7 +530,7 @@ export default function PropertiesPage() {
                                 <Edit2 className="w-4 h-4" />
                               </button>
                               <button
-                                onClick={() => handleDelete(prop.propertyid)}
+                                onClick={() => handleDeleteClick(prop)}
                                 className="p-1.5 sm:p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors touch-manipulation"
                                 title={language === 'bg' ? 'Изтрий свойство' : 'Delete Property'}
                               >
@@ -516,7 +575,7 @@ export default function PropertiesPage() {
                                             <Edit2 className="w-3 h-3 sm:w-4 sm:h-4" />
                                           </button>
                                           <button
-                                            onClick={() => handleDeleteValue(value.propertyvalueid)}
+                                            onClick={() => handleDeleteValueClick(prop, value)}
                                             className="p-1.5 sm:p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors touch-manipulation"
                                             title={language === 'bg' ? 'Изтрий стойност' : 'Delete Value'}
                                           >
@@ -539,16 +598,19 @@ export default function PropertiesPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
-              {properties.length === 0 && (
-                <div className="text-center py-8 sm:py-12 text-gray-500">
-                  <p className="text-sm sm:text-base">{t.noPropertiesFound || (language === 'bg' ? 'Не са намерили свойства. Създайте едно, за да започнете.' : 'No properties found. Create one to get started.')}</p>
+                  </div>
                 </div>
+                </SectionSurface>
               )}
-            </div>
+            </Section>
 
             {/* Mobile Card Layout */}
-            <div className="md:hidden space-y-3">
+            {properties.length > 0 && (
+              <Section
+                title={language === 'bg' ? 'Списък със свойства' : 'Properties List'}
+                className="md:hidden"
+              >
+                <div className="space-y-3">
               {currentProperties.map((prop) => {
                 const isExpanded = expandedProperties.has(prop.propertyid);
                 return (
@@ -597,7 +659,7 @@ export default function PropertiesPage() {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(prop.propertyid)}
+                          onClick={() => handleDeleteClick(prop)}
                           className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 active:bg-red-100 rounded transition-colors touch-manipulation"
                           title={language === 'bg' ? 'Изтрий свойство' : 'Delete Property'}
                         >
@@ -635,7 +697,7 @@ export default function PropertiesPage() {
                                     <Edit2 className="w-3 h-3" />
                                   </button>
                                   <button
-                                    onClick={() => handleDeleteValue(value.propertyvalueid)}
+                                    onClick={() => handleDeleteValueClick(prop, value)}
                                     className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors touch-manipulation"
                                     title={language === 'bg' ? 'Изтрий стойност' : 'Delete Value'}
                                   >
@@ -655,218 +717,330 @@ export default function PropertiesPage() {
                   </div>
                 );
               })}
-              {properties.length === 0 && (
-                <div className="bg-white p-4 rounded-lg shadow border text-center">
-                  <p className="text-sm text-gray-500">{t.noPropertiesFound || (language === 'bg' ? 'Не са намерили свойства' : 'No properties found')}</p>
                 </div>
-              )}
-            </div>
+              </Section>
+            )}
           </>
         )}
 
         {/* Pagination */}
         {!loading && totalPages > 1 && (
-          <div className="mt-4 sm:mt-6 bg-white rounded-lg shadow px-3 sm:px-4 lg:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-200">
-            <div className="text-xs sm:text-sm text-gray-700 text-center sm:text-left">
-              {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, properties.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{properties.length}</span>
-            </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
+          <div className="bg-white px-3 sm:px-4 lg:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-200">
+            {/* Mobile: Simple Prev/Next */}
+            <div className="flex-1 flex justify-between sm:hidden w-full">
               <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="px-3 sm:px-4 py-2 text-xs sm:text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                className="relative inline-flex items-center justify-center px-4 py-2.5 min-w-[100px] border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
               >
                 {t.previous || 'Previous'}
               </button>
-
-              <div className="flex gap-1 overflow-x-auto">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const pageNumber = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
-                  if (pageNumber > totalPages) return null;
-                  return (
-                    <button
-                      key={pageNumber}
-                      onClick={() => setCurrentPage(pageNumber)}
-                      className={`px-3 py-2 text-xs sm:text-sm border rounded min-w-[2.5rem] transition-colors touch-manipulation ${
-                        currentPage === pageNumber
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'hover:bg-gray-50 active:bg-gray-100'
-                      }`}
-                    >
-                      {pageNumber}
-                    </button>
-                  );
-                })}
+              <div className="flex items-center px-4">
+                <span className="text-sm text-gray-700">
+                  <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
+                </span>
               </div>
-
               <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 sm:px-4 py-2 text-xs sm:text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                className="relative inline-flex items-center justify-center px-4 py-2.5 min-w-[100px] border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
               >
                 {t.next || 'Next'}
               </button>
             </div>
-          </div>
-        )}
 
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white rounded-lg w-full max-w-md max-h-[95vh] sm:max-h-[90vh] overflow-y-auto my-auto">
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex justify-between items-center z-10">
-                <h2 className="text-lg sm:text-xl font-bold">
-                  {editingProperty ? t.editProperty : t.addProperty}
-                </h2>
-                <button 
-                  onClick={() => setShowModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded transition-colors touch-manipulation"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+            {/* Tablet/Desktop: Full Pagination */}
+            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between w-full">
+              <div>
+                <p className="text-xs sm:text-sm text-gray-700">
+                  {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, properties.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{properties.length}</span> {language === 'bg' ? 'свойства' : 'properties'}
+                </p>
               </div>
-              <div className="p-4 sm:p-6">
-                <form onSubmit={handleSubmit}>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                        {t.name}
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                        {t.description}
-                      </label>
-                      <textarea
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        rows={3}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                        {t.dataType || 'Data Type'}
-                      </label>
-                      <select
-                        value={formData.datatype}
-                        onChange={(e) => setFormData({ ...formData, datatype: e.target.value as 'text' | 'select' | 'number' })}
-                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="text">{t.text || 'Text'}</option>
-                        <option value="select">{t.select || 'Select'}</option>
-                        <option value="number">{t.number || 'Number'}</option>
-                      </select>
-                    </div>
-                    <div className="sticky bottom-0 bg-white border-t border-gray-200 pt-4 flex flex-col sm:flex-row justify-end gap-2 sm:gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowModal(false)}
-                        className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
-                      >
-                        {t.cancel}
-                      </button>
-                      <button
-                        type="submit"
-                        className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation"
-                      >
-                        {editingProperty ? t.update : t.create}
-                      </button>
-                    </div>
+              <div className="flex items-center gap-2">
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-2 sm:px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                  >
+                    <span className="sr-only">{t.previous || 'Previous'}</span>
+                    <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 rotate-90" />
+                  </button>
+                  <div className="hidden md:flex">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                      // Show first page, last page, current page, and pages around current
+                      if (
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      ) {
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`relative inline-flex items-center px-3 sm:px-4 py-2 border text-sm font-medium transition-colors touch-manipulation ${
+                              currentPage === page
+                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 active:bg-gray-100'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        );
+                      } else if (page === currentPage - 2 || page === currentPage + 2) {
+                        return <span key={page} className="relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">...</span>;
+                      }
+                      return null;
+                    })}
                   </div>
-                </form>
+                  <div className="md:hidden flex items-center px-3 border-t border-b border-gray-300 bg-white">
+                    <span className="text-sm text-gray-700">
+                      <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="relative inline-flex items-center px-2 sm:px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                  >
+                    <span className="sr-only">{t.next || 'Next'}</span>
+                    <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 -rotate-90" />
+                  </button>
+                </nav>
               </div>
             </div>
           </div>
         )}
+
+        <AdminModal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          title={editingProperty ? t.editProperty : t.addProperty}
+          subheader={editingProperty 
+            ? (language === 'bg' ? 'Редактирайте информацията за свойството' : 'Edit the property information')
+            : (language === 'bg' ? 'Създайте ново свойство за избор' : 'Create a new choice property')
+          }
+          maxWidth="max-w-md"
+          minWidth={400}
+          minHeight={300}
+        >
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  {t.name}
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  {t.description}
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={3}
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-2 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation"
+                >
+                  {editingProperty ? t.update : t.create}
+                </button>
+              </div>
+            </div>
+          </form>
+        </AdminModal>
 
         {showValueModal && currentProperty && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white rounded-lg w-full max-w-md max-h-[95vh] sm:max-h-[90vh] overflow-y-auto my-auto">
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex justify-between items-center z-10">
-                <h2 className="text-lg sm:text-xl font-bold">
-                  {editingValue ? t.editPropertyValue : t.addPropertyValue}
-                </h2>
-                <button 
-                  onClick={() => setShowValueModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded transition-colors touch-manipulation"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="p-4 sm:p-6">
-                <div className="mb-4 p-3 bg-gray-50 rounded">
-                  <p className="text-xs sm:text-sm text-gray-600">
-                    {t.propertyColon || 'Property'}: <strong>{currentProperty.name}</strong>
+          <AdminModal
+            isOpen={showValueModal}
+            onClose={() => setShowValueModal(false)}
+            title={editingValue ? t.editPropertyValue : t.addPropertyValue}
+            subheader={editingValue
+              ? (language === 'bg' ? 'Редактирайте стойността на свойството' : 'Edit the property value')
+              : (language === 'bg' ? 'Добавете нова стойност за избор' : 'Add a new choice value')
+            }
+            maxWidth="max-w-md"
+            minWidth={400}
+            minHeight={350}
+          >
+            <div className="mb-4 p-3 bg-gray-50 rounded">
+              <p className="text-xs sm:text-sm text-gray-600">
+                {t.propertyColon || 'Property'}: <strong>{currentProperty.name}</strong>
+              </p>
+            </div>
+            <form onSubmit={handleValueSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                    {t.valueRequired || 'Value'} *
+                  </label>
+                  <input
+                    type="text"
+                    value={valueFormData.value}
+                    onChange={(e) => setValueFormData({ ...valueFormData, value: e.target.value })}
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder={language === 'bg' ? 'Въведете стойност (напр. Истинска кожа)' : 'Enter value (e.g., Genuine Leather)'}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                    {t.displayOrder || 'Display Order'}
+                  </label>
+                  <input
+                    type="number"
+                    value={valueFormData.displayorder}
+                    onChange={(e) => setValueFormData({ ...valueFormData, displayorder: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    min="0"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t.lowerNumbersFirst || 'Lower numbers appear first'}
                   </p>
                 </div>
-                <form onSubmit={handleValueSubmit}>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                        {t.valueRequired || 'Value'} *
-                      </label>
-                      <input
-                        type="text"
-                        value={valueFormData.value}
-                        onChange={(e) => setValueFormData({ ...valueFormData, value: e.target.value })}
-                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder={language === 'bg' ? 'Въведете стойност (напр. Истинска кожа)' : 'Enter value (e.g., Genuine Leather)'}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                        {t.displayOrder || 'Display Order'}
-                      </label>
-                      <input
-                        type="number"
-                        value={valueFormData.displayorder}
-                        onChange={(e) => setValueFormData({ ...valueFormData, displayorder: parseInt(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        min="0"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        {t.lowerNumbersFirst || 'Lower numbers appear first'}
-                      </p>
-                    </div>
-                    <div className="sticky bottom-0 bg-white border-t border-gray-200 pt-4 flex flex-col sm:flex-row justify-end gap-2 sm:gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowValueModal(false)}
-                        className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
-                      >
-                        {t.cancel}
-                      </button>
-                      {!editingValue && (
-                        <button
-                          type="button"
-                          onClick={handleNextValue}
-                          className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-green-600 text-white rounded hover:bg-green-700 active:bg-green-800 transition-colors touch-manipulation"
-                        >
-                          {t.next || 'Next'}
-                        </button>
-                      )}
-                      <button
-                        type="submit"
-                        className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation"
-                      >
-                        {editingValue ? (t.updateValue || t.update) : (t.addValueBtn || (language === 'bg' ? 'Добави' : 'Add'))}
-                      </button>
-                    </div>
-                  </div>
-                </form>
+                <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-2 pt-4 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => setShowValueModal(false)}
+                    className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                  >
+                    {t.cancel}
+                  </button>
+                  {!editingValue && (
+                    <button
+                      type="button"
+                      onClick={handleNextValue}
+                      className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-green-600 text-white rounded hover:bg-green-700 active:bg-green-800 transition-colors touch-manipulation"
+                    >
+                      {t.next || 'Next'}
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation"
+                  >
+                    {editingValue ? (t.updateValue || t.update) : (t.addValueBtn || (language === 'bg' ? 'Добави' : 'Add'))}
+                  </button>
+                </div>
               </div>
+            </form>
+          </AdminModal>
+        )}
+
+        {/* Delete Property Confirmation Modal */}
+        <AdminModal
+          isOpen={showDeleteModal}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setPropertyToDelete(null);
+          }}
+          title={language === 'bg' ? 'Потвърди изтриване' : 'Confirm Delete'}
+          subheader={language === 'bg' 
+            ? 'Сигурни ли сте, че искате да изтриете това свойство? Това действие не може да бъде отменено.'
+            : 'Are you sure you want to delete this property? This action cannot be undone.'}
+          maxWidth="max-w-md"
+          minWidth={400}
+          minHeight={200}
+        >
+          <div className="space-y-4">
+            {propertyToDelete && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm font-medium text-gray-900 mb-1">
+                  {language === 'bg' ? 'Свойство:' : 'Property:'}
+                </p>
+                <p className="text-sm text-gray-700">{propertyToDelete.name}</p>
+              </div>
+            )}
+            <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setPropertyToDelete(null);
+                }}
+                disabled={deleting}
+                className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation disabled:opacity-50"
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-red-600 text-white rounded hover:bg-red-700 active:bg-red-800 transition-colors touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? (language === 'bg' ? 'Изтриване...' : 'Deleting...') : (language === 'bg' ? 'Изтрий' : 'Delete')}
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </AdminModal>
+
+        {/* Delete Property Value Confirmation Modal */}
+        <AdminModal
+          isOpen={showDeleteValueModal}
+          onClose={() => {
+            setShowDeleteValueModal(false);
+            setValueToDelete(null);
+          }}
+          title={language === 'bg' ? 'Потвърди изтриване' : 'Confirm Delete'}
+          subheader={language === 'bg' 
+            ? 'Сигурни ли сте, че искате да изтриете тази стойност? Това действие не може да бъде отменено.'
+            : 'Are you sure you want to delete this property value? This action cannot be undone.'}
+          maxWidth="max-w-md"
+          minWidth={400}
+          minHeight={200}
+        >
+          <div className="space-y-4">
+            {valueToDelete && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm font-medium text-gray-900 mb-1">
+                  {language === 'bg' ? 'Стойност:' : 'Value:'}
+                </p>
+                <p className="text-sm text-gray-700">{valueToDelete.value}</p>
+              </div>
+            )}
+            <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteValueModal(false);
+                  setValueToDelete(null);
+                }}
+                disabled={deleting}
+                className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation disabled:opacity-50"
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteValueConfirm}
+                disabled={deleting}
+                className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-red-600 text-white rounded hover:bg-red-700 active:bg-red-800 transition-colors touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? (language === 'bg' ? 'Изтриване...' : 'Deleting...') : (language === 'bg' ? 'Изтрий' : 'Delete')}
+              </button>
+            </div>
+          </div>
+        </AdminModal>
+      </AdminPage>
     </AdminLayout>
   );
 }

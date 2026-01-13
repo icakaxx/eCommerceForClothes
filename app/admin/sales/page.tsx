@@ -8,6 +8,8 @@ import { getAdminSession } from '@/lib/auth';
 import type { EcontOfficesData, EcontOffice } from '@/types/econt';
 import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
+import { Badge } from '../components/layout';
+import { getOrderStatusVariant } from '@/lib/admin-status-utils';
 
 interface OrderItem {
   OrderItemID: string;
@@ -341,21 +343,9 @@ export default function SalesPage() {
                             €{order.total?.toFixed(2) || '0.00'}
                           </td>
                           <td className="px-4 xl:px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              order.status === 'delivered'
-                                ? 'bg-green-100 text-green-800'
-                                : order.status === 'shipped'
-                                ? 'bg-blue-100 text-blue-800'
-                                : order.status === 'confirmed'
-                                ? 'bg-purple-100 text-purple-800'
-                                : order.status === 'pending'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : order.status === 'cancelled'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
+                            <Badge variant={getOrderStatusVariant(order.status)}>
                               {getStatusTranslation(order.status)}
-                            </span>
+                            </Badge>
                           </td>
                           <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {new Date(order.createdat).toLocaleDateString()}
@@ -520,21 +510,9 @@ export default function SalesPage() {
                             <p className="text-xs font-mono text-gray-500 mb-1 truncate">{order.orderid}</p>
                             <p className="text-sm font-medium text-gray-900 truncate">{order.customeremail || 'N/A'}</p>
                           </div>
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full flex-shrink-0 ${
-                            order.status === 'delivered'
-                              ? 'bg-green-100 text-green-800'
-                              : order.status === 'shipped'
-                              ? 'bg-blue-100 text-blue-800'
-                              : order.status === 'confirmed'
-                              ? 'bg-purple-100 text-purple-800'
-                              : order.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : order.status === 'cancelled'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
+                          <Badge variant={getOrderStatusVariant(order.status)} className="flex-shrink-0">
                             {getStatusTranslation(order.status)}
-                          </span>
+                          </Badge>
                         </div>
 
                         <div className="flex items-center justify-between pt-2 border-t border-gray-100">

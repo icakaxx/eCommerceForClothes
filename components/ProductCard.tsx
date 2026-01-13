@@ -21,6 +21,28 @@ export default function ProductCard({ product }: ProductCardProps) {
   const t = translations[language];
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
 
+  // Deduplicate images - only show unique/distinct images
+  const getUniqueImages = (images: string[] | undefined): string[] => {
+    if (!images || images.length === 0) return ['/image.png'];
+    
+    // Use a Set to track unique image URLs (case-insensitive comparison)
+    const seen = new Set<string>();
+    const unique: string[] = [];
+    
+    for (const image of images) {
+      // Normalize the URL for comparison (remove query params, trailing slashes, etc.)
+      const normalized = image.trim().toLowerCase();
+      if (normalized && !seen.has(normalized)) {
+        seen.add(normalized);
+        unique.push(image); // Keep original URL format
+      }
+    }
+    
+    return unique.length > 0 ? unique : ['/image.png'];
+  };
+
+  const uniqueImages = getUniqueImages(product.images);
+
   const getCategoryLabel = () => {
     if (product.category === 'clothes') return product.type || t.clothes;
     if (product.category === 'shoes') return t.shoes;
@@ -62,7 +84,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         e.currentTarget.style.boxShadow = theme.effects.shadow;
       }}
     >
-      <ImageSlider images={product.images} />
+      <ImageSlider images={uniqueImages} />
       
       <div className="p-4 sm:p-5">
         <h3 
