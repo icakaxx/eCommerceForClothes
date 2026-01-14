@@ -48,6 +48,7 @@ export default function AdminSearchBar({ sidebarCollapsed, sidebarWidth }: Admin
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isTypingRef = useRef(false); // Track if user is actively typing
 
   // Track window size for responsive behavior
   useEffect(() => {
@@ -77,7 +78,15 @@ export default function AdminSearchBar({ sidebarCollapsed, sidebarWidth }: Admin
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     e.currentTarget.style.borderColor = theme.colors.border;
     e.currentTarget.style.boxShadow = 'none';
+    // Don't close if user is actively typing or there's a search term
+    if (isTypingRef.current || searchTerm.trim()) {
+      return;
+    }
     setTimeout(() => {
+      // Don't close if user started typing during the delay
+      if (isTypingRef.current || searchTerm.trim()) {
+        return;
+      }
       if (!dropdownRef.current?.contains(document.activeElement)) {
         setIsOpen(false);
         setSelectedIndex(0);
@@ -119,6 +128,14 @@ export default function AdminSearchBar({ sidebarCollapsed, sidebarWidth }: Admin
   useEffect(() => {
     setSelectedIndex(0);
   }, [searchTerm]);
+
+  // Keep dropdown open when there's a search term
+  useEffect(() => {
+    if (searchTerm.trim() && !isOpen) {
+      setIsOpen(true);
+    }
+  }, [searchTerm, isOpen]);
+
 
   // Get icon for item
   const getIcon = (item: SearchableItem) => {
@@ -377,7 +394,7 @@ export default function AdminSearchBar({ sidebarCollapsed, sidebarWidth }: Admin
         borderBottom: `1px solid ${theme.colors.border}`,
         borderLeft: isDesktop ? `1px solid ${theme.colors.border}` : 'none',
         borderRadius: isDesktop ? '0 0.5rem 0 0' : '0',
-        overflow: 'hidden',
+        overflow: isOpen ? 'visible' : 'hidden',
       }}
     >
       <div className="relative">
@@ -393,8 +410,18 @@ export default function AdminSearchBar({ sidebarCollapsed, sidebarWidth }: Admin
             type="text"
             value={searchTerm}
             onChange={(e) => {
+              isTypingRef.current = true;
               setSearchTerm(e.target.value);
-              setIsOpen(true); // Open dropdown when user types
+              // Force isOpen to true when typing
+              // Also ensure input stays focused
+              if (inputRef.current && document.activeElement !== inputRef.current) {
+                inputRef.current.focus();
+              }
+              setIsOpen(true);
+              // Clear typing flag after a delay
+              setTimeout(() => {
+                isTypingRef.current = false;
+              }, 500);
             }}
             onFocus={handleFocus}
             onBlur={handleBlur}
@@ -425,7 +452,7 @@ export default function AdminSearchBar({ sidebarCollapsed, sidebarWidth }: Admin
         </div>
 
         {/* Dropdown */}
-        {isOpen && (
+        {(isOpen || searchTerm.trim()) && (
           <div
             ref={dropdownRef}
             className="absolute top-full left-0 right-0 mt-1 rounded-md shadow-lg border overflow-hidden"
@@ -433,6 +460,7 @@ export default function AdminSearchBar({ sidebarCollapsed, sidebarWidth }: Admin
               backgroundColor: theme.colors.surface,
               borderColor: theme.colors.border,
               maxHeight: '500px',
+              zIndex: 9999,
             }}
           >
             {searchTerm.trim() ? renderGroupedResults() : renderRecentSearches()}

@@ -236,11 +236,12 @@ export function useAdminSearch() {
       action: 1,
     };
 
-    return results.sort((a, b) => {
+    const sorted = results.sort((a, b) => {
       const scoreDiff = b.score - a.score;
       if (scoreDiff !== 0) return scoreDiff;
       return typePriority[b.type] - typePriority[a.type];
     });
+    return sorted;
   }, [searchTerm]);
 
   // Group results by type
