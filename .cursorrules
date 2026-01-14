@@ -1,0 +1,59 @@
+# Admin Search Indexing Rule
+
+When adding new admin pages or features, you MUST update `app/admin/lib/adminSearchIndex.ts` to include searchable entries for:
+
+1. **Page-level entries**: Every new admin page must have a page entry with:
+   - `id`: unique identifier (e.g., 'new-page')
+   - `type`: 'page'
+   - `path`: route path (e.g., '/admin/new-page')
+   - `title`: English title
+   - `titleBg`: Bulgarian title
+   - `description`: optional description
+   - `keywords`: array of search keywords in both English and Bulgarian
+
+2. **Section headers**: All major sections within a page must be indexed with:
+   - `type`: 'section' or 'header'
+   - `parentPath`: the page path
+   - Both English and Bulgarian titles
+   - Relevant keywords
+
+3. **Form fields**: All form field labels must be indexed with:
+   - `type`: 'field'
+   - `parentPath`: the page path
+   - Both English and Bulgarian labels
+   - Relevant keywords
+
+4. **Action buttons**: Important action buttons (Add, Edit, Delete, etc.) should be indexed with:
+   - `type`: 'action'
+   - `parentPath`: the page path
+   - Both English and Bulgarian labels
+   - Relevant keywords
+
+## Example:
+
+```typescript
+{
+  id: 'new-feature',
+  type: 'page',
+  path: '/admin/new-feature',
+  title: 'New Feature',
+  titleBg: 'Нова функция',
+  description: 'Manage new feature',
+  keywords: ['new', 'feature', 'нова', 'функция']
+},
+{
+  id: 'new-feature-section',
+  type: 'section',
+  path: '/admin/new-feature',
+  title: 'Feature Settings',
+  titleBg: 'Настройки на функцията',
+  parentPath: '/admin/new-feature',
+  keywords: ['settings', 'configuration', 'настройки']
+}
+```
+
+## Important:
+- Always provide both English (`title`) and Bulgarian (`titleBg`) translations
+- Include relevant keywords in both languages for better searchability
+- Update the index file immediately when adding new admin features
+- Test that new entries appear in search results

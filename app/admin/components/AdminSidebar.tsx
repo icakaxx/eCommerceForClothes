@@ -50,11 +50,6 @@ export default function AdminSidebar({ currentPath, collapsed: externalCollapsed
   
   // Use external collapsed state if provided, otherwise use internal
   const isCollapsed = externalCollapsed !== undefined ? externalCollapsed : internalCollapsed;
-  // #region agent log
-  useEffect(() => {
-    fetch('http://127.0.0.1:7244/ingest/4ac959d0-00f1-4827-be42-5302a13eec1d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminSidebar.tsx:52',message:'isCollapsed value computed',data:{isCollapsed,externalCollapsed,internalCollapsed,externalDefined:externalCollapsed!==undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-  }, [isCollapsed, externalCollapsed, internalCollapsed]);
-  // #endregion
   
   // Tooltip state
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -85,22 +80,10 @@ export default function AdminSidebar({ currentPath, collapsed: externalCollapsed
 
   // Handle toggle
   const handleToggle = () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/4ac959d0-00f1-4827-be42-5302a13eec1d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminSidebar.tsx:82',message:'handleToggle called',data:{currentIsCollapsed:isCollapsed,externalCollapsed,hasOnToggle:!!onToggle},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     const newCollapsed = !isCollapsed;
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/4ac959d0-00f1-4827-be42-5302a13eec1d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminSidebar.tsx:85',message:'newCollapsed calculated',data:{newCollapsed,currentIsCollapsed:isCollapsed},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     if (onToggle) {
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/4ac959d0-00f1-4827-be42-5302a13eec1d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminSidebar.tsx:87',message:'calling onToggle callback',data:{newCollapsed},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       onToggle(newCollapsed);
     } else {
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/4ac959d0-00f1-4827-be42-5302a13eec1d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminSidebar.tsx:91',message:'using internal state',data:{newCollapsed},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       setInternalCollapsed(newCollapsed);
     }
   };
@@ -115,11 +98,6 @@ export default function AdminSidebar({ currentPath, collapsed: externalCollapsed
     }
   }, [hoveredItem, isCollapsed]);
 
-  // #region agent log
-  useEffect(() => {
-    fetch('http://127.0.0.1:7244/ingest/4ac959d0-00f1-4827-be42-5302a13eec1d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminSidebar.tsx:99',message:'sidebar className computed',data:{isCollapsed,className:`${isCollapsed ? 'w-16 lg:w-16' : 'w-64 lg:w-64'}`},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-  }, [isCollapsed]);
-  // #endregion
 
   const menuItems = [
     {
@@ -236,7 +214,7 @@ export default function AdminSidebar({ currentPath, collapsed: externalCollapsed
           lg:transform-none
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           ${isCollapsed ? 'w-16 lg:w-16' : 'w-64 lg:w-64'}
-          flex-shrink-0 border-r
+          flex-shrink-0 border-r rounded-r-lg
         `}
         style={{
           backgroundColor: theme.colors.surface,
@@ -363,9 +341,6 @@ export default function AdminSidebar({ currentPath, collapsed: externalCollapsed
           {/* Collapse Toggle Button */}
           <button
             onClick={(e) => {
-              // #region agent log
-              fetch('http://127.0.0.1:7244/ingest/4ac959d0-00f1-4827-be42-5302a13eec1d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminSidebar.tsx:346',message:'toggle button clicked',data:{isCollapsed,hasOnToggle:!!onToggle},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-              // #endregion
               handleToggle();
             }}
             className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2 sm:gap-3'} px-2 sm:px-3 py-2.5 sm:py-3 rounded-lg transition-colors duration-200 w-full touch-manipulation min-h-[44px]`}

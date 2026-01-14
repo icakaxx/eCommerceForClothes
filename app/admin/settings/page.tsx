@@ -446,7 +446,7 @@ export default function AdminSettingsPage() {
 
             <div className="space-y-6">
               {/* Store Name */}
-              <div>
+              <div id="settings-store-information">
                 <label
                   className="block text-sm font-medium mb-2"
                   style={{ color: theme.colors.text }}
@@ -454,6 +454,7 @@ export default function AdminSettingsPage() {
                   {t.storeName}
                 </label>
                 <input
+                  id="settings-store-name"
                   type="text"
                   value={settings.storename}
                   onChange={(e) => handleSettingChange('storename', e.target.value)}
@@ -476,6 +477,7 @@ export default function AdminSettingsPage() {
                   {language === 'bg' ? 'Имейл' : 'Email'}
                 </label>
                 <input
+                  id="settings-email"
                   type="email"
                   value={settings.email || ''}
                   onChange={(e) => handleSettingChange('email', e.target.value || null)}
@@ -498,6 +500,7 @@ export default function AdminSettingsPage() {
                   {language === 'bg' ? 'Телефонен номер' : 'Telephone Number'}
                 </label>
                 <input
+                  id="settings-telephone"
                   type="tel"
                   value={settings.telephonenumber || ''}
                   onChange={(e) => handleSettingChange('telephonenumber', e.target.value || null)}
@@ -520,6 +523,7 @@ export default function AdminSettingsPage() {
                   {language === 'bg' ? 'Година на създаване' : 'Year of Creation'}
                 </label>
                 <input
+                  id="settings-year-creation"
                   type="number"
                   min="1900"
                   max={new Date().getFullYear()}
@@ -544,6 +548,7 @@ export default function AdminSettingsPage() {
                   {language === 'bg' ? 'Заключителни думи' : 'Closing Remarks'}
                 </label>
                 <textarea
+                  id="settings-closing-remarks"
                   value={settings.closingremarks || ''}
                   onChange={(e) => handleSettingChange('closingremarks', e.target.value || null)}
                   className="w-full px-3 py-2 rounded-md border transition-colors duration-300"
@@ -564,7 +569,7 @@ export default function AdminSettingsPage() {
               </div>
 
               {/* About Us Section */}
-              <div className="border-t pt-6 mt-6" style={{ borderColor: theme.colors.border }}>
+              <div id="settings-about-us" className="border-t pt-6 mt-6" style={{ borderColor: theme.colors.border }}>
                 <h3
                   className="text-lg font-semibold mb-4"
                   style={{ color: theme.colors.text }}
@@ -573,7 +578,7 @@ export default function AdminSettingsPage() {
                 </h3>
 
                 {/* About Us Photo */}
-                <div className="mb-6">
+                <div id="settings-about-us-photo" className="mb-6">
                   <label
                     className="block text-sm font-medium mb-2"
                     style={{ color: theme.colors.text }}
@@ -644,7 +649,7 @@ export default function AdminSettingsPage() {
                 </div>
 
                 {/* About Us Text (Rich Text Editor) */}
-                <div>
+                <div id="settings-about-us-text">
                   <label
                     className="block text-sm font-medium mb-2"
                     style={{ color: theme.colors.text }}
@@ -667,7 +672,7 @@ export default function AdminSettingsPage() {
               </div>
 
               {/* Logo */}
-              <div>
+              <div id="settings-logo">
                 <label
                   className="block text-sm font-medium mb-2"
                   style={{ color: theme.colors.text }}
@@ -722,7 +727,7 @@ export default function AdminSettingsPage() {
               </div>
 
               {/* Hero Image */}
-              <div>
+              <div id="settings-hero-image">
                 <label
                   className="block text-sm font-medium mb-2"
                   style={{ color: theme.colors.text }}
@@ -788,6 +793,7 @@ export default function AdminSettingsPage() {
 
           {/* Appearance Settings */}
           <div
+            id="settings-appearance"
             className="p-6 rounded-lg"
             style={{
               backgroundColor: theme.colors.cardBg,
@@ -803,7 +809,7 @@ export default function AdminSettingsPage() {
 
             <div className="space-y-6">
               {/* Color Theme */}
-              <div>
+              <div id="settings-color-palette">
                 <label
                   className="block text-sm font-medium mb-3"
                   style={{ color: theme.colors.text }}
@@ -814,7 +820,7 @@ export default function AdminSettingsPage() {
               </div>
 
               {/* Language */}
-              <div>
+              <div id="settings-language">
                 <label
                   className="block text-sm font-medium mb-3"
                   style={{ color: theme.colors.text }}
@@ -828,6 +834,7 @@ export default function AdminSettingsPage() {
 
           {/* Banner Settings */}
           <div
+            id="settings-banner"
             className="p-6 rounded-lg"
             style={{
               backgroundColor: theme.colors.cardBg,
@@ -843,7 +850,7 @@ export default function AdminSettingsPage() {
 
             <div className="space-y-6">
               {/* Banner Text */}
-              <div>
+              <div id="settings-banner-text">
                 <label
                   className="block text-sm font-medium mb-2"
                   style={{ color: theme.colors.text }}
@@ -872,7 +879,7 @@ export default function AdminSettingsPage() {
               </div>
 
               {/* Banner Duration */}
-              <div>
+              <div id="settings-banner-duration">
                 <label
                   className="block text-sm font-medium mb-2"
                   style={{ color: theme.colors.text }}
@@ -903,6 +910,7 @@ export default function AdminSettingsPage() {
 
           {/* Social Media Settings */}
           <div
+            id="settings-social-media"
             className="p-6 rounded-lg"
             style={{
               backgroundColor: theme.colors.cardBg,
@@ -926,6 +934,7 @@ export default function AdminSettingsPage() {
                   Discord URL
                 </label>
                 <input
+                  id="settings-discord"
                   type="url"
                   value={settings.discordurl || ''}
                   onChange={(e) => handleSettingChange('discordurl', e.target.value || null)}
@@ -948,6 +957,7 @@ export default function AdminSettingsPage() {
                   Facebook URL
                 </label>
                 <input
+                  id="settings-facebook"
                   type="url"
                   value={settings.facebookurl || ''}
                   onChange={(e) => handleSettingChange('facebookurl', e.target.value || null)}
@@ -970,6 +980,7 @@ export default function AdminSettingsPage() {
                   Pinterest URL
                 </label>
                 <input
+                  id="settings-pinterest"
                   type="url"
                   value={settings.pinteresturl || ''}
                   onChange={(e) => handleSettingChange('pinteresturl', e.target.value || null)}
@@ -992,6 +1003,7 @@ export default function AdminSettingsPage() {
                   YouTube URL
                 </label>
                 <input
+                  id="settings-youtube"
                   type="url"
                   value={settings.youtubeurl || ''}
                   onChange={(e) => handleSettingChange('youtubeurl', e.target.value || null)}
@@ -1014,6 +1026,7 @@ export default function AdminSettingsPage() {
                   Instagram URL
                 </label>
                 <input
+                  id="settings-instagram"
                   type="url"
                   value={settings.instagramurl || ''}
                   onChange={(e) => handleSettingChange('instagramurl', e.target.value || null)}
@@ -1036,6 +1049,7 @@ export default function AdminSettingsPage() {
                   X (Twitter) URL
                 </label>
                 <input
+                  id="settings-x"
                   type="url"
                   value={settings.xurl || ''}
                   onChange={(e) => handleSettingChange('xurl', e.target.value || null)}
@@ -1058,6 +1072,7 @@ export default function AdminSettingsPage() {
                   TikTok URL
                 </label>
                 <input
+                  id="settings-tiktok"
                   type="url"
                   value={settings.tiktokurl || ''}
                   onChange={(e) => handleSettingChange('tiktokurl', e.target.value || null)}
@@ -1076,6 +1091,7 @@ export default function AdminSettingsPage() {
           {/* Save Button */}
           <div className="flex justify-end">
             <button
+              id="settings-save"
               onClick={handleSave}
               disabled={isSaving}
               className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-300 disabled:opacity-50"
