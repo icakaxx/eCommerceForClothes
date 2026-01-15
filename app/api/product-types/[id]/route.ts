@@ -124,6 +124,32 @@ export async function DELETE(
     const supabase = createServerClient();
     const { id } = await params;
 
+    const { error: productsError } = await supabase
+      .from('products')
+      .update({ isdeleted: true, updatedat: new Date().toISOString() })
+      .eq('producttypeid', id);
+
+    if (productsError) {
+      console.error('Error deleting products for product type:', productsError);
+      return NextResponse.json(
+        { error: productsError.message },
+        { status: 500 }
+      );
+    }
+
+    const { error: linksError } = await supabase
+      .from('product_type_properties')
+      .delete()
+      .eq('producttypeid', id);
+
+    if (linksError) {
+      console.error('Error deleting product type properties:', linksError);
+      return NextResponse.json(
+        { error: linksError.message },
+        { status: 500 }
+      );
+    }
+
     const { error } = await supabase
       .from('product_types')
       .delete()

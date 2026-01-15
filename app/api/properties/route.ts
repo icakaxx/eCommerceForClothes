@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient();
     const body = await request.json();
 
-    const { name, description, datatype } = body;
+    const { name, description, datatype, productTypeIds } = body;
 
     if (!name) {
       return NextResponse.json(
@@ -135,6 +135,25 @@ export async function POST(request: NextRequest) {
         { error: error.message },
         { status: 500 }
       );
+    }
+
+    if (Array.isArray(productTypeIds) && productTypeIds.length > 0) {
+      const { error: linksError } = await supabase
+        .from('product_type_properties')
+        .insert(
+          productTypeIds.map((producttypeid: string) => ({
+            producttypeid,
+            propertyid: property.propertyid
+          }))
+        );
+
+      if (linksError) {
+        console.error('Error linking property to product types:', linksError);
+        return NextResponse.json(
+          { error: linksError.message },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json({

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Edit2, Trash2, ChevronDown } from 'lucide-react';
-import { ProductType } from '@/lib/types/product-types';
+import { ProductType, Property } from '@/lib/types/product-types';
 import AdminLayout from '../components/AdminLayout';
 import AdminModal from '../components/AdminModal';
 import { useLanguage } from '@/context/LanguageContext';
@@ -23,6 +23,18 @@ export default function ProductTypesPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productTypeToDelete, setProductTypeToDelete] = useState<ProductType | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteDependencies, setDeleteDependencies] = useState<{
+    loading: boolean;
+    properties: Array<{ propertyid: string; name: string }>;
+    products: Array<{ productid: string; name: string }>;
+  }>({
+    loading: false,
+    properties: [],
+    products: []
+  });
+  const [availableProperties, setAvailableProperties] = useState<Property[]>([]);
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
+  const [loadingProperties, setLoadingProperties] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -31,6 +43,66 @@ export default function ProductTypesPage() {
   useEffect(() => {
     loadProductTypes();
   }, []);
+
+  useEffect(() => {
+    const loadDeleteDependencies = async () => {
+      if (!showDeleteModal || !productTypeToDelete) return;
+      setDeleteDependencies({ loading: true, properties: [], products: [] });
+      try {
+        const [propertiesRes, productsRes] = await Promise.all([
+          fetch(`/api/product-types/${productTypeToDelete.producttypeid}/properties`),
+          fetch(`/api/products?producttypeid=${productTypeToDelete.producttypeid}`)
+        ]);
+        const propertiesJson = await propertiesRes.json();
+        const productsJson = await productsRes.json();
+
+        setDeleteDependencies({
+          loading: false,
+          properties: (propertiesJson?.properties || [])
+            .map((ptp: any) => ptp?.properties)
+            .filter(Boolean)
+            .map((prop: any) => ({
+              propertyid: prop.propertyid,
+              name: prop.name
+            })),
+          products: (productsJson?.products || []).map((product: any) => ({
+            productid: product.productid,
+            name: product.name
+          }))
+        });
+      } catch (error) {
+        console.error('Failed to load delete dependencies:', error);
+        setDeleteDependencies({ loading: false, properties: [], products: [] });
+      }
+    };
+
+    loadDeleteDependencies();
+  }, [showDeleteModal, productTypeToDelete]);
+
+  useEffect(() => {
+    const loadProperties = async () => {
+      if (!showModal) return;
+      setLoadingProperties(true);
+      try {
+        const response = await fetch('/api/properties');
+        const result = await response.json();
+        if (result.success) {
+          setAvailableProperties(result.properties || []);
+        }
+      } catch (error) {
+        console.error('Failed to load properties:', error);
+      } finally {
+        setLoadingProperties(false);
+      }
+    };
+
+    if (showModal) {
+      loadProperties();
+      if (!editingProductType) {
+        setSelectedPropertyIds([]);
+      }
+    }
+  }, [showModal, editingProductType]);
 
   const loadProductTypes = async () => {
     try {
@@ -45,6 +117,7 @@ export default function ProductTypesPage() {
           productsCount: pt.productsCount
         })));
         setProductTypes(result.productTypes);
+      } else {
       }
     } catch (error) {
       console.error('Failed to load product types:', error);
@@ -69,6 +142,20 @@ export default function ProductTypesPage() {
 
       const result = await response.json();
       if (result.success) {
+        if (!editingProductType && selectedPropertyIds.length > 0) {
+          const createdId = result.productType?.producttypeid;
+          if (createdId) {
+            await Promise.all(
+              selectedPropertyIds.map((propertyid) =>
+                fetch(`/api/product-types/${createdId}/properties`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ propertyid })
+                })
+              )
+            );
+          }
+        }
         setShowModal(false);
         setFormData({ name: '' });
         setEditingProductType(null);
@@ -414,9 +501,9 @@ export default function ProductTypesPage() {
             ? (language === 'bg' ? 'Редактирайте информацията за типа продукт' : 'Edit the product type information')
             : (language === 'bg' ? 'Създайте нов тип продукт за категоризиране' : 'Create a new product type for categorization')
           }
-          maxWidth="max-w-md"
-          minWidth={400}
-          minHeight={300}
+          maxWidth="max-w-2xl"
+          minWidth={520}
+          minHeight={550}
         >
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
@@ -432,6 +519,58 @@ export default function ProductTypesPage() {
                   required
                 />
               </div>
+              {!editingProductType && (
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                    {language === 'bg' ? 'Характеристики' : 'Characteristics'}
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    {language === 'bg'
+                      ? 'Изберете характеристики (може повече от една)'
+                      : 'Select characteristics (multi-select)'}
+                  </p>
+                  {loadingProperties ? (
+                    <div className="text-xs text-gray-500">
+                      {language === 'bg' ? 'Зареждане...' : 'Loading...'}
+                    </div>
+                  ) : availableProperties.length === 0 ? (
+                    <div className="text-xs text-gray-500">
+                      {language === 'bg' ? 'Няма налични характеристики' : 'No characteristics available'}
+                    </div>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-md p-2 space-y-1">
+                      {availableProperties.map((property) => (
+                        <label
+                          key={property.propertyid}
+                          className="flex items-start gap-2 py-1 cursor-pointer hover:bg-gray-50 px-1 rounded"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedPropertyIds.includes(property.propertyid)}
+                            onChange={(e) => {
+                              const isChecked = e.target.checked;
+                              setSelectedPropertyIds((prev) =>
+                                isChecked
+                                  ? [...prev, property.propertyid]
+                                  : prev.filter((id) => id !== property.propertyid)
+                              );
+                            }}
+                            className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-xs sm:text-sm">
+                            {property.name}
+                            {property.description ? (
+                              <span className="text-gray-400 ml-1">
+                                ({property.description})
+                              </span>
+                            ) : null}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-2 pt-4 border-t border-gray-200">
                 <button
                   type="button"
@@ -460,11 +599,11 @@ export default function ProductTypesPage() {
           }}
           title={language === 'bg' ? 'Потвърди изтриване' : 'Confirm Delete'}
           subheader={language === 'bg' 
-            ? 'Сигурни ли сте, че искате да изтриете този тип продукт? Това действие не може да бъде отменено.'
-            : 'Are you sure you want to delete this product type? This action cannot be undone.'}
+            ? 'Сигурни ли сте, че искате да изтриете този тип продукт? Продуктите и характеристиките към него също ще бъдат изтрити. Това действие не може да бъде отменено.'
+            : 'Are you sure you want to delete this product type? Products and characteristics linked to it will also be deleted. This action cannot be undone.'}
           maxWidth="max-w-md"
           minWidth={400}
-          minHeight={200}
+          minHeight={550}
         >
           <div className="space-y-4">
             {productTypeToDelete && (
@@ -475,6 +614,54 @@ export default function ProductTypesPage() {
                 <p className="text-sm text-gray-700">{productTypeToDelete.name}</p>
               </div>
             )}
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-gray-900 mb-1">
+                  {language === 'bg' ? 'Характеристики' : 'Characteristics'}
+                  {deleteDependencies.properties.length > 0 ? ` (${deleteDependencies.properties.length})` : ''}
+                </p>
+                {deleteDependencies.loading ? (
+                  <p className="text-xs text-gray-500">
+                    {language === 'bg' ? 'Зареждане...' : 'Loading...'}
+                  </p>
+                ) : deleteDependencies.properties.length === 0 ? (
+                  <p className="text-xs text-gray-500">
+                    {language === 'bg' ? 'Няма' : 'None'}
+                  </p>
+                ) : (
+                  <div className="max-h-32 overflow-y-auto rounded border border-gray-200 bg-white">
+                    {deleteDependencies.properties.map((prop) => (
+                      <div key={prop.propertyid} className="px-3 py-1 text-xs text-gray-700 border-b last:border-b-0">
+                        {prop.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900 mb-1">
+                  {language === 'bg' ? 'Артикули' : 'Products'}
+                  {deleteDependencies.products.length > 0 ? ` (${deleteDependencies.products.length})` : ''}
+                </p>
+                {deleteDependencies.loading ? (
+                  <p className="text-xs text-gray-500">
+                    {language === 'bg' ? 'Зареждане...' : 'Loading...'}
+                  </p>
+                ) : deleteDependencies.products.length === 0 ? (
+                  <p className="text-xs text-gray-500">
+                    {language === 'bg' ? 'Няма' : 'None'}
+                  </p>
+                ) : (
+                  <div className="max-h-32 overflow-y-auto rounded border border-gray-200 bg-white">
+                    {deleteDependencies.products.map((product) => (
+                      <div key={product.productid} className="px-3 py-1 text-xs text-gray-700 border-b last:border-b-0">
+                        {product.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
               <button
                 type="button"

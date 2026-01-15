@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const supabase = createServerClient();
     const { searchParams } = new URL(request.url);
     const rfproducttypeid = searchParams.get('rfproducttypeid');
+
     
     // Try to use PostgreSQL function with LEFT OUTER JOINs and GROUP BY
     try {
@@ -44,7 +45,6 @@ export async function GET(request: NextRequest) {
 
     // Filter by rfproducttypeid if provided
     if (rfproducttypeid) {
-      query = query.eq('rfproducttypeid', parseInt(rfproducttypeid));
     }
 
     const { data: productTypes, error } = await query
@@ -140,6 +140,7 @@ export async function POST(request: NextRequest) {
 
     const { name, rfproducttypeid } = body;
 
+
     if (!name) {
       return NextResponse.json(
         { error: 'Missing required field: name' },
@@ -151,7 +152,6 @@ export async function POST(request: NextRequest) {
       .from('product_types')
       .insert({
         name,
-        rfproducttypeid: rfproducttypeid || null,
         updatedat: new Date().toISOString()
       })
       .select()

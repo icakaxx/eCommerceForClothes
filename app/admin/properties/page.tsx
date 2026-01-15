@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Edit2, Trash2, X, List, ChevronDown, ChevronRight } from 'lucide-react';
-import { Property, PropertyValue } from '@/lib/types/product-types';
+import { Property, PropertyValue, ProductType } from '@/lib/types/product-types';
 import { PropertyValuesStorage } from '@/lib/propertyValuesStorage';
 import AdminLayout from '../components/AdminLayout';
 import AdminModal from '../components/AdminModal';
@@ -24,6 +24,9 @@ export default function PropertiesPage() {
   const [showDeleteValueModal, setShowDeleteValueModal] = useState(false);
   const [valueToDelete, setValueToDelete] = useState<{ propertyId: string; valueId: string; value: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [availableProductTypes, setAvailableProductTypes] = useState<ProductType[]>([]);
+  const [selectedProductTypeIds, setSelectedProductTypeIds] = useState<string[]>([]);
+  const [loadingProductTypes, setLoadingProductTypes] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,6 +52,31 @@ export default function PropertiesPage() {
   useEffect(() => {
     loadProperties();
   }, []);
+
+  useEffect(() => {
+    const loadProductTypes = async () => {
+      if (!showModal) return;
+      setLoadingProductTypes(true);
+      try {
+        const response = await fetch('/api/product-types');
+        const result = await response.json();
+        if (result.success) {
+          setAvailableProductTypes(result.productTypes || []);
+        }
+      } catch (error) {
+        console.error('Failed to load product types:', error);
+      } finally {
+        setLoadingProductTypes(false);
+      }
+    };
+
+    if (showModal) {
+      loadProductTypes();
+      if (!editingProperty) {
+        setSelectedProductTypeIds([]);
+      }
+    }
+  }, [showModal, editingProperty]);
 
   const loadProperties = async () => {
     try {
@@ -103,7 +131,8 @@ export default function PropertiesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          datatype: 'select' // Always use 'select' type
+          datatype: 'select', // Always use 'select' type
+          productTypeIds: editingProperty ? undefined : selectedProductTypeIds
         })
       });
 
@@ -112,6 +141,7 @@ export default function PropertiesPage() {
         setShowModal(false);
         setFormData({ name: '', description: '', datatype: 'select' });
         setEditingProperty(null);
+        setSelectedProductTypeIds([]);
         loadProperties();
       } else {
         alert('Error: ' + result.error);
@@ -814,9 +844,9 @@ export default function PropertiesPage() {
             ? (language === 'bg' ? 'Редактирайте информацията за свойството' : 'Edit the property information')
             : (language === 'bg' ? 'Създайте ново свойство за избор' : 'Create a new choice property')
           }
-          maxWidth="max-w-md"
-          minWidth={400}
-          minHeight={300}
+          maxWidth="max-w-2xl"
+          minWidth={520}
+          minHeight={550}
         >
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
@@ -843,6 +873,53 @@ export default function PropertiesPage() {
                   rows={3}
                 />
               </div>
+              {!editingProperty && (
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                    {language === 'bg' ? 'Категории' : 'Categories'}
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    {language === 'bg'
+                      ? 'Изберете категории (може повече от една)'
+                      : 'Select categories (multi-select)'}
+                  </p>
+                  {loadingProductTypes ? (
+                    <div className="text-xs text-gray-500">
+                      {language === 'bg' ? 'Зареждане...' : 'Loading...'}
+                    </div>
+                  ) : availableProductTypes.length === 0 ? (
+                    <div className="text-xs text-gray-500">
+                      {language === 'bg' ? 'Няма налични категории' : 'No categories available'}
+                    </div>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-md p-2 space-y-1">
+                      {availableProductTypes.map((pt) => (
+                        <label
+                          key={pt.producttypeid}
+                          className="flex items-start gap-2 py-1 cursor-pointer hover:bg-gray-50 px-1 rounded"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedProductTypeIds.includes(pt.producttypeid)}
+                            onChange={(e) => {
+                              const isChecked = e.target.checked;
+                              setSelectedProductTypeIds((prev) =>
+                                isChecked
+                                  ? [...prev, pt.producttypeid]
+                                  : prev.filter((id) => id !== pt.producttypeid)
+                              );
+                            }}
+                            className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-xs sm:text-sm">
+                            {pt.name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-2 pt-4 border-t border-gray-200">
                 <button
                   type="button"

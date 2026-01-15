@@ -68,6 +68,8 @@ export default function ProductsPage() {
   const [mediaFiles, setMediaFiles] = useState<Array<{name: string, path: string, url: string}>>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [selectedVariantIndex, setSelectedVariantIndex] = useState<number | null>(null);
+  const [showApplyImageToAllModal, setShowApplyImageToAllModal] = useState(false);
+  const [applyImageUrl, setApplyImageUrl] = useState<string | null>(null);
   const [newPropertyValues, setNewPropertyValues] = useState<Record<string, string>>({});
   const [addingPropertyValue, setAddingPropertyValue] = useState<Record<string, boolean>>({});
 
@@ -133,6 +135,11 @@ export default function ProductsPage() {
   const selectImageFromMedia = (imageUrl: string) => {
     if (selectedVariantIndex !== null) {
       updateVariant(selectedVariantIndex, 'imageurl', imageUrl);
+
+      if (selectedVariantIndex === 0 && variants.length > 1) {
+        setApplyImageUrl(imageUrl);
+        setShowApplyImageToAllModal(true);
+      }
     }
     setShowMediaModal(false);
     setSelectedVariantIndex(null);
@@ -647,6 +654,12 @@ export default function ProductsPage() {
 
       if (result.success && result.url) {
         updateVariant(index, 'imageurl', result.url);
+
+        // If this is the first variant and we have multiple variants, ask to apply to all
+        if (index === 0 && variants.length > 1) {
+          setApplyImageUrl(result.url);
+          setShowApplyImageToAllModal(true);
+        }
       } else {
         alert('Failed to upload image: ' + (result.error || 'Unknown error'));
       }
@@ -661,6 +674,14 @@ export default function ProductsPage() {
     const updatedVariants = variants.map((v, i) => ({
       ...v,
       IsPrimaryImage: i === index
+    }));
+    setVariants(updatedVariants);
+  };
+
+  const applyImageToAllVariants = (imageUrl: string) => {
+    const updatedVariants = variants.map((variant) => ({
+      ...variant,
+      imageurl: imageUrl
     }));
     setVariants(updatedVariants);
   };
@@ -1745,6 +1766,48 @@ export default function ProductsPage() {
                     ))}
                   </div>
                 )}
+        </AdminModal>
+
+        {/* Apply Image to All Variants Modal */}
+        <AdminModal
+          isOpen={showApplyImageToAllModal}
+          onClose={() => {
+            setShowApplyImageToAllModal(false);
+            setApplyImageUrl(null);
+          }}
+          title={language === 'bg' ? 'Приложи изображение към всички варианти?' : 'Apply image to all variants?'}
+          subheader={language === 'bg'
+            ? 'Искате ли да зададете това изображение на всички генерирани варианти?'
+            : 'Do you want to assign this image to all generated variants?'}
+          maxWidth="max-w-md"
+          minWidth={320}
+          minHeight={200}
+        >
+          <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setShowApplyImageToAllModal(false);
+                setApplyImageUrl(null);
+              }}
+              className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+            >
+              {language === 'bg' ? 'Не' : 'No'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (applyImageUrl) {
+                  applyImageToAllVariants(applyImageUrl);
+                }
+                setShowApplyImageToAllModal(false);
+                setApplyImageUrl(null);
+              }}
+              className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-primary text-primary-foreground rounded hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation"
+            >
+              {language === 'bg' ? 'Да, към всички' : 'Yes, apply to all'}
+            </button>
+          </div>
         </AdminModal>
 
         {/* Delete Confirmation Modal */}

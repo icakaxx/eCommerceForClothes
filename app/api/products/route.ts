@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabase();
     const { searchParams } = new URL(request.url);
     const rfproducttypeid = searchParams.get('rfproducttypeid');
+    const producttypeid = searchParams.get('producttypeid');
     const excludeId = searchParams.get('excludeId');
     const limit = searchParams.get('limit');
 
@@ -67,6 +68,11 @@ export async function GET(request: NextRequest) {
     // Filter by rfproducttypeid if provided
     if (rfproducttypeid) {
       query = query.eq('rfproducttypeid', parseInt(rfproducttypeid));
+    }
+
+    // Filter by product type if provided
+    if (producttypeid) {
+      query = query.eq('producttypeid', producttypeid);
     }
 
     // Exclude specific product ID (for related products)
