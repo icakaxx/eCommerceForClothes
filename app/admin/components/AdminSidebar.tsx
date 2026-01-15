@@ -107,20 +107,20 @@ export default function AdminSidebar({ currentPath, collapsed: externalCollapsed
       icon: LayoutDashboard
     },
     {
-      id: 'properties',
-      label: language === 'bg' ? 'Свойства' : 'Properties',
-      path: '/admin/properties',
-      icon: Settings
-    },
-    {
       id: 'product-types',
-      label: language === 'bg' ? 'Типове продукти' : 'Product Types',
+      label: language === 'bg' ? 'Категории' : 'Categories',
       path: '/admin/product-types',
       icon: Tag
     },
     {
+      id: 'properties',
+      label: language === 'bg' ? 'Характеристики' : 'Characteristics',
+      path: '/admin/properties',
+      icon: Settings
+    },
+    {
       id: 'products',
-      label: t.products || 'Products',
+      label: language === 'bg' ? 'Артикули' : 'Items',
       path: '/admin/products',
       icon: Package
     },

@@ -71,17 +71,17 @@ export const adminSearchIndex: SearchableItem[] = [
     id: 'properties',
     type: 'page',
     path: '/admin/properties',
-    title: 'Properties',
-    titleBg: 'Свойства',
-    description: 'Управляване на свойствата на продуктите и техните стойности',
-    keywords: ['properties', 'attributes', 'characteristics', 'свойства', 'атрибути']
+    title: 'Characteristics',
+    titleBg: 'Характеристики',
+    description: 'Управляване на характеристиките на продуктите и техните стойности',
+    keywords: ['properties', 'attributes', 'characteristics', 'характеристики', 'атрибути']
   },
   {
     id: 'properties-list',
     type: 'section',
     path: '/admin/properties',
-    title: 'Properties List',
-    titleBg: 'Списък със свойства',
+    title: 'Characteristics List',
+    titleBg: 'Списък с характеристики',
     parentPath: '/admin/properties',
     keywords: ['list', 'all', 'списък']
   },
@@ -89,8 +89,8 @@ export const adminSearchIndex: SearchableItem[] = [
     id: 'properties-add',
     type: 'action',
     path: '/admin/properties',
-    title: 'Add Property',
-    titleBg: 'Добави свойство',
+    title: 'Add Characteristic',
+    titleBg: 'Добави характеристика',
     parentPath: '/admin/properties',
     keywords: ['add', 'create', 'new', 'добави', 'създай']
   },
@@ -154,17 +154,17 @@ export const adminSearchIndex: SearchableItem[] = [
     id: 'product-types',
     type: 'page',
     path: '/admin/product-types',
-    title: 'Product Types',
-    titleBg: 'Типове продукти',
+    title: 'Categories',
+    titleBg: 'Категории',
     description: 'Управляване на категориите на продуктите',
-    keywords: ['product types', 'categories', 'types', 'типове продукти', 'категории']
+    keywords: ['product types', 'categories', 'types', 'категории', 'типове']
   },
   {
     id: 'product-types-list',
     type: 'section',
     path: '/admin/product-types',
-    title: 'Product Types List',
-    titleBg: 'Списък с типове продукти',
+    title: 'Categories List',
+    titleBg: 'Списък с категории',
     parentPath: '/admin/product-types',
     keywords: ['list', 'all', 'списък']
   },
@@ -172,8 +172,8 @@ export const adminSearchIndex: SearchableItem[] = [
     id: 'product-types-add',
     type: 'action',
     path: '/admin/product-types',
-    title: 'Add Product Type',
-    titleBg: 'Добави тип продукт',
+    title: 'Add Category',
+    titleBg: 'Добави категория',
     parentPath: '/admin/product-types',
     keywords: ['add', 'create', 'new', 'добави', 'създай']
   },
@@ -210,17 +210,17 @@ export const adminSearchIndex: SearchableItem[] = [
     id: 'products',
     type: 'page',
     path: '/admin/products',
-    title: 'Products',
-    titleBg: 'Продукти',
-    description: 'Управляване на продуктите и техните варианти',
-    keywords: ['products', 'items', 'goods', 'продукти', 'стоки']
+    title: 'Items',
+    titleBg: 'Артикули',
+    description: 'Управляване на артикулите и техните варианти',
+    keywords: ['products', 'items', 'goods', 'артикули', 'стоки']
   },
   {
     id: 'products-list',
     type: 'section',
     path: '/admin/products',
-    title: 'Products List',
-    titleBg: 'Списък с продукти',
+    title: 'Items List',
+    titleBg: 'Списък с артикули',
     parentPath: '/admin/products',
     keywords: ['list', 'all', 'списък']
   },
@@ -228,8 +228,8 @@ export const adminSearchIndex: SearchableItem[] = [
     id: 'products-add',
     type: 'action',
     path: '/admin/products',
-    title: 'Add Product',
-    titleBg: 'Добави продукт',
+    title: 'Add Item',
+    titleBg: 'Добави артикул',
     parentPath: '/admin/products',
     keywords: ['add', 'create', 'new', 'добави', 'създай']
   },

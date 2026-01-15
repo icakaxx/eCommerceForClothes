@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Settings, LogOut } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -140,21 +140,52 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
             )}
 
             {isAdmin && (
-              <button
-                onClick={() => {
-                  localStorage.setItem('isAdmin', 'false');
-                  setIsAdmin(false);
-                  router.push('/');
-                }}
-                className="text-xs sm:text-sm whitespace-nowrap transition-colors duration-300"
-                style={{
-                  color: theme.colors.textSecondary
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}
-                onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textSecondary}
-              >
-                {t.exitAdmin}
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    router.push('/admin');
+                  }}
+                  className="p-2 rounded-lg transition-all duration-300"
+                  style={{
+                    color: theme.colors.textSecondary,
+                    border: `1px solid ${theme.colors.border}`
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = theme.colors.text;
+                    e.currentTarget.style.borderColor = theme.colors.primary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = theme.colors.textSecondary;
+                    e.currentTarget.style.borderColor = theme.colors.border;
+                  }}
+                  aria-label={t.backToAdmin}
+                >
+                  <Settings size={18} />
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.setItem('isAdmin', 'false');
+                    setIsAdmin(false);
+                    router.push('/');
+                  }}
+                  className="p-2 rounded-lg transition-all duration-300"
+                  style={{
+                    color: theme.colors.textSecondary,
+                    border: `1px solid ${theme.colors.border}`
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = theme.colors.text;
+                    e.currentTarget.style.borderColor = theme.colors.primary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = theme.colors.textSecondary;
+                    e.currentTarget.style.borderColor = theme.colors.border;
+                  }}
+                  aria-label={t.exitAdmin}
+                >
+                  <LogOut size={18} />
+                </button>
+              </>
             )}
             
             <button
@@ -225,23 +256,54 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
               </Link>
             ))}
 
-            {/* Exit Admin Button (only shown when in admin mode) */}
+            {/* Admin Buttons (only shown when in admin mode) */}
             {isAdmin && (
-              <button
-                onClick={() => {
-                  localStorage.setItem('isAdmin', 'false');
-                  setIsAdmin(false);
-                  router.push('/');
-                  setMobileMenuOpen(false);
-                }}
-                className="block w-full text-left px-6 py-4 font-medium border-b transition-colors duration-300 hover:opacity-70"
-                style={{
-                  color: theme.colors.textSecondary,
-                  borderColor: theme.colors.border
-                }}
-              >
-                {t.exitAdmin}
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    router.push('/admin');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 w-full text-left px-6 py-4 font-medium border-b transition-colors duration-300 hover:opacity-70"
+                  style={{
+                    color: theme.colors.textSecondary,
+                    borderColor: theme.colors.border
+                  }}
+                >
+                  <div 
+                    className="p-2 rounded-lg"
+                    style={{
+                      border: `1px solid ${theme.colors.border}`
+                    }}
+                  >
+                    <Settings size={18} />
+                  </div>
+                  {t.backToAdmin}
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.setItem('isAdmin', 'false');
+                    setIsAdmin(false);
+                    router.push('/');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 w-full text-left px-6 py-4 font-medium border-b transition-colors duration-300 hover:opacity-70"
+                  style={{
+                    color: theme.colors.textSecondary,
+                    borderColor: theme.colors.border
+                  }}
+                >
+                  <div 
+                    className="p-2 rounded-lg"
+                    style={{
+                      border: `1px solid ${theme.colors.border}`
+                    }}
+                  >
+                    <LogOut size={18} />
+                  </div>
+                  {t.exitAdmin}
+                </button>
+              </>
             )}
           </div>
 

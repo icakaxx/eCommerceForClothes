@@ -59,7 +59,9 @@ export default function ProductsPage() {
   });
   const [availableProperties, setAvailableProperties] = useState<Property[]>([]);
   const [selectedPropertyValues, setSelectedPropertyValues] = useState<Record<string, string[]>>({});
+  const [originalPropertyValues, setOriginalPropertyValues] = useState<Record<string, string[]>>({});
   const [variants, setVariants] = useState<Variant[]>([]);
+  const [variantDisplayValues, setVariantDisplayValues] = useState<Record<string, { price?: string; quantity?: string }>>({});
   const [rfProductTypes, setRfProductTypes] = useState<Array<{rfproducttypeid: number, name: string}>>([]);
   const [filteredProductTypes, setFilteredProductTypes] = useState<ProductType[]>([]);
   const [showMediaModal, setShowMediaModal] = useState(false);
@@ -149,6 +151,7 @@ export default function ProductsPage() {
         setProductTypeProperties([]);
         setSelectedPropertyValues({});
         setVariants([]);
+        setVariantDisplayValues({});
       }
     } else {
       setFilteredProductTypes(productTypes);
@@ -339,6 +342,8 @@ export default function ProductsPage() {
         setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, propertyvalues: {} });
         setEditingProduct(null);
         setVariants([]);
+        setVariantDisplayValues({});
+        setOriginalPropertyValues({});
         setSelectedPropertyValues({});
         setNewPropertyValues({});
 
@@ -399,21 +404,31 @@ export default function ProductsPage() {
             setVariants(loadedVariants);
             
             // Set selected property values from existing variants
+            // Only select values that actually exist in variants
             const selected: Record<string, string[]> = {};
-            loadedVariants.forEach(variant => {
-              variant.propertyvalues.forEach(pv => {
-                if (!selected[pv.propertyid]) {
-                  selected[pv.propertyid] = [];
-                }
-                if (!selected[pv.propertyid].includes(pv.value)) {
-                  selected[pv.propertyid].push(pv.value);
-                }
+            if (loadedVariants.length > 0) {
+              loadedVariants.forEach(variant => {
+                variant.propertyvalues.forEach(pv => {
+                  if (!selected[pv.propertyid]) {
+                    selected[pv.propertyid] = [];
+                  }
+                  if (!selected[pv.propertyid].includes(pv.value)) {
+                    selected[pv.propertyid].push(pv.value);
+                  }
+                });
               });
-            });
+            }
+            // If no variants, start with empty selection
             setSelectedPropertyValues(selected);
+            // Store original property values for comparison
+            setOriginalPropertyValues(JSON.parse(JSON.stringify(selected)));
+          } else {
+            // No variants, reset original values
+            setOriginalPropertyValues({});
           }
         } else {
           setProductTypeProperties([]);
+          setOriginalPropertyValues({});
         }
       }
     } catch (error) {
@@ -546,6 +561,41 @@ export default function ProductsPage() {
     setVariants(newVariants);
   };
 
+  // Helper function to validate numeric input (only numbers and dot)
+  const handleNumericInput = (value: string, isDecimal: boolean = false) => {
+    // Allow empty string
+    if (value === '') return '';
+    
+    // For decimal (price), allow numbers and one dot
+    if (isDecimal) {
+      // Filter to only allow digits and dots
+      let filtered = value.replace(/[^0-9.]/g, '');
+      // Ensure only one dot
+      const parts = filtered.split('.');
+      if (parts.length > 2) {
+        filtered = parts[0] + '.' + parts.slice(1).join('');
+      }
+      return filtered;
+    } else {
+      // For integer (quantity), only allow digits
+      return value.replace(/[^0-9]/g, '');
+    }
+  };
+
+  // Helper function to format value for display (empty string if 0)
+  const formatNumericValue = (value: number, variantIndex: number, field: 'price' | 'quantity'): string => {
+    const key = `variant_${variantIndex}`;
+    const displayValue = variantDisplayValues[key]?.[field];
+    
+    // If there's a stored display value (for incomplete inputs like "."), use it
+    if (displayValue !== undefined) {
+      return displayValue;
+    }
+    
+    // Otherwise, format the numeric value
+    return value === 0 ? '' : value.toString();
+  };
+
   const deleteVariant = (index: number) => {
     setVariants(variants.filter((_, i) => i !== index));
   };
@@ -627,6 +677,7 @@ export default function ProductsPage() {
               setProductTypeProperties([]);
               setSelectedPropertyValues({});
               setVariants([]);
+        setVariantDisplayValues({});
               setShowModal(true);
             }}
             className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation text-sm sm:text-base"
@@ -644,12 +695,12 @@ export default function ProductsPage() {
         ) : (
           <>
           <Section
-            title={language === 'bg' ? 'Списък с продукти' : 'Products List'}
+            title={language === 'bg' ? 'Списък с артикули' : 'Items List'}
             description={language === 'bg' ? 'Управлявайте продуктите и техните варианти' : 'Manage products and their variants'}
           >
             {products.length === 0 ? (
               <EmptyState
-                title={language === 'bg' ? 'Няма продукти' : 'No Products'}
+                title={language === 'bg' ? 'Няма артикули' : 'No Items'}
                 description={language === 'bg' ? 'Създайте първия продукт, за да започнете да продавате.' : 'Create your first product to start selling.'}
                 action={
                   <button
@@ -659,6 +710,7 @@ export default function ProductsPage() {
                       setProductTypeProperties([]);
                       setSelectedPropertyValues({});
                       setVariants([]);
+        setVariantDisplayValues({});
                       setShowModal(true);
                     }}
                     className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
@@ -677,7 +729,6 @@ export default function ProductsPage() {
                     <TableHeader>
                       <TableHeaderRow>
                         <TableHeaderCell>{t.name}</TableHeaderCell>
-                        <TableHeaderCell>{t.sku}</TableHeaderCell>
                         <TableHeaderCell>{t.productType}</TableHeaderCell>
                         <TableHeaderCell align="right">{t.actions}</TableHeaderCell>
                       </TableHeaderRow>
@@ -687,9 +738,6 @@ export default function ProductsPage() {
                         <TableRow key={product.productid}>
                           <TableCell>
                             <div className="truncate max-w-xs font-medium">{product.name}</div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-mono text-xs">{product.sku || '-'}</span>
                           </TableCell>
                           <TableCell>
                             {productTypes.find(pt => pt.producttypeid === product.producttypeid)?.name || '-'}
@@ -731,7 +779,6 @@ export default function ProductsPage() {
                     <div className="min-w-0 flex-1">
                       <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-1 truncate">{product.name}</h3>
                       <div className="space-y-1 text-xs sm:text-sm text-gray-500">
-                        <p><span className="font-medium">SKU:</span> <span className="font-mono">{product.sku || '-'}</span></p>
                         <p>
                           <span className="font-medium">{t.productType}:</span> {productTypes.find(pt => pt.producttypeid === product.producttypeid)?.name || '-'}
                         </p>
@@ -883,28 +930,6 @@ export default function ProductsPage() {
                   </div>
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                      {t.productSKU}
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.sku}
-                      onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                      className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                      {language === 'bg' ? 'Описание' : 'Description'}
-                    </label>
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      rows={3}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                       {language === 'bg' ? 'Основна категория' : 'Main Category'}
                     </label>
                     <select
@@ -919,20 +944,33 @@ export default function ProductsPage() {
                         setProductTypeProperties([]);
                         setSelectedPropertyValues({});
                         setVariants([]);
+        setVariantDisplayValues({});
                       }}
                       className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       required
                     >
-                      {rfProductTypes.map((rpt) => (
-                        <option key={rpt.rfproducttypeid} value={rpt.rfproducttypeid}>
-                          {rpt.name}
-                        </option>
-                      ))}
+                      {rfProductTypes.map((rpt) => {
+                        // Translate category names
+                        const getTranslatedName = (name: string) => {
+                          if (language === 'bg') {
+                            const nameLower = name.toLowerCase();
+                            if (nameLower.includes('him') || nameLower.includes('него')) return 'За Него';
+                            if (nameLower.includes('her') || nameLower.includes('нея')) return 'За Нея';
+                            if (nameLower.includes('accessor') || nameLower.includes('аксесоар')) return 'Аксесоар';
+                          }
+                          return name;
+                        };
+                        return (
+                          <option key={rpt.rfproducttypeid} value={rpt.rfproducttypeid}>
+                            {getTranslatedName(rpt.name)}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                      {language === 'bg' ? 'Тип продукт' : 'Product Type'}
+                      {language === 'bg' ? 'Категория' : 'Product Type'}
                     </label>
                     <select
                       value={formData.producttypeid}
@@ -948,6 +986,17 @@ export default function ProductsPage() {
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                      {language === 'bg' ? 'Описание' : 'Description'}
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={3}
+                    />
                   </div>
                   <div>
                     <label className="flex items-start gap-2">
@@ -982,12 +1031,29 @@ export default function ProductsPage() {
                       <div className="space-y-3 max-h-64 sm:max-h-none overflow-y-auto">
                         {productTypeProperties.map((property) => (
                           <div key={property.propertyid} className="border rounded-md p-2 sm:p-3">
-                            <label className="block text-xs font-medium text-gray-700 mb-2">
-                              {property.name}
-                              {property.description && (
-                                <span className="text-gray-400 ml-1 text-xs">({property.description})</span>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="block text-xs font-medium text-gray-700">
+                                {property.name}
+                                {property.description && (
+                                  <span className="text-gray-400 ml-1 text-xs">({property.description})</span>
+                                )}
+                              </label>
+                              {property.datatype === 'select' && selectedPropertyValues[property.propertyid]?.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedPropertyValues({
+                                      ...selectedPropertyValues,
+                                      [property.propertyid]: []
+                                    });
+                                  }}
+                                  className="text-xs text-gray-500 hover:text-gray-700 underline"
+                                  title={language === 'bg' ? 'Премахни всички' : 'Uncheck all'}
+                                >
+                                  {language === 'bg' ? 'Премахни всички' : 'Uncheck all'}
+                                </button>
                               )}
-                            </label>
+                            </div>
                             {property.datatype === 'select' ? (
                               <>
                                 {property.values && property.values.length > 0 ? (
@@ -1001,16 +1067,30 @@ export default function ProductsPage() {
                                             type="checkbox"
                                             checked={selectedPropertyValues[property.propertyid]?.includes(value.value) || false}
                                             onChange={(e) => {
+                                              e.stopPropagation();
                                               const currentValues = selectedPropertyValues[property.propertyid] || [];
-                                              const newValues = e.target.checked
-                                                ? [...currentValues, value.value]
-                                                : currentValues.filter(v => v !== value.value);
+                                              const isChecked = e.target.checked;
+                                              
+                                              let newValues: string[];
+                                              if (isChecked) {
+                                                // Add the value if not already present
+                                                newValues = currentValues.includes(value.value)
+                                                  ? currentValues
+                                                  : [...currentValues, value.value];
+                                              } else {
+                                                // Remove the value - allow empty array
+                                                newValues = currentValues.filter(v => v !== value.value);
+                                              }
+                                              
                                               setSelectedPropertyValues({
                                                 ...selectedPropertyValues,
                                                 [property.propertyid]: newValues
                                               });
                                             }}
-                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                            }}
+                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
                                           />
                                           <span className="text-xs sm:text-sm">{value.value}</span>
                                         </label>
@@ -1067,13 +1147,54 @@ export default function ProductsPage() {
                           </div>
                         ))}
                       </div>
-                      <button
-                        type="button"
-                        onClick={generateVariants}
-                        className="mt-3 w-full px-4 py-2 text-sm sm:text-base bg-success text-success-foreground rounded hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation"
-                      >
-                        {t.generateVariants} ({Object.values(selectedPropertyValues).reduce((acc, vals) => acc * (vals.length || 1), 1)} {t.combinations})
-                      </button>
+                      {(() => {
+                        // Check if property values have changed from original
+                        const hasPropertyChanges = editingProduct ? (() => {
+                          const currentKeys = Object.keys(selectedPropertyValues).sort();
+                          const originalKeys = Object.keys(originalPropertyValues).sort();
+                          
+                          // Check if keys are different
+                          if (currentKeys.length !== originalKeys.length) return true;
+                          if (currentKeys.join(',') !== originalKeys.join(',')) return true;
+                          
+                          // Check if values for each property have changed
+                          for (const key of currentKeys) {
+                            const current = (selectedPropertyValues[key] || []).sort().join(',');
+                            const original = (originalPropertyValues[key] || []).sort().join(',');
+                            if (current !== original) return true;
+                          }
+                          
+                          return false;
+                        })() : false;
+                        
+                        // Determine button text
+                        let buttonText;
+                        if (!editingProduct) {
+                          // New product: "Продължи" / "Continue"
+                          buttonText = t.continue;
+                        } else {
+                          // Editing product: Always show "Регенерирай" / "Regenerate"
+                          buttonText = t.regenerateVariants;
+                        }
+                        
+                        // Disable button if editing and no property changes
+                        const isDisabled = Boolean(editingProduct) && !hasPropertyChanges;
+                        
+                        return (
+                          <button
+                            type="button"
+                            onClick={generateVariants}
+                            disabled={isDisabled}
+                            className={`mt-3 w-full px-4 py-2 text-sm sm:text-base rounded transition-opacity touch-manipulation ${
+                              isDisabled
+                                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                                : 'bg-success text-success-foreground hover:opacity-90 active:opacity-80'
+                            }`}
+                          >
+                            {buttonText} ({Object.values(selectedPropertyValues).reduce((acc, vals) => acc * (vals.length || 1), 1)} {t.combinations})
+                          </button>
+                        );
+                      })()}
                     </div>
                   )}
 
@@ -1089,7 +1210,6 @@ export default function ProductsPage() {
                             <thead className="bg-gray-50 sticky top-0">
                               <tr>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.variant}</th>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.sku}</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.price}</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.quantity}</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.image}</th>
@@ -1111,25 +1231,135 @@ export default function ProductsPage() {
                                   <td className="px-3 py-2">
                                     <input
                                       type="text"
-                                      value={variant.sku || ''}
-                                      onChange={(e) => updateVariant(index, 'sku', e.target.value)}
-                                      className="w-full px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                                    />
-                                  </td>
-                                  <td className="px-3 py-2">
-                                    <input
-                                      type="number"
-                                      step="0.01"
-                                      value={variant.price}
-                                      onChange={(e) => updateVariant(index, 'price', parseFloat(e.target.value) || 0)}
+                                      value={formatNumericValue(variant.price, index, 'price')}
+                                      onChange={(e) => {
+                                        const validated = handleNumericInput(e.target.value, true);
+                                        const key = `variant_${index}`;
+                                        
+                                        // Store the display value
+                                        setVariantDisplayValues(prev => ({
+                                          ...prev,
+                                          [key]: { ...prev[key], price: validated }
+                                        }));
+                                        
+                                        // Only update numeric value if it's a complete number
+                                        if (validated !== '' && validated !== '.' && !validated.endsWith('.')) {
+                                          const numValue = parseFloat(validated);
+                                          if (!isNaN(numValue)) {
+                                            updateVariant(index, 'price', numValue);
+                                          }
+                                        } else if (validated === '') {
+                                          updateVariant(index, 'price', 0);
+                                          setVariantDisplayValues(prev => {
+                                            const updated = { ...prev };
+                                            if (updated[key]) {
+                                              delete updated[key].price;
+                                              if (Object.keys(updated[key]).length === 0) {
+                                                delete updated[key];
+                                              }
+                                            }
+                                            return updated;
+                                          });
+                                        }
+                                      }}
+                                      onBlur={(e) => {
+                                        // Ensure we have a valid number on blur
+                                        const value = e.target.value.trim();
+                                        const key = `variant_${index}`;
+                                        if (value === '' || value === '.') {
+                                          updateVariant(index, 'price', 0);
+                                          setVariantDisplayValues(prev => {
+                                            const updated = { ...prev };
+                                            if (updated[key]) {
+                                              delete updated[key].price;
+                                              if (Object.keys(updated[key]).length === 0) {
+                                                delete updated[key];
+                                              }
+                                            }
+                                            return updated;
+                                          });
+                                        } else {
+                                          // Clear display value on blur if we have a valid number
+                                          const numValue = parseFloat(value);
+                                          if (!isNaN(numValue)) {
+                                            setVariantDisplayValues(prev => {
+                                              const updated = { ...prev };
+                                              if (updated[key]) {
+                                                delete updated[key].price;
+                                                if (Object.keys(updated[key]).length === 0) {
+                                                  delete updated[key];
+                                                }
+                                              }
+                                              return updated;
+                                            });
+                                          }
+                                        }
+                                      }}
                                       className="w-20 px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                   </td>
                                   <td className="px-3 py-2">
                                     <input
-                                      type="number"
-                                      value={variant.quantity}
-                                      onChange={(e) => updateVariant(index, 'quantity', parseInt(e.target.value) || 0)}
+                                      type="text"
+                                      value={formatNumericValue(variant.quantity, index, 'quantity')}
+                                      onChange={(e) => {
+                                        const validated = handleNumericInput(e.target.value, false);
+                                        const key = `variant_${index}`;
+                                        
+                                        // Store the display value
+                                        setVariantDisplayValues(prev => ({
+                                          ...prev,
+                                          [key]: { ...prev[key], quantity: validated }
+                                        }));
+                                        
+                                        // Update numeric value
+                                        const numValue = validated === '' ? 0 : parseInt(validated) || 0;
+                                        updateVariant(index, 'quantity', numValue);
+                                        
+                                        // Clear display value if empty
+                                        if (validated === '') {
+                                          setVariantDisplayValues(prev => {
+                                            const updated = { ...prev };
+                                            if (updated[key]) {
+                                              delete updated[key].quantity;
+                                              if (Object.keys(updated[key]).length === 0) {
+                                                delete updated[key];
+                                              }
+                                            }
+                                            return updated;
+                                          });
+                                        }
+                                      }}
+                                      onBlur={(e) => {
+                                        // Ensure we have a valid number on blur
+                                        const value = e.target.value.trim();
+                                        const key = `variant_${index}`;
+                                        if (value === '') {
+                                          updateVariant(index, 'quantity', 0);
+                                          setVariantDisplayValues(prev => {
+                                            const updated = { ...prev };
+                                            if (updated[key]) {
+                                              delete updated[key].quantity;
+                                              if (Object.keys(updated[key]).length === 0) {
+                                                delete updated[key];
+                                              }
+                                            }
+                                            return updated;
+                                          });
+                                        } else {
+                                          // Clear display value on blur
+                                          setVariantDisplayValues(prev => {
+                                            const updated = { ...prev };
+                                            if (updated[key]) {
+                                              delete updated[key].quantity;
+                                              if (Object.keys(updated[key]).length === 0) {
+                                                delete updated[key];
+                                              }
+                                            }
+                                            return updated;
+                                          });
+                                        }
+                                      }}
                                       className="w-20 px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                   </td>
@@ -1229,30 +1459,139 @@ export default function ProductsPage() {
                               </div>
                               <div className="grid grid-cols-2 gap-2 text-xs">
                                 <div>
-                                  <label className="block text-gray-500 mb-1">SKU</label>
-                                  <input
-                                    type="text"
-                                    value={variant.sku || ''}
-                                    onChange={(e) => updateVariant(index, 'sku', e.target.value)}
-                                    className="w-full px-2 py-1.5 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
-                                  />
-                                </div>
-                                <div>
                                   <label className="block text-gray-500 mb-1">{t.price}</label>
                                   <input
-                                    type="number"
-                                    step="0.01"
-                                    value={variant.price}
-                                    onChange={(e) => updateVariant(index, 'price', parseFloat(e.target.value) || 0)}
+                                    type="text"
+                                    value={formatNumericValue(variant.price, index, 'price')}
+                                    onChange={(e) => {
+                                      const validated = handleNumericInput(e.target.value, true);
+                                      const key = `variant_${index}`;
+                                        
+                                      // Store the display value
+                                      setVariantDisplayValues(prev => ({
+                                        ...prev,
+                                        [key]: { ...prev[key], price: validated }
+                                      }));
+                                        
+                                      // Only update numeric value if it's a complete number
+                                      if (validated !== '' && validated !== '.' && !validated.endsWith('.')) {
+                                        const numValue = parseFloat(validated);
+                                        if (!isNaN(numValue)) {
+                                          updateVariant(index, 'price', numValue);
+                                        }
+                                      } else if (validated === '') {
+                                        updateVariant(index, 'price', 0);
+                                        setVariantDisplayValues(prev => {
+                                          const updated = { ...prev };
+                                          if (updated[key]) {
+                                            delete updated[key].price;
+                                            if (Object.keys(updated[key]).length === 0) {
+                                              delete updated[key];
+                                            }
+                                          }
+                                          return updated;
+                                        });
+                                      }
+                                    }}
+                                    onBlur={(e) => {
+                                      // Ensure we have a valid number on blur
+                                      const value = e.target.value.trim();
+                                      const key = `variant_${index}`;
+                                      if (value === '' || value === '.') {
+                                        updateVariant(index, 'price', 0);
+                                        setVariantDisplayValues(prev => {
+                                          const updated = { ...prev };
+                                          if (updated[key]) {
+                                            delete updated[key].price;
+                                            if (Object.keys(updated[key]).length === 0) {
+                                              delete updated[key];
+                                            }
+                                          }
+                                          return updated;
+                                        });
+                                      } else {
+                                        // Clear display value on blur if we have a valid number
+                                        const numValue = parseFloat(value);
+                                        if (!isNaN(numValue)) {
+                                          setVariantDisplayValues(prev => {
+                                            const updated = { ...prev };
+                                            if (updated[key]) {
+                                              delete updated[key].price;
+                                              if (Object.keys(updated[key]).length === 0) {
+                                                delete updated[key];
+                                              }
+                                            }
+                                            return updated;
+                                          });
+                                        }
+                                      }
+                                    }}
                                     className="w-full px-2 py-1.5 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
                                   />
                                 </div>
                                 <div>
                                   <label className="block text-gray-500 mb-1">{t.quantity}</label>
                                   <input
-                                    type="number"
-                                    value={variant.quantity}
-                                    onChange={(e) => updateVariant(index, 'quantity', parseInt(e.target.value) || 0)}
+                                    type="text"
+                                    value={formatNumericValue(variant.quantity, index, 'quantity')}
+                                    onChange={(e) => {
+                                      const validated = handleNumericInput(e.target.value, false);
+                                      const key = `variant_${index}`;
+                                        
+                                      // Store the display value
+                                      setVariantDisplayValues(prev => ({
+                                        ...prev,
+                                        [key]: { ...prev[key], quantity: validated }
+                                      }));
+                                        
+                                      // Update numeric value
+                                      const numValue = validated === '' ? 0 : parseInt(validated) || 0;
+                                      updateVariant(index, 'quantity', numValue);
+                                        
+                                      // Clear display value if empty
+                                      if (validated === '') {
+                                        setVariantDisplayValues(prev => {
+                                          const updated = { ...prev };
+                                          if (updated[key]) {
+                                            delete updated[key].quantity;
+                                            if (Object.keys(updated[key]).length === 0) {
+                                              delete updated[key];
+                                            }
+                                          }
+                                          return updated;
+                                        });
+                                      }
+                                    }}
+                                    onBlur={(e) => {
+                                      // Ensure we have a valid number on blur
+                                      const value = e.target.value.trim();
+                                      const key = `variant_${index}`;
+                                      if (value === '') {
+                                        updateVariant(index, 'quantity', 0);
+                                        setVariantDisplayValues(prev => {
+                                          const updated = { ...prev };
+                                          if (updated[key]) {
+                                            delete updated[key].quantity;
+                                            if (Object.keys(updated[key]).length === 0) {
+                                              delete updated[key];
+                                            }
+                                          }
+                                          return updated;
+                                        });
+                                      } else {
+                                        // Clear display value on blur
+                                        setVariantDisplayValues(prev => {
+                                          const updated = { ...prev };
+                                          if (updated[key]) {
+                                            delete updated[key].quantity;
+                                            if (Object.keys(updated[key]).length === 0) {
+                                              delete updated[key];
+                                            }
+                                          }
+                                          return updated;
+                                        });
+                                      }
+                                    }}
                                     className="w-full px-2 py-1.5 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
                                   />
                                 </div>
@@ -1339,6 +1678,7 @@ export default function ProductsPage() {
                           setSelectedVariantIndex(null);
                           setSelectedPropertyValues({});
                           setVariants([]);
+        setVariantDisplayValues({});
                           setNewPropertyValues({});
                         }}
                         className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
@@ -1429,9 +1769,6 @@ export default function ProductsPage() {
                   {language === 'bg' ? 'Продукт:' : 'Product:'}
                 </p>
                 <p className="text-sm text-gray-700">{productToDelete.name}</p>
-                {productToDelete.sku && (
-                  <p className="text-xs text-gray-500 mt-1 font-mono">SKU: {productToDelete.sku}</p>
-                )}
               </div>
             )}
             <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">

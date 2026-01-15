@@ -81,13 +81,12 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const { name, code } = body;
+    const { name } = body;
 
     const { data: productType, error } = await supabase
       .from('product_types')
       .update({
         name,
-        code,
         updatedat: new Date().toISOString()
       })
       .eq('producttypeid', id)

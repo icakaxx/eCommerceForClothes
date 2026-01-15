@@ -98,12 +98,9 @@ CREATE TABLE public.product_type_properties (
 CREATE TABLE public.product_types (
   producttypeid uuid NOT NULL DEFAULT gen_random_uuid(),
   name text NOT NULL,
-  code text NOT NULL UNIQUE,
   createdat timestamp with time zone NOT NULL DEFAULT now(),
   updatedat timestamp with time zone NOT NULL DEFAULT now(),
-  rfproducttypeid integer,
-  CONSTRAINT product_types_pkey PRIMARY KEY (producttypeid),
-  CONSTRAINT product_types_rfproducttypeid_fkey FOREIGN KEY (rfproducttypeid) REFERENCES public.rfproducttype(rfproducttypeid)
+  CONSTRAINT product_types_pkey PRIMARY KEY (producttypeid)
 );
 CREATE TABLE public.product_variant_property_values (
   productvariantpropertyvalueid uuid NOT NULL DEFAULT gen_random_uuid(),

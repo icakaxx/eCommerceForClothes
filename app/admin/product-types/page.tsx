@@ -19,7 +19,7 @@ export default function ProductTypesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProductType, setEditingProductType] = useState<ProductType | null>(null);
-  const [formData, setFormData] = useState({ name: '', code: '' });
+  const [formData, setFormData] = useState({ name: '' });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productTypeToDelete, setProductTypeToDelete] = useState<ProductType | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -38,6 +38,12 @@ export default function ProductTypesPage() {
       const response = await fetch('/api/product-types');
       const result = await response.json();
       if (result.success) {
+        // Debug: Log to verify counts are coming through
+        console.log('Product types with counts:', result.productTypes.map((pt: any) => ({
+          name: pt.name,
+          propertiesCount: pt.propertiesCount,
+          productsCount: pt.productsCount
+        })));
         setProductTypes(result.productTypes);
       }
     } catch (error) {
@@ -64,7 +70,7 @@ export default function ProductTypesPage() {
       const result = await response.json();
       if (result.success) {
         setShowModal(false);
-        setFormData({ name: '', code: '' });
+        setFormData({ name: '' });
         setEditingProductType(null);
         loadProductTypes();
       } else {
@@ -78,7 +84,7 @@ export default function ProductTypesPage() {
 
   const handleEdit = (productType: ProductType) => {
     setEditingProductType(productType);
-    setFormData({ name: productType.name, code: productType.code });
+    setFormData({ name: productType.name });
     setShowModal(true);
   };
 
@@ -123,12 +129,12 @@ export default function ProductTypesPage() {
     <AdminLayout currentPath="/admin/product-types">
       <AdminPage className="space-y-6">
         <PageHeader
-          title={language === 'bg' ? 'Типове продукти' : 'Product Types'}
+          title={language === 'bg' ? 'Категории' : 'Categories'}
           actions={
             <button
               onClick={() => {
                 setEditingProductType(null);
-                setFormData({ name: '', code: '' });
+                setFormData({ name: '' });
                 setShowModal(true);
               }}
               className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation text-sm sm:text-base"
@@ -147,18 +153,18 @@ export default function ProductTypesPage() {
         ) : (
           <>
           <Section
-            title={language === 'bg' ? 'Списък с типове продукти' : 'Product Types List'}
+            title={language === 'bg' ? 'Списък с категории' : 'Categories List'}
             description={language === 'bg' ? 'Управлявайте категориите на продуктите' : 'Manage product categories'}
           >
             {productTypes.length === 0 ? (
               <EmptyState
-                title={language === 'bg' ? 'Няма типове продукти' : 'No Product Types'}
+                title={language === 'bg' ? 'Няма категории' : 'No Categories'}
                 description={language === 'bg' ? 'Създайте първия тип продукт, за да започнете да организирате продуктите си.' : 'Create your first product type to start organizing your products.'}
                 action={
                   <button
                     onClick={() => {
                       setEditingProductType(null);
-                      setFormData({ name: '', code: '' });
+                      setFormData({ name: '' });
                       setShowModal(true);
                     }}
                     className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -177,46 +183,65 @@ export default function ProductTypesPage() {
                     <TableHeader>
                       <TableHeaderRow>
                         <TableHeaderCell>{t.name}</TableHeaderCell>
-                        <TableHeaderCell>{t.code}</TableHeaderCell>
+                        <TableHeaderCell align="center">{language === 'bg' ? 'Характеристики' : 'Characteristics'}</TableHeaderCell>
+                        <TableHeaderCell align="center">{language === 'bg' ? 'Артикули' : 'Items'}</TableHeaderCell>
                         <TableHeaderCell align="right">{t.actions}</TableHeaderCell>
                       </TableHeaderRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedProductTypes.map((pt) => (
-                        <TableRow key={pt.producttypeid}>
-                          <TableCell>
-                            <div className="truncate max-w-xs font-medium">{pt.name}</div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-mono text-xs">{pt.code}</span>
-                          </TableCell>
-                          <TableCell align="right">
-                            <div className="flex justify-end gap-2">
-                              <button
-                                onClick={() => handleManageProperties(pt)}
-                                className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors touch-manipulation"
-                                title={t.manageProperties || 'Manage Properties'}
-                              >
-                                {t.manageProperties || 'Manage'}
-                              </button>
-                              <button
-                                onClick={() => handleEdit(pt)}
-                                className="p-1.5 sm:p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded transition-colors touch-manipulation"
-                                title={t.editProductType || 'Edit'}
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteClick(pt)}
-                                className="p-1.5 sm:p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors touch-manipulation"
-                                title={language === 'bg' ? 'Изтрий' : 'Delete'}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {paginatedProductTypes.map((pt) => {
+                        const propertiesCount = Number((pt as any).propertiesCount) || 0;
+                        const productsCount = Number((pt as any).productsCount) || 0;
+                        const highlightProperties = propertiesCount === 0;
+                        const highlightProducts = productsCount === 0;
+                        
+                        return (
+                          <TableRow key={pt.producttypeid}>
+                            <TableCell>
+                              <div className="truncate max-w-xs font-medium">{pt.name}</div>
+                            </TableCell>
+                            <TableCell 
+                              align="center"
+                              className={highlightProperties ? '!bg-yellow-200' : ''}
+                              style={highlightProperties ? { backgroundColor: '#fef3c7', color: '#000' } : undefined}
+                            >
+                              <span className="font-medium">{propertiesCount}</span>
+                            </TableCell>
+                            <TableCell 
+                              align="center"
+                              className={highlightProducts ? '!bg-yellow-200' : ''}
+                              style={highlightProducts ? { backgroundColor: '#fef3c7', color: '#000' } : undefined}
+                            >
+                              <span className="font-medium">{productsCount}</span>
+                            </TableCell>
+                            <TableCell align="right">
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => handleManageProperties(pt)}
+                                  className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors touch-manipulation"
+                                  title={t.manageProperties || 'Manage Properties'}
+                                >
+                                  {t.manageProperties || 'Manage'}
+                                </button>
+                                <button
+                                  onClick={() => handleEdit(pt)}
+                                  className="p-1.5 sm:p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded transition-colors touch-manipulation"
+                                  title={t.editProductType || 'Edit'}
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteClick(pt)}
+                                  className="p-1.5 sm:p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors touch-manipulation"
+                                  title={language === 'bg' ? 'Изтрий' : 'Delete'}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </DataTableShell>
                 </div>
@@ -233,7 +258,32 @@ export default function ProductTypesPage() {
                   <div className="flex justify-between items-start gap-3">
                     <div className="min-w-0 flex-1">
                       <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-1 truncate">{pt.name}</h3>
-                      <p className="text-xs sm:text-sm text-gray-500 font-mono">{pt.code}</p>
+                      <div className="flex gap-4 mt-2 text-xs sm:text-sm">
+                        {(() => {
+                          const propertiesCount = Number((pt as any).propertiesCount) || 0;
+                          const productsCount = Number((pt as any).productsCount) || 0;
+                          const highlightProperties = propertiesCount === 0;
+                          const highlightProducts = productsCount === 0;
+                          return (
+                            <>
+                              <div 
+                                className={`px-2 py-1 rounded ${highlightProperties ? 'bg-yellow-200' : 'bg-gray-100'}`}
+                                style={highlightProperties ? { backgroundColor: '#fef3c7' } : undefined}
+                              >
+                                <span className="font-medium">{language === 'bg' ? 'Характеристики' : 'Characteristics'}: </span>
+                                <span className="font-semibold">{propertiesCount}</span>
+                              </div>
+                              <div 
+                                className={`px-2 py-1 rounded ${highlightProducts ? 'bg-yellow-200' : 'bg-gray-100'}`}
+                                style={highlightProducts ? { backgroundColor: '#fef3c7' } : undefined}
+                              >
+                                <span className="font-medium">{language === 'bg' ? 'Артикули' : 'Items'}: </span>
+                                <span className="font-semibold">{productsCount}</span>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
                     <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                       <button
@@ -382,18 +432,6 @@ export default function ProductTypesPage() {
                   required
                 />
               </div>
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                  {t.code}
-                </label>
-                <input
-                  type="text"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
-                  required
-                />
-              </div>
               <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-2 pt-4 border-t border-gray-200">
                 <button
                   type="button"
@@ -435,9 +473,6 @@ export default function ProductTypesPage() {
                   {language === 'bg' ? 'Тип продукт:' : 'Product Type:'}
                 </p>
                 <p className="text-sm text-gray-700">{productTypeToDelete.name}</p>
-                {productTypeToDelete.code && (
-                  <p className="text-xs text-gray-500 mt-1 font-mono">Code: {productTypeToDelete.code}</p>
-                )}
               </div>
             )}
             <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">

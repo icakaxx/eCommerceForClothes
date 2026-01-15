@@ -405,7 +405,7 @@ export default function PropertiesPage() {
     <AdminLayout currentPath="/admin/properties">
       <AdminPage className="space-y-6">
         <PageHeader
-          title={language === 'bg' ? 'Свойства' : 'Properties'}
+          title={language === 'bg' ? 'Характеристики' : 'Characteristics'}
           actions={
             <button
               onClick={() => {
@@ -429,12 +429,12 @@ export default function PropertiesPage() {
         ) : (
           <>
             <Section
-              title={language === 'bg' ? 'Списък със свойства' : 'Properties List'}
+              title={language === 'bg' ? 'Списък с характеристики' : 'Characteristics List'}
               description={language === 'bg' ? 'Управлявайте свойствата на продуктите и техните стойности' : 'Manage product properties and their values'}
             >
               {properties.length === 0 ? (
                 <EmptyState
-                  title={language === 'bg' ? 'Няма свойства' : 'No Properties'}
+                  title={language === 'bg' ? 'Няма характеристики' : 'No Characteristics'}
                   description={language === 'bg' ? 'Създайте първото свойство, за да започнете да организирате продуктите си.' : 'Create your first property to start organizing your products.'}
                   action={
                     <button
@@ -464,9 +464,6 @@ export default function PropertiesPage() {
                       </th>
                       <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         {t.description}
-                      </th>
-                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t.dataType || 'Data Type'}
                       </th>
                       <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         {t.propertyValues}
@@ -500,9 +497,6 @@ export default function PropertiesPage() {
                           </td>
                           <td className="px-4 xl:px-6 py-4 text-sm text-gray-500">
                             <div className="max-w-xs truncate">{prop.description || '-'}</div>
-                          </td>
-                          <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <span className="px-2 py-1 bg-gray-100 rounded text-xs">{prop.datatype}</span>
                           </td>
                           <td className="px-4 xl:px-6 py-4 text-sm text-gray-500">
                             {prop.datatype === 'select' ? (
@@ -543,7 +537,7 @@ export default function PropertiesPage() {
                         {/* Expanded property values - Desktop */}
                         {expandedProperties.has(prop.propertyid) && prop.datatype === 'select' && (
                           <tr>
-                            <td colSpan={5} className="px-4 xl:px-6 py-0">
+                            <td colSpan={4} className="px-4 xl:px-6 py-0">
                               <div className="bg-gray-50 rounded-md p-3 sm:p-4 m-2">
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
                                   <h4 className="text-xs sm:text-sm font-medium text-gray-700">
@@ -607,7 +601,7 @@ export default function PropertiesPage() {
             {/* Mobile Card Layout */}
             {properties.length > 0 && (
               <Section
-                title={language === 'bg' ? 'Списък със свойства' : 'Properties List'}
+                title={language === 'bg' ? 'Списък с характеристики' : 'Characteristics List'}
                 className="md:hidden"
               >
                 <div className="space-y-3">

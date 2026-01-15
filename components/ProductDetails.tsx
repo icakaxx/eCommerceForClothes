@@ -426,17 +426,6 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
               </div>
             </div>
           ))}
-          {selectedVariant && (
-            <div
-              className="mt-4 p-3 rounded-lg text-sm"
-              style={{
-                backgroundColor: theme.colors.surface,
-                color: theme.colors.textSecondary
-              }}
-            >
-              {t.sku}: <span style={{ color: theme.colors.text }}>{selectedVariant.sku || t.notAvailable}</span>
-            </div>
-          )}
         </div>
       )}
 

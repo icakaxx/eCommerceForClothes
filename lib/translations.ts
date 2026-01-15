@@ -7,6 +7,7 @@ export interface Translations {
   accessories: string;
   admin: string;
   exitAdmin: string;
+  backToAdmin: string;
 
   // Store Page
   ourCurrentStock: string;
@@ -30,6 +31,8 @@ export interface Translations {
   status: string;
   // Admin Panel
   products: string;
+  categories: string;
+  characteristics: string;
   manageProducts: string;
   searchPlaceholder: string;
   allCategories: string;
@@ -225,6 +228,8 @@ export interface Translations {
   selectAtLeastOnePropertyValue: string;
   propertyTypeNotSupportVariants: string;
   generateVariants: string;
+  regenerateVariants: string;
+  continue: string;
   combinations: string;
   removeImage: string;
   setAsPrimaryImage: string;
@@ -654,6 +659,7 @@ export const translations: Record<Language, Translations> = {
     accessories: 'Accessories',
     admin: 'Admin',
     exitAdmin: 'Exit Admin',
+    backToAdmin: 'Back to Admin',
 
     // Store Page
     ourCurrentStock: 'Our Current Stock',
@@ -675,6 +681,9 @@ export const translations: Record<Language, Translations> = {
 
     // Admin Panel
     products: 'Products',
+    items: 'Items',
+    categories: 'Categories',
+    characteristics: 'Characteristics',
     manageProducts: 'Manage product visibility, details, and stock quantities',
     searchPlaceholder: 'Search by brand, model, or color...',
     allCategories: 'All Categories',
@@ -860,6 +869,8 @@ export const translations: Record<Language, Translations> = {
     selectAtLeastOnePropertyValue: 'Please select at least one property value',
     propertyTypeNotSupportVariants: 'This property type does not support variants. Add values in the Properties section.',
     generateVariants: 'Generate Variants',
+    regenerateVariants: 'Regenerate',
+    continue: 'Continue',
     combinations: 'combinations',
     removeImage: 'Remove image',
     setAsPrimaryImage: 'Set as primary image',
@@ -868,7 +879,6 @@ export const translations: Record<Language, Translations> = {
   unknownProduct: 'Unknown Product',
   moreItems: 'more items',
   item: 'item',
-  items: 'items',
   viewAndManageOrders: 'View and manage all orders',
   searchOrders: 'Search orders...',
   allStatuses: 'All Statuses',
@@ -1295,6 +1305,7 @@ export const translations: Record<Language, Translations> = {
     accessories: 'Аксесоари',
     admin: 'Админ',
     exitAdmin: 'Изход от Админ',
+    backToAdmin: 'Обратно към Админ',
 
     // Store Page
     ourCurrentStock: 'Нашата наличност',
@@ -1316,6 +1327,9 @@ export const translations: Record<Language, Translations> = {
 
     // Admin Panel
     products: 'Продукти',
+    items: 'Артикули',
+    categories: 'Категории',
+    characteristics: 'Характеристики',
     manageProducts: 'Управление на видимостта на продуктите, детайлите и количествата на склад',
     searchPlaceholder: 'Търсене по марка, модел или цвят...',
     allCategories: 'Всички категории',
@@ -1537,6 +1551,8 @@ export const translations: Record<Language, Translations> = {
   selectAtLeastOnePropertyValue: 'Моля изберете поне една стойност на свойство',
   propertyTypeNotSupportVariants: 'Този тип свойство не поддържа варианти. Добавете стойности в секцията Свойства.',
   generateVariants: 'Генерирай варианти',
+  regenerateVariants: 'Регенерирай',
+  continue: 'Продължи',
   combinations: 'комбинации',
   removeImage: 'Премахни изображение',
   setAsPrimaryImage: 'Задай като основно изображение',
@@ -1544,7 +1560,6 @@ export const translations: Record<Language, Translations> = {
   unknownProduct: 'Неизвестен продукт',
   moreItems: 'още артикула',
   item: 'артикул',
-  items: 'артикула',
   viewAndManageOrders: 'Преглед и управление на всички поръчки',
   searchOrders: 'Търсене на поръчки...',
   allStatuses: 'Всички статуси',

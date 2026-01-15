@@ -121,7 +121,6 @@ export default function ProductTypeDetailsPage() {
           </button>
           <div>
             <h1 className="text-3xl font-bold">{productType.name}</h1>
-            <p className="text-gray-500">Code: {productType.code}</p>
           </div>
         </div>
 

@@ -119,10 +119,11 @@ export function TableRow({ children, className, onClick }: {
 /**
  * TableCell - Standard table cell
  */
-export function TableCell({ children, className, align = 'left' }: { 
+export function TableCell({ children, className, align = 'left', style }: { 
   children: ReactNode; 
   className?: string;
   align?: 'left' | 'right' | 'center';
+  style?: React.CSSProperties;
 }) {
   const alignClasses = {
     left: 'text-left',
@@ -137,6 +138,7 @@ export function TableCell({ children, className, align = 'left' }: {
         alignClasses[align],
         className
       )}
+      style={style}
     >
       {children}
     </td>
