@@ -14,6 +14,7 @@ interface ProductFiltersProps {
   onFiltersChange: (filters: Record<string, any>) => void;
   isVisible: boolean;
   onToggleVisibility: () => void;
+  selectedProductTypeId?: string | null;
 }
 
 export default function ProductFilters({
@@ -21,7 +22,8 @@ export default function ProductFilters({
   selectedFilters,
   onFiltersChange,
   isVisible,
-  onToggleVisibility
+  onToggleVisibility,
+  selectedProductTypeId
 }: ProductFiltersProps) {
   const { language } = useLanguage();
   const { theme } = useTheme();
@@ -30,6 +32,41 @@ export default function ProductFilters({
   const [availableValues, setAvailableValues] = useState<Record<string, string[]>>({});
   const [dropdownStates, setDropdownStates] = useState<Record<string, { isOpen: boolean; searchTerm: string }>>({});
   const dropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [allowedPropertyIds, setAllowedPropertyIds] = useState<string[] | null>(null);
+
+  const getPropertyId = (property: any) =>
+    property.propertyid || property.PropertyID || property.id;
+
+  useEffect(() => {
+    const loadAllowedProperties = async () => {
+      if (!selectedProductTypeId) {
+        setAllowedPropertyIds(null);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/product-types/${selectedProductTypeId}/properties`);
+        const result = await response.json();
+        if (result.success) {
+          const ids = (result.properties || [])
+            .map((ptp: any) => ptp?.properties?.propertyid)
+            .filter(Boolean);
+          setAllowedPropertyIds(ids);
+        } else {
+          setAllowedPropertyIds(null);
+        }
+      } catch (error) {
+        console.error('Failed to load product type properties:', error);
+        setAllowedPropertyIds(null);
+      }
+    };
+
+    loadAllowedProperties();
+  }, [selectedProductTypeId]);
+
+  const visibleProperties = allowedPropertyIds
+    ? properties.filter((property: any) => allowedPropertyIds.includes(getPropertyId(property)))
+    : properties;
 
   // Load available values from property_values table (via properties context)
   // Filter to only show values that exist in the products on this page
@@ -42,8 +79,8 @@ export default function ProductFilters({
     
     // Create a map from propertyId to propertyName for lookup
     const propertyIdToNameMap: Record<string, string> = {};
-    properties.forEach(property => {
-      const propertyId = property.propertyid || (property as any).PropertyID || (property as any).id;
+    visibleProperties.forEach(property => {
+      const propertyId = getPropertyId(property);
       const propertyName = property.name || (property as any).Name;
       if (propertyId && propertyName) {
         propertyIdToNameMap[propertyId] = propertyName;
@@ -104,8 +141,8 @@ export default function ProductFilters({
 
     // Use values from property_values table (via properties context), but filter to only include
     // values that actually exist in the products on this page
-    properties.forEach(property => {
-      const propertyId = property.propertyid || (property as any).PropertyID || (property as any).id;
+    visibleProperties.forEach(property => {
+      const propertyId = getPropertyId(property);
       const propertyName = property.name || (property as any).Name;
       
       if (property.values && property.values.length > 0 && propertyId) {
@@ -149,7 +186,7 @@ export default function ProductFilters({
     });
 
     setAvailableValues(values);
-  }, [properties, products]);
+  }, [properties, products, allowedPropertyIds]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -478,8 +515,8 @@ export default function ProductFilters({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {properties.map(property => {
-          const propertyId = property.propertyid || (property as any).PropertyID || (property as any).id;
+        {visibleProperties.map(property => {
+          const propertyId = getPropertyId(property);
           const propertyName = property.name || (property as any).Name;
           // availableValues now uses propertyId as key (not propertyName) to avoid collisions
           const hasValues = propertyId && availableValues[propertyId] && availableValues[propertyId].length > 0;
@@ -501,7 +538,13 @@ export default function ProductFilters({
         })}
 
         {/* Fallback: Show legacy properties if no database properties are available or have values */}
-        {properties.length === 0 || properties.every(p => !availableValues[p.name] || availableValues[p.name].length === 0) ? (
+        {visibleProperties.length === 0 || visibleProperties.every(p => {
+          const propertyId = getPropertyId(p);
+          const nameKey = p.name || (p as any).Name;
+          const hasValuesById = propertyId && availableValues[propertyId] && availableValues[propertyId].length > 0;
+          const hasValuesByName = nameKey && availableValues[nameKey] && availableValues[nameKey].length > 0;
+          return !hasValuesById && !hasValuesByName;
+        }) ? (
           <>
             {['Color', 'Size', 'Type', 'Brand', 'Model'].map(legacyProperty => {
               const hasValues = availableValues[legacyProperty] && availableValues[legacyProperty].length > 0;
@@ -530,7 +573,7 @@ export default function ProductFilters({
         ) : null}
       </div>
 
-      {properties.length === 0 && (
+      {visibleProperties.length === 0 && (
         <p
           className="text-sm text-center py-4"
           style={{ color: theme.colors.textSecondary }}

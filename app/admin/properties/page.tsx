@@ -24,6 +24,14 @@ export default function PropertiesPage() {
   const [showDeleteValueModal, setShowDeleteValueModal] = useState(false);
   const [valueToDelete, setValueToDelete] = useState<{ propertyId: string; valueId: string; value: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteProducts, setDeleteProducts] = useState<{
+    loading: boolean;
+    items: Array<{ productid: string; name: string }>;
+  }>({
+    loading: false,
+    items: []
+  });
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [availableProductTypes, setAvailableProductTypes] = useState<ProductType[]>([]);
   const [selectedProductTypeIds, setSelectedProductTypeIds] = useState<string[]>([]);
   const [loadingProductTypes, setLoadingProductTypes] = useState(false);
@@ -52,6 +60,31 @@ export default function PropertiesPage() {
   useEffect(() => {
     loadProperties();
   }, []);
+
+  useEffect(() => {
+    const loadDeleteProducts = async () => {
+      if (!showDeleteModal || !propertyToDelete) return;
+      setDeleteConfirmed(false);
+      setDeleteProducts({ loading: true, items: [] });
+      try {
+        const response = await fetch(`/api/products?propertyid=${propertyToDelete.propertyid}&basic=true`);
+        const result = await response.json();
+        if (result.success) {
+          setDeleteProducts({
+            loading: false,
+            items: result.products || []
+          });
+        } else {
+          setDeleteProducts({ loading: false, items: [] });
+        }
+      } catch (error) {
+        console.error('Failed to load products for property delete:', error);
+        setDeleteProducts({ loading: false, items: [] });
+      }
+    };
+
+    loadDeleteProducts();
+  }, [showDeleteModal, propertyToDelete]);
 
   useEffect(() => {
     const loadProductTypes = async () => {
@@ -1025,11 +1058,11 @@ export default function PropertiesPage() {
           }}
           title={language === 'bg' ? 'Потвърди изтриване' : 'Confirm Delete'}
           subheader={language === 'bg' 
-            ? 'Сигурни ли сте, че искате да изтриете това свойство? Това действие не може да бъде отменено.'
-            : 'Are you sure you want to delete this property? This action cannot be undone.'}
+            ? 'Сигурни ли сте, че искате да изтриете това свойство? Продуктите към него ще бъдат изтрити. Това действие не може да бъде отменено.'
+            : 'Are you sure you want to delete this property? Products linked to it will be deleted. This action cannot be undone.'}
           maxWidth="max-w-md"
           minWidth={400}
-          minHeight={200}
+          minHeight={550}
         >
           <div className="space-y-4">
             {propertyToDelete && (
@@ -1039,6 +1072,44 @@ export default function PropertiesPage() {
                 </p>
                 <p className="text-sm text-gray-700">{propertyToDelete.name}</p>
               </div>
+            )}
+            <div>
+              <p className="text-sm font-medium text-gray-900 mb-1">
+                {language === 'bg' ? 'Артикули' : 'Products'}
+                {deleteProducts.items.length > 0 ? ` (${deleteProducts.items.length})` : ''}
+              </p>
+              {deleteProducts.loading ? (
+                <p className="text-xs text-gray-500">
+                  {language === 'bg' ? 'Зареждане...' : 'Loading...'}
+                </p>
+              ) : deleteProducts.items.length === 0 ? (
+                <p className="text-xs text-gray-500">
+                  {language === 'bg' ? 'Няма' : 'None'}
+                </p>
+              ) : (
+                <div className="max-h-40 overflow-y-auto rounded border border-gray-200 bg-white">
+                  {deleteProducts.items.map((product) => (
+                    <div key={product.productid} className="px-3 py-1 text-xs text-gray-700 border-b last:border-b-0">
+                      {product.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {deleteProducts.items.length > 0 && (
+              <label className="flex items-start gap-2 text-xs sm:text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={deleteConfirmed}
+                  onChange={(e) => setDeleteConfirmed(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                />
+                <span>
+                  {language === 'bg'
+                    ? 'Потвърждавам, че разбирам, че артикули и варианти ще бъдат изтрити.'
+                    : 'I confirm that products and variants will be deleted.'}
+                </span>
+              </label>
             )}
             <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
               <button
@@ -1055,7 +1126,7 @@ export default function PropertiesPage() {
               <button
                 type="button"
                 onClick={handleDeleteConfirm}
-                disabled={deleting}
+                disabled={deleting || (deleteProducts.items.length > 0 && !deleteConfirmed)}
                 className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-red-600 text-white rounded hover:bg-red-700 active:bg-red-800 transition-colors touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deleting ? (language === 'bg' ? 'Изтриване...' : 'Deleting...') : (language === 'bg' ? 'Изтрий' : 'Delete')}

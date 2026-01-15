@@ -670,10 +670,10 @@ export default function ProductsPage() {
   };
 
   const handlePrimaryImageChange = (index: number) => {
-    // Unset all other variants as primary
+    const isCurrentlyPrimary = variants[index]?.IsPrimaryImage;
     const updatedVariants = variants.map((v, i) => ({
       ...v,
-      IsPrimaryImage: i === index
+      IsPrimaryImage: isCurrentlyPrimary ? false : i === index
     }));
     setVariants(updatedVariants);
   };

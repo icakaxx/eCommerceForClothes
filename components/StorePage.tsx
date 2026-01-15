@@ -61,7 +61,7 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
     ...availableCategories.map(type => ({
       id: type.producttypeid,
       label: type.name,
-      code: type.code.toLowerCase()
+      code: ((type as any).code || type.name || '').toLowerCase()
     }))
   ];
 
@@ -282,6 +282,11 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
           onFiltersChange={setSelectedFilters}
           isVisible={showFilters}
           onToggleVisibility={() => setShowFilters(!showFilters)}
+          selectedProductTypeId={
+            productTypes.some(type => type.producttypeid === selectedCategory)
+              ? selectedCategory
+              : null
+          }
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">

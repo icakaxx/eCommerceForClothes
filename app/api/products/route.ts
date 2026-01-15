@@ -52,6 +52,8 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabase();
     const { searchParams } = new URL(request.url);
     const rfproducttypeid = searchParams.get('rfproducttypeid');
+    const propertyid = searchParams.get('propertyid');
+    const basic = searchParams.get('basic') === 'true';
     const producttypeid = searchParams.get('producttypeid');
     const excludeId = searchParams.get('excludeId');
     const limit = searchParams.get('limit');
@@ -75,6 +77,74 @@ export async function GET(request: NextRequest) {
       query = query.eq('producttypeid', producttypeid);
     }
 
+    if (propertyid) {
+      const { data: productPropertyValues, error: propertyValuesError } = await supabase
+        .from('product_property_values')
+        .select('productid')
+        .eq('propertyid', propertyid);
+
+      if (propertyValuesError) {
+        console.error('Error fetching product property values:', propertyValuesError);
+        return NextResponse.json(
+          { error: propertyValuesError.message },
+          { status: 500 }
+        );
+      }
+
+      const { data: variantPropertyValues, error: variantPropertyError } = await supabase
+        .from('product_variant_property_values')
+        .select('product_variants(productid)')
+        .eq('propertyid', propertyid);
+
+      if (variantPropertyError) {
+        console.error('Error fetching product variant property values:', variantPropertyError);
+        return NextResponse.json(
+          { error: variantPropertyError.message },
+          { status: 500 }
+        );
+      }
+
+      const productIds = new Set<string>();
+      (productPropertyValues || []).forEach((row: any) => {
+        if (row.productid) productIds.add(row.productid);
+      });
+      (variantPropertyValues || []).forEach((row: any) => {
+        const productId = row.product_variants?.productid;
+        if (productId) productIds.add(productId);
+      });
+
+      const productIdList = Array.from(productIds);
+      if (productIdList.length === 0) {
+        return NextResponse.json({
+          success: true,
+          products: []
+        });
+      }
+
+      if (basic) {
+        const { data: basicProducts, error: basicError } = await supabase
+          .from('products')
+          .select('productid,name')
+          .in('productid', productIdList)
+          .neq('isdeleted', true)
+          .order('name', { ascending: true });
+
+        if (basicError) {
+          console.error('Error fetching basic products:', basicError);
+          return NextResponse.json(
+            { error: basicError.message },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          products: basicProducts || []
+        });
+      }
+
+      query = query.in('productid', productIdList);
+    }
     // Exclude specific product ID (for related products)
     if (excludeId) {
       query = query.neq('productid', excludeId);
