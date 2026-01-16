@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit2, Trash2, X, Image as ImageIcon, ChevronDown } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Image as ImageIcon, ChevronDown, Upload, Eye } from 'lucide-react';
 import { ProductType, Property } from '@/lib/types/product-types';
 import AdminLayout from '../components/AdminLayout';
 import AdminModal from '../components/AdminModal';
@@ -67,11 +67,17 @@ export default function ProductsPage() {
   const [showMediaModal, setShowMediaModal] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<Array<{name: string, path: string, url: string}>>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState<number | null>(null);
+  const [mediaTarget, setMediaTarget] = useState<'product' | null>(null);
+  const [showVariantImageModal, setShowVariantImageModal] = useState(false);
+  const [variantImageTargetIndex, setVariantImageTargetIndex] = useState<number | null>(null);
   const [showApplyImageToAllModal, setShowApplyImageToAllModal] = useState(false);
   const [applyImageUrl, setApplyImageUrl] = useState<string | null>(null);
   const [newPropertyValues, setNewPropertyValues] = useState<Record<string, string>>({});
   const [addingPropertyValue, setAddingPropertyValue] = useState<Record<string, boolean>>({});
+  const [productImages, setProductImages] = useState<string[]>([]);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -82,11 +88,21 @@ export default function ProductsPage() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentProducts = products.slice(startIndex, endIndex);
+  const currentProductIds = currentProducts.map((product) => product.productid);
+  const allSelectedOnPage =
+    currentProductIds.length > 0 &&
+    currentProductIds.every((id) => selectedProductIds.includes(id));
 
   // Reset to first page when products change
   useEffect(() => {
     setCurrentPage(1);
   }, [products.length]);
+
+  useEffect(() => {
+    setSelectedProductIds((prev) =>
+      prev.filter((id) => products.some((product) => product.productid === id))
+    );
+  }, [products]);
 
   useEffect(() => {
     loadProducts();
@@ -124,25 +140,60 @@ export default function ProductsPage() {
     }
   };
 
-  // Open media modal for specific variant
-  const openMediaModal = (variantIndex: number) => {
-    setSelectedVariantIndex(variantIndex);
+  // Open media modal for product images
+  const openMediaModalForProduct = () => {
+    setMediaTarget('product');
     setShowMediaModal(true);
     loadMediaFiles();
   };
 
+  const openVariantImagePicker = (variantIndex: number) => {
+    setVariantImageTargetIndex(variantIndex);
+    setShowVariantImageModal(true);
+  };
+
+  const addProductImages = (urls: string[]) => {
+    setProductImages((prev) => {
+      const next = new Set(prev);
+      urls.forEach((url) => {
+        if (url) next.add(url);
+      });
+      return Array.from(next);
+    });
+  };
+
+  const removeProductImage = (url: string) => {
+    setProductImages((prev) => prev.filter((img) => img !== url));
+    setVariants((prev) =>
+      prev.map((variant) =>
+        variant.imageurl === url ? { ...variant, imageurl: undefined } : variant
+      )
+    );
+  };
+
   // Select image from media library
   const selectImageFromMedia = (imageUrl: string) => {
-    if (selectedVariantIndex !== null) {
-      updateVariant(selectedVariantIndex, 'imageurl', imageUrl);
+    if (!imageUrl) return;
 
-      if (selectedVariantIndex === 0 && variants.length > 1) {
-        setApplyImageUrl(imageUrl);
-        setShowApplyImageToAllModal(true);
-      }
+    if (mediaTarget === 'product') {
+      addProductImages([imageUrl]);
     }
+
     setShowMediaModal(false);
-    setSelectedVariantIndex(null);
+    setMediaTarget(null);
+  };
+
+  const handleSelectVariantImage = (imageUrl: string) => {
+    if (variantImageTargetIndex === null) return;
+    updateVariant(variantImageTargetIndex, 'imageurl', imageUrl || undefined);
+
+    if (variantImageTargetIndex === 0 && variants.length > 1) {
+      setApplyImageUrl(imageUrl);
+      setShowApplyImageToAllModal(true);
+    }
+
+    setShowVariantImageModal(false);
+    setVariantImageTargetIndex(null);
   };
 
   // Filter product types based on selected main category
@@ -331,7 +382,8 @@ export default function ProductsPage() {
         rfproducttypeid: formData.rfproducttypeid,
         producttypeid: formData.producttypeid,
         isfeatured: formData.isfeatured || false,
-        Variants: variants
+        Variants: variants,
+        productImages
       };
 
 
@@ -353,6 +405,7 @@ export default function ProductsPage() {
         setOriginalPropertyValues({});
         setSelectedPropertyValues({});
         setNewPropertyValues({});
+        setProductImages([]);
 
         loadProducts();
       } else {
@@ -385,6 +438,13 @@ export default function ProductsPage() {
           isfeatured: fullProduct.isfeatured || false,
           propertyvalues: {}
         });
+
+        const productImageUrls = Array.isArray(fullProduct.Images)
+          ? fullProduct.Images.map((img: any) => img.imageurl).filter(Boolean)
+          : Array.isArray(fullProduct.images)
+            ? fullProduct.images.filter(Boolean)
+            : [];
+        setProductImages(Array.from(new Set(productImageUrls)));
 
         // Load properties for this product type
         if (fullProduct.producttypeid) {
@@ -471,6 +531,59 @@ export default function ProductsPage() {
       alert('Failed to delete product');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const toggleProductSelection = (productId: string) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(productId)
+        ? prev.filter((id) => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  const toggleSelectAllProductsOnPage = () => {
+    setSelectedProductIds((prev) => {
+      if (allSelectedOnPage) {
+        return prev.filter((id) => !currentProductIds.includes(id));
+      }
+      const next = new Set(prev);
+      currentProductIds.forEach((id) => next.add(id));
+      return Array.from(next);
+    });
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedProductIds.length === 0) return;
+    try {
+      setBulkDeleting(true);
+      const results = await Promise.all(
+        selectedProductIds.map(async (id) => {
+          const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+          const result = await response.json();
+          return { id, ok: response.ok && result.success, error: result.error };
+        })
+      );
+
+      const failed = results.filter((item) => !item.ok);
+      if (failed.length > 0) {
+        alert(
+          language === 'bg'
+            ? `Неуспешно изтриване за ${failed.length} продукта.`
+            : `Failed to delete ${failed.length} products.`
+        );
+        setSelectedProductIds(failed.map((item) => item.id));
+      } else {
+        setSelectedProductIds([]);
+        setShowBulkDeleteModal(false);
+      }
+
+      loadProducts();
+    } catch (error) {
+      console.error('Failed to bulk delete products:', error);
+      alert(language === 'bg' ? 'Неуспешно масово изтриване' : 'Bulk delete failed');
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -607,8 +720,8 @@ export default function ProductsPage() {
     setVariants(variants.filter((_, i) => i !== index));
   };
 
-  const handleImageUpload = async (index: number, file: File) => {
-    if (!file) return;
+  const uploadImageFile = async (file: File): Promise<string | null> => {
+    if (!file) return null;
 
     // Supported image formats
     const supportedFormats = [
@@ -632,13 +745,13 @@ export default function ProductsPage() {
 
     if (!isValidType) {
       alert('Please upload a valid image file (JPG, PNG, GIF, WebP, AVIF, HEIC, etc.)');
-      return;
+      return null;
     }
 
     // Validate file size (max 10MB to accommodate high-quality images)
     if (file.size > 10 * 1024 * 1024) {
       alert('Image size must be less than 10MB');
-      return;
+      return null;
     }
 
     try {
@@ -653,19 +766,37 @@ export default function ProductsPage() {
       const result = await response.json();
 
       if (result.success && result.url) {
-        updateVariant(index, 'imageurl', result.url);
-
-        // If this is the first variant and we have multiple variants, ask to apply to all
-        if (index === 0 && variants.length > 1) {
-          setApplyImageUrl(result.url);
-          setShowApplyImageToAllModal(true);
-        }
-      } else {
-        alert('Failed to upload image: ' + (result.error || 'Unknown error'));
+        return result.url as string;
       }
+      alert('Failed to upload image: ' + (result.error || 'Unknown error'));
+      return null;
     } catch (error) {
       console.error('Error uploading image:', error);
       alert('Failed to upload image');
+      return null;
+    }
+  };
+
+  const handleImageUpload = async (index: number, file: File) => {
+    const url = await uploadImageFile(file);
+    if (!url) return;
+
+    addProductImages([url]);
+    updateVariant(index, 'imageurl', url);
+
+    // If this is the first variant and we have multiple variants, ask to apply to all
+    if (index === 0 && variants.length > 1) {
+      setApplyImageUrl(url);
+      setShowApplyImageToAllModal(true);
+    }
+  };
+
+  const handleProductImageUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const uploads = await Promise.all(Array.from(files).map(handleFile => uploadImageFile(handleFile)));
+    const urls = uploads.filter((url): url is string => Boolean(url));
+    if (urls.length > 0) {
+      addProductImages(urls);
     }
   };
 
@@ -691,21 +822,35 @@ export default function ProductsPage() {
       <AdminPage>
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
           <h1 className="text-2xl sm:text-3xl font-bold">Продукти</h1>
-          <button
-            onClick={() => {
-              setEditingProduct(null);
-              setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, propertyvalues: {} });
-              setProductTypeProperties([]);
-              setSelectedPropertyValues({});
-              setVariants([]);
-        setVariantDisplayValues({});
-              setShowModal(true);
-            }}
-            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation text-sm sm:text-base"
-          >
-            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-            {t.addProduct}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {selectedProductIds.length > 0 && (
+              <button
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 active:bg-red-800 transition-colors touch-manipulation text-sm sm:text-base"
+              >
+                <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                {language === 'bg'
+                  ? `Изтрий избрани (${selectedProductIds.length})`
+                  : `Delete selected (${selectedProductIds.length})`}
+              </button>
+            )}
+            <button
+              onClick={() => {
+                setEditingProduct(null);
+                setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, propertyvalues: {} });
+                setProductTypeProperties([]);
+                setSelectedPropertyValues({});
+                setVariants([]);
+                setVariantDisplayValues({});
+              setProductImages([]);
+                setShowModal(true);
+              }}
+              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation text-sm sm:text-base"
+            >
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              {t.addProduct}
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -731,6 +876,7 @@ export default function ProductsPage() {
                       setProductTypeProperties([]);
                       setSelectedPropertyValues({});
                       setVariants([]);
+                      setProductImages([]);
         setVariantDisplayValues({});
                       setShowModal(true);
                     }}
@@ -749,6 +895,15 @@ export default function ProductsPage() {
                   <DataTableShell>
                     <TableHeader>
                       <TableHeaderRow>
+                        <TableHeaderCell align="center">
+                          <input
+                            type="checkbox"
+                            checked={allSelectedOnPage}
+                            onChange={toggleSelectAllProductsOnPage}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            aria-label={language === 'bg' ? 'Избери всички' : 'Select all'}
+                          />
+                        </TableHeaderCell>
                         <TableHeaderCell>{t.name}</TableHeaderCell>
                         <TableHeaderCell>{t.productType}</TableHeaderCell>
                         <TableHeaderCell align="right">{t.actions}</TableHeaderCell>
@@ -757,6 +912,15 @@ export default function ProductsPage() {
                     <TableBody>
                       {currentProducts.map((product) => (
                         <TableRow key={product.productid}>
+                          <TableCell align="center">
+                            <input
+                              type="checkbox"
+                              checked={selectedProductIds.includes(product.productid)}
+                              onChange={() => toggleProductSelection(product.productid)}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              aria-label={language === 'bg' ? 'Избери продукт' : 'Select product'}
+                            />
+                          </TableCell>
                           <TableCell>
                             <div className="truncate max-w-xs font-medium">{product.name}</div>
                           </TableCell>
@@ -765,6 +929,13 @@ export default function ProductsPage() {
                           </TableCell>
                           <TableCell align="right">
                             <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => window.open(`/products/${product.productid}`, '_blank', 'noopener,noreferrer')}
+                                className="p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors touch-manipulation"
+                                title={language === 'bg' ? 'Преглед' : 'View'}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
                               <button
                                 onClick={() => handleEdit(product)}
                                 className="p-1.5 sm:p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded transition-colors touch-manipulation"
@@ -793,12 +964,32 @@ export default function ProductsPage() {
           {/* Mobile/Tablet Card Layout */}
           {products.length > 0 && (
             <Section className="md:hidden">
+              <div className="flex items-center justify-between mb-2">
+                <label className="flex items-center gap-2 text-xs text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={allSelectedOnPage}
+                    onChange={toggleSelectAllProductsOnPage}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  {language === 'bg' ? 'Избери всички на страницата' : 'Select all on page'}
+                </label>
+              </div>
               <div className="space-y-3">
               {currentProducts.map((product) => (
                 <div key={product.productid} className="bg-white p-3 sm:p-4 rounded-lg shadow border">
                   <div className="flex justify-between items-start gap-3">
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-1 truncate">{product.name}</h3>
+                      <div className="flex items-start gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedProductIds.includes(product.productid)}
+                          onChange={() => toggleProductSelection(product.productid)}
+                          className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          aria-label={language === 'bg' ? 'Избери продукт' : 'Select product'}
+                        />
+                        <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-1 truncate">{product.name}</h3>
+                      </div>
                       <div className="space-y-1 text-xs sm:text-sm text-gray-500">
                         <p>
                           <span className="font-medium">{t.productType}:</span> {productTypes.find(pt => pt.producttypeid === product.producttypeid)?.name || '-'}
@@ -806,6 +997,13 @@ export default function ProductsPage() {
                       </div>
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => window.open(`/products/${product.productid}`, '_blank', 'noopener,noreferrer')}
+                        className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:bg-gray-100 rounded transition-colors touch-manipulation"
+                        title={language === 'bg' ? 'Преглед' : 'View'}
+                      >
+                        <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </button>
                       <button
                         onClick={() => handleEdit(product)}
                         className="p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 active:bg-indigo-100 rounded transition-colors touch-manipulation"
@@ -929,7 +1127,7 @@ export default function ProductsPage() {
           title={editingProduct ? t.editProduct : t.addProduct}
           subheader={editingProduct
             ? (language === 'bg' ? 'Редактирайте информацията за продукта и неговите варианти' : 'Edit the product information and its variants')
-            : (language === 'bg' ? 'Създайте нов продукт с варианти и свойства' : 'Create a new product with variants and properties')
+            : (language === 'bg' ? 'Създайте нов продукт с варианти и характеристики' : 'Create a new product with variants and properties')
           }
           maxWidth="max-w-4xl"
           minWidth={320}
@@ -1020,6 +1218,64 @@ export default function ProductsPage() {
                     />
                   </div>
                   <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                      {language === 'bg' ? 'Изображения на продукта' : 'Product Images'}
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      {language === 'bg'
+                        ? 'Добавете няколко изображения за продукта. След това можете да изберете конкретно изображение за всеки вариант. Добавете изображения с еднакви размери за да се показват правилно'
+                        : 'Add multiple images for the product. Then choose a specific image for each variant. Add images with the same size to display properly'}
+                    </p>
+                    {productImages.length === 0 ? (
+                      <p className="text-xs text-gray-400 mb-2">
+                        {language === 'bg' ? 'Няма добавени изображения.' : 'No images added.'}
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {productImages.map((url, index) => (
+                          <div key={`${url}-${index}`} className="relative group">
+                            <img
+                              src={url}
+                              alt={language === 'bg' ? 'Изображение' : 'Image'}
+                              className="w-16 h-16 object-cover rounded border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeProductImage(url)}
+                              className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity touch-manipulation"
+                              title={language === 'bg' ? 'Премахни изображение' : 'Remove image'}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*,.heic,.heif,.avif"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => handleProductImageUpload(e.target.files)}
+                        />
+                        <span className="inline-flex items-center gap-2 px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors">
+                          <Upload className="w-4 h-4" />
+                          {language === 'bg' ? 'Качи изображения' : 'Upload images'}
+                        </span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={openMediaModalForProduct}
+                        className="inline-flex items-center gap-2 px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                      >
+                        <ImageIcon className="w-4 h-4" />
+                        {language === 'bg' ? 'Избери от медия' : 'Select from media'}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
                     <label className="flex items-start gap-2">
                       <input
                         type="checkbox"
@@ -1041,12 +1297,12 @@ export default function ProductsPage() {
                   {formData.producttypeid && productTypeProperties.length > 0 && (
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                        {language === 'bg' ? 'Свойства на вариантите' : 'Variant Properties'}
+                        {language === 'bg' ? 'Характеристики на вариантите' : 'Variant Properties'}
                       </label>
                       <p className="text-xs text-gray-500 mb-3">
                         {language === 'bg'
-                          ? 'Изберете няколко стойности за всяко свойство, за да генерирате варианти'
-                          : 'Select multiple values for each property to generate variants'
+                          ? 'Изберете няколко стойности за всяка характеристика, за да генерирате варианти'
+                          : 'Select multiple values for each characteristic to generate variants'
                         }
                       </p>
                       <div className="space-y-3 max-h-64 sm:max-h-none overflow-y-auto">
@@ -1385,51 +1641,32 @@ export default function ProductsPage() {
                                     />
                                   </td>
                                   <td className="px-3 py-2">
-                                    <div className="flex items-center gap-1">
-                                      {variant.imageurl ? (
-                                        <div className="relative group">
-                                          <img 
-                                            src={variant.imageurl} 
-                                            alt="Variant" 
+                                    {productImages.length === 0 ? (
+                                      <span className="text-xs text-gray-400">
+                                        {language === 'bg' ? 'Добавете изображения за продукта' : 'Add product images'}
+                                      </span>
+                                    ) : (
+                                      <div className="flex items-center gap-2">
+                                        {variant.imageurl ? (
+                                          <img
+                                            src={variant.imageurl}
+                                            alt="Variant"
                                             className="w-12 h-12 object-cover rounded border"
                                           />
-                                          <button
-                                            type="button"
-                                            onClick={() => updateVariant(index, 'imageurl', undefined)}
-                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity touch-manipulation"
-                                            title={language === 'bg' ? 'Премахни изображение' : 'Remove Image'}
-                                          >
-                                            ×
-                                          </button>
-                                        </div>
-                                      ) : null}
-                                      <div className="flex gap-1">
-                                        <label className="cursor-pointer">
-                                          <input
-                                            type="file"
-                                            accept="image/*,.heic,.heif,.avif"
-                                            className="hidden"
-                                            onChange={(e) => {
-                                              const file = e.target.files?.[0];
-                                              if (file) handleImageUpload(index, file);
-                                            }}
-                                          />
-                                          <div className="w-10 h-10 border border-gray-300 rounded flex items-center justify-center hover:border-blue-500 active:border-blue-600 transition-colors bg-gray-50 touch-manipulation" title={language === 'bg' ? 'Качи ново изображение' : 'Upload new image'}>
-                                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                            </svg>
+                                        ) : (
+                                          <div className="w-12 h-12 border border-gray-300 rounded flex items-center justify-center bg-gray-50">
+                                            <ImageIcon className="w-5 h-5 text-gray-400" />
                                           </div>
-                                        </label>
+                                        )}
                                         <button
                                           type="button"
-                                          onClick={() => openMediaModal(index)}
-                                          className="w-10 h-10 border border-gray-300 rounded flex items-center justify-center hover:border-green-500 active:border-green-600 transition-colors bg-gray-50 touch-manipulation"
-                                          title={language === 'bg' ? 'Избери от медията' : 'Select from media'}
+                                          onClick={() => openVariantImagePicker(index)}
+                                          className="px-3 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors"
                                         >
-                                          <ImageIcon className="w-5 h-5 text-gray-400" />
+                                          {language === 'bg' ? 'Избери изображение' : 'Choose image'}
                                         </button>
                                       </div>
-                                    </div>
+                                    )}
                                   </td>
                                   <td className="px-3 py-2 text-center">
                                     <input
@@ -1631,55 +1868,34 @@ export default function ProductsPage() {
                               </div>
                               <div>
                                 <label className="block text-gray-500 mb-1 text-xs">{t.image}</label>
-                                <div className="flex items-center gap-2">
-                                  {variant.imageurl ? (
-                                    <div className="relative group">
-                                      <img 
-                                        src={variant.imageurl} 
-                                        alt="Variant" 
+                                {productImages.length === 0 ? (
+                                  <p className="text-xs text-gray-400">
+                                    {language === 'bg' ? 'Добавете изображения за продукта' : 'Add product images'}
+                                  </p>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    {variant.imageurl ? (
+                                      <img
+                                        src={variant.imageurl}
+                                        alt="Variant"
                                         className="w-16 h-16 object-cover rounded border"
                                       />
+                                    ) : (
+                                      <div className="w-16 h-16 border border-gray-300 rounded flex items-center justify-center bg-gray-50">
+                                        <ImageIcon className="w-6 h-6 text-gray-400" />
+                                      </div>
+                                    )}
+                                    <div className="flex flex-col gap-2">
                                       <button
                                         type="button"
-                                        onClick={() => updateVariant(index, 'imageurl', undefined)}
-                                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity touch-manipulation"
-                                        title={language === 'bg' ? 'Премахни изображение' : 'Remove Image'}
+                                        onClick={() => openVariantImagePicker(index)}
+                                        className="px-3 py-2 text-xs border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors"
                                       >
-                                        ×
+                                        {language === 'bg' ? 'Избери изображение' : 'Choose image'}
                                       </button>
                                     </div>
-                                  ) : (
-                                    <div className="w-16 h-16 border border-gray-300 rounded flex items-center justify-center bg-gray-50">
-                                      <ImageIcon className="w-6 h-6 text-gray-400" />
-                                    </div>
-                                  )}
-                                  <div className="flex gap-2">
-                                    <label className="cursor-pointer">
-                                      <input
-                                        type="file"
-                                        accept="image/*,.heic,.heif,.avif"
-                                        className="hidden"
-                                        onChange={(e) => {
-                                          const file = e.target.files?.[0];
-                                          if (file) handleImageUpload(index, file);
-                                        }}
-                                      />
-                                      <div className="w-10 h-10 border border-gray-300 rounded flex items-center justify-center hover:border-blue-500 active:border-blue-600 transition-colors bg-gray-50 touch-manipulation" title={language === 'bg' ? 'Качи' : 'Upload'}>
-                                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                        </svg>
-                                      </div>
-                                    </label>
-                                    <button
-                                      type="button"
-                                      onClick={() => openMediaModal(index)}
-                                      className="w-10 h-10 border border-gray-300 rounded flex items-center justify-center hover:border-green-500 active:border-green-600 transition-colors bg-gray-50 touch-manipulation"
-                                      title={language === 'bg' ? 'Медия' : 'Media'}
-                                    >
-                                      <ImageIcon className="w-5 h-5 text-gray-400" />
-                                    </button>
                                   </div>
-                                </div>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -1696,7 +1912,7 @@ export default function ProductsPage() {
                           setShowModal(false);
                           setProductTypeProperties([]);
                           setShowMediaModal(false);
-                          setSelectedVariantIndex(null);
+                          setMediaTarget(null);
                           setSelectedPropertyValues({});
                           setVariants([]);
         setVariantDisplayValues({});
@@ -1724,7 +1940,7 @@ export default function ProductsPage() {
           isOpen={showMediaModal}
           onClose={() => {
             setShowMediaModal(false);
-            setSelectedVariantIndex(null);
+            setMediaTarget(null);
           }}
           title={language === 'bg' ? 'Избери изображение от медията' : 'Select Image from Media'}
           subheader={language === 'bg' ? 'Изберете изображение от вашата медийна библиотека' : 'Select an image from your media library'}
@@ -1766,6 +1982,45 @@ export default function ProductsPage() {
                     ))}
                   </div>
                 )}
+        </AdminModal>
+
+        <AdminModal
+          isOpen={showVariantImageModal}
+          onClose={() => {
+            setShowVariantImageModal(false);
+            setVariantImageTargetIndex(null);
+          }}
+          title={language === 'bg' ? 'Избери изображение за варианта' : 'Select variant image'}
+          subheader={language === 'bg'
+            ? 'Изберете изображение само от качените за продукта'
+            : 'Choose from images uploaded for the product'}
+          maxWidth="max-w-4xl"
+          minWidth={320}
+          minHeight={360}
+        >
+          {productImages.length === 0 ? (
+            <div className="text-center py-8 text-sm text-gray-500">
+              {language === 'bg' ? 'Няма качени изображения за този продукт.' : 'No product images uploaded yet.'}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {productImages.map((url, index) => (
+                <button
+                  key={`${url}-${index}`}
+                  type="button"
+                  onClick={() => handleSelectVariantImage(url)}
+                  className="group relative rounded border border-gray-200 overflow-hidden hover:border-blue-500 transition-colors"
+                  title={language === 'bg' ? 'Избери изображение' : 'Select image'}
+                >
+                  <img
+                    src={url}
+                    alt={language === 'bg' ? 'Изображение' : 'Image'}
+                    className="w-full h-28 object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </AdminModal>
 
         {/* Apply Image to All Variants Modal */}
@@ -1853,6 +2108,47 @@ export default function ProductsPage() {
                 className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-danger text-danger-foreground rounded hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deleting ? (language === 'bg' ? 'Изтриване...' : 'Deleting...') : (language === 'bg' ? 'Изтрий' : 'Delete')}
+              </button>
+            </div>
+          </div>
+        </AdminModal>
+
+        <AdminModal
+          isOpen={showBulkDeleteModal}
+          onClose={() => setShowBulkDeleteModal(false)}
+          title={language === 'bg' ? 'Потвърди масово изтриване' : 'Confirm Bulk Delete'}
+          subheader={language === 'bg'
+            ? 'Избраните продукти ще бъдат изтрити. Това действие не може да бъде отменено.'
+            : 'Selected products will be deleted. This action cannot be undone.'}
+          maxWidth="max-w-md"
+          minWidth={400}
+          minHeight={200}
+        >
+          <div className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm font-medium text-gray-900 mb-1">
+                {language === 'bg' ? 'Избрани продукти:' : 'Selected products:'}
+              </p>
+              <p className="text-sm text-gray-700">
+                {selectedProductIds.length}
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(false)}
+                disabled={bulkDeleting}
+                className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation disabled:opacity-50"
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkDeleteConfirm}
+                disabled={bulkDeleting}
+                className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-danger text-danger-foreground rounded hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {bulkDeleting ? (language === 'bg' ? 'Изтриване...' : 'Deleting...') : (language === 'bg' ? 'Изтрий избраните' : 'Delete selected')}
               </button>
             </div>
           </div>

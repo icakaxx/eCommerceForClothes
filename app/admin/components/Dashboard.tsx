@@ -331,7 +331,7 @@ export default function Dashboard() {
             }}
           >
           <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
-            {language === 'bg' ? 'Поръчки по тип продукт' : 'Orders by Product Type'}
+            {language === 'bg' ? 'Поръчки по Категория' : 'Orders by Category'}
           </h3>
           <div className="space-y-3 sm:space-y-4">
             {dashboardData.productTypePerformance && dashboardData.productTypePerformance.length > 0 ? (

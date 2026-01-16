@@ -17,42 +17,41 @@ export default function ProductView({ product }: ProductViewProps) {
   const { theme } = useTheme();
   const { language } = useLanguage();
   const t = translations[language];
-  const [currentImages, setCurrentImages] = useState<string[]>([]);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [focusImage, setFocusImage] = useState<string | null>(null);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isDeliveryExpanded, setIsDeliveryExpanded] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    // Get initial images - prioritize variant-specific images, then fall back to general product images
+    const productImageUrls = Array.isArray(product.images) && product.images.length > 0
+      ? product.images
+      : Array.isArray(product.Images) && product.Images.length > 0
+        ? product.Images.map((img: any) =>
+            typeof img === 'string' ? img : (img.imageurl || img.ImageURL || img.url)
+          ).filter(Boolean)
+        : [];
+
+    const nextGalleryImages = productImageUrls.length > 0 ? productImageUrls : ['/image.png'];
+
     const variants = product.variants || product.Variants || [];
     const primaryVariant = variants.find((v: any) => v.IsPrimaryImage && (v.images || v.imageurl || v.ImageURL));
     const firstVariant = variants[0];
+    const initialVariantImage =
+      primaryVariant?.imageurl ||
+      primaryVariant?.ImageURL ||
+      firstVariant?.imageurl ||
+      firstVariant?.ImageURL ||
+      (Array.isArray(primaryVariant?.images) && primaryVariant.images.length > 0 ? primaryVariant.images[0] : null) ||
+      (Array.isArray(firstVariant?.images) && firstVariant.images.length > 0 ? firstVariant.images[0] : null) ||
+      null;
 
-    // Check for variant-specific images arrays first
-    if (primaryVariant?.images && Array.isArray(primaryVariant.images) && primaryVariant.images.length > 0) {
-      setCurrentImages(primaryVariant.images);
-    } else if (firstVariant?.images && Array.isArray(firstVariant.images) && firstVariant.images.length > 0) {
-      setCurrentImages(firstVariant.images);
-    } else if (primaryVariant?.imageurl) {
-      setCurrentImages([primaryVariant.imageurl]);
-    } else if (primaryVariant?.ImageURL) {
-      setCurrentImages([primaryVariant.ImageURL]);
-    } else if (firstVariant?.imageurl) {
-      setCurrentImages([firstVariant.imageurl]);
-    } else if (firstVariant?.ImageURL) {
-      setCurrentImages([firstVariant.ImageURL]);
-    } else if (product.images && Array.isArray(product.images) && product.images.length > 0) {
-      // Fall back to general product images
-      setCurrentImages(product.images);
-    } else if (product.Images && Array.isArray(product.Images) && product.Images.length > 0) {
-      // Extract imageurl from Images array if it's an array of objects
-      const imageUrls = product.Images.map((img: any) => 
-        typeof img === 'string' ? img : (img.imageurl || img.ImageURL || img.url)
-      ).filter(Boolean);
-      setCurrentImages(imageUrls.length > 0 ? imageUrls : ['/image.png']);
+    if (initialVariantImage && !nextGalleryImages.includes(initialVariantImage)) {
+      setGalleryImages([initialVariantImage, ...nextGalleryImages]);
     } else {
-      setCurrentImages(['/image.png']);
+      setGalleryImages(nextGalleryImages);
     }
+    setFocusImage(initialVariantImage);
   }, [product.variants, product.Variants, product.images, product.Images]);
 
   useEffect(() => {
@@ -79,15 +78,19 @@ export default function ProductView({ product }: ProductViewProps) {
     if (images) {
       // Handle both array and single string
       if (Array.isArray(images)) {
-        setCurrentImages(images.length > 0 ? images : product.images || ['/image.png']);
+        const nextFocus = images.length > 0 ? images[0] : null;
+        if (nextFocus) {
+          setGalleryImages((prev) => (prev.includes(nextFocus) ? prev : [nextFocus, ...prev]));
+        }
+        setFocusImage(nextFocus);
       } else {
-        setCurrentImages([images]);
+        setGalleryImages((prev) => (prev.includes(images) ? prev : [images, ...prev]));
+        setFocusImage(images);
       }
-    } else if (product.images && product.images.length > 0) {
-      // Fall back to product general images
-      setCurrentImages(product.images);
+    } else {
+      setFocusImage(null);
     }
-  }, [product.images]);
+  }, []);
 
   return (
     <div 
@@ -100,8 +103,9 @@ export default function ProductView({ product }: ProductViewProps) {
           {/* Left column - Product Images */}
           <div className="product__detail__left">
             <ProductMediaGallery 
-              images={currentImages} 
+              images={galleryImages} 
               productName={`${product.brand} ${product.model}`}
+              focusImage={focusImage}
             />
             
             {/* Expandable Product Description Section */}
@@ -197,36 +201,41 @@ export default function ProductView({ product }: ProductViewProps) {
               {t.youMightLike}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-              {relatedProducts.map((relatedProduct) => (
-                <a
-                  key={relatedProduct.id || relatedProduct.productid}
-                  href={`/products/${relatedProduct.id || relatedProduct.productid}`}
-                  className="group"
-                >
-                  <div 
-                    className="rounded-lg overflow-hidden mb-3 aspect-square"
-                    style={{ backgroundColor: theme.colors.surface }}
+              {relatedProducts.map((relatedProduct) => {
+                const relatedPrice = relatedProduct.price ?? 0;
+                const relatedPriceBgn = relatedPrice * 1.95;
+
+                return (
+                  <a
+                    key={relatedProduct.id || relatedProduct.productid}
+                    href={`/products/${relatedProduct.id || relatedProduct.productid}`}
+                    className="group"
                   >
-                    <img
-                      src={relatedProduct.images?.[0] || '/image.png'}
-                      alt={`${relatedProduct.brand} ${relatedProduct.model}`}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <h3 
-                    className="font-semibold mb-1 group-hover:underline"
-                    style={{ color: theme.colors.text }}
-                  >
-                    {relatedProduct.brand} {relatedProduct.model}
-                  </h3>
-                  <p 
-                    className="text-lg font-bold"
-                    style={{ color: theme.colors.primary }}
-                  >
-                    €{relatedProduct.price?.toFixed(2) || '0.00'}
-                  </p>
-                </a>
-              ))}
+                    <div 
+                      className="rounded-lg overflow-hidden mb-3 aspect-square"
+                      style={{ backgroundColor: theme.colors.surface }}
+                    >
+                      <img
+                        src={relatedProduct.images?.[0] || '/image.png'}
+                        alt={`${relatedProduct.brand} ${relatedProduct.model}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <h3 
+                      className="font-semibold mb-1 group-hover:underline"
+                      style={{ color: theme.colors.text }}
+                    >
+                      {relatedProduct.brand} {relatedProduct.model}
+                    </h3>
+                    <p 
+                      className="text-lg font-bold"
+                      style={{ color: theme.colors.primary }}
+                    >
+                      €{relatedPrice.toFixed(2)} / {relatedPriceBgn.toFixed(2)} лв
+                    </p>
+                  </a>
+                );
+              })}
             </div>
           </div>
         )}

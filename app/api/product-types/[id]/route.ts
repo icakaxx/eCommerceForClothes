@@ -124,17 +124,129 @@ export async function DELETE(
     const supabase = createServerClient();
     const { id } = await params;
 
-    const { error: productsError } = await supabase
+    const { data: productsForType, error: productsForTypeError } = await supabase
       .from('products')
-      .update({ isdeleted: true, updatedat: new Date().toISOString() })
+      .select('productid')
       .eq('producttypeid', id);
 
-    if (productsError) {
-      console.error('Error deleting products for product type:', productsError);
+    if (productsForTypeError) {
+      console.error('Error loading products for product type:', productsForTypeError);
       return NextResponse.json(
-        { error: productsError.message },
+        { error: productsForTypeError.message },
         { status: 500 }
       );
+    }
+
+    const productIds = (productsForType || []).map((product) => product.productid);
+
+    if (productIds.length > 0) {
+      const { data: variants, error: variantsError } = await supabase
+        .from('product_variants')
+        .select('productvariantid')
+        .in('productid', productIds);
+
+      if (variantsError) {
+        console.error('Error loading variants for product type:', variantsError);
+        return NextResponse.json(
+          { error: variantsError.message },
+          { status: 500 }
+        );
+      }
+
+      const variantIds = (variants || []).map((variant) => variant.productvariantid);
+
+      const { error: relatedProductsError } = await supabase
+        .from('related_products')
+        .delete()
+        .in('productid', productIds);
+
+      if (relatedProductsError) {
+        console.error('Error deleting related products (productid):', relatedProductsError);
+        return NextResponse.json(
+          { error: relatedProductsError.message },
+          { status: 500 }
+        );
+      }
+
+      const { error: relatedProductRefsError } = await supabase
+        .from('related_products')
+        .delete()
+        .in('relatedproductid_ref', productIds);
+
+      if (relatedProductRefsError) {
+        console.error('Error deleting related products (relatedproductid_ref):', relatedProductRefsError);
+        return NextResponse.json(
+          { error: relatedProductRefsError.message },
+          { status: 500 }
+        );
+      }
+
+      const { error: productImagesError } = await supabase
+        .from('product_images')
+        .delete()
+        .in('productid', productIds);
+
+      if (productImagesError) {
+        console.error('Error deleting product images:', productImagesError);
+        return NextResponse.json(
+          { error: productImagesError.message },
+          { status: 500 }
+        );
+      }
+
+      if (variantIds.length > 0) {
+        const { error: variantPropertyValuesError } = await supabase
+          .from('product_variant_property_values')
+          .delete()
+          .in('productvariantid', variantIds);
+
+        if (variantPropertyValuesError) {
+          console.error('Error deleting variant property values:', variantPropertyValuesError);
+          return NextResponse.json(
+            { error: variantPropertyValuesError.message },
+            { status: 500 }
+          );
+        }
+      }
+
+      const { error: productPropertyValuesError } = await supabase
+        .from('product_property_values')
+        .delete()
+        .in('productid', productIds);
+
+      if (productPropertyValuesError) {
+        console.error('Error deleting product property values:', productPropertyValuesError);
+        return NextResponse.json(
+          { error: productPropertyValuesError.message },
+          { status: 500 }
+        );
+      }
+
+      const { error: variantsDeleteError } = await supabase
+        .from('product_variants')
+        .delete()
+        .in('productid', productIds);
+
+      if (variantsDeleteError) {
+        console.error('Error deleting product variants:', variantsDeleteError);
+        return NextResponse.json(
+          { error: variantsDeleteError.message },
+          { status: 500 }
+        );
+      }
+
+      const { error: productsDeleteError } = await supabase
+        .from('products')
+        .delete()
+        .in('productid', productIds);
+
+      if (productsDeleteError) {
+        console.error('Error deleting products for product type:', productsDeleteError);
+        return NextResponse.json(
+          { error: productsDeleteError.message },
+          { status: 500 }
+        );
+      }
     }
 
     const { error: linksError } = await supabase

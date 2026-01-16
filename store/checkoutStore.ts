@@ -6,6 +6,7 @@ export type DeliveryType = 'office' | 'address' | 'econtomat';
 
 export interface CheckoutFormData {
   notes: string;
+  missingEcontOffice?: string;
   firstName: string;
   lastName: string;
   telephone: string;
@@ -68,6 +69,7 @@ export interface CheckoutState {
 
 const defaultFormData: CheckoutFormData = {
   notes: '',
+  missingEcontOffice: '',
   firstName: '',
   lastName: '',
   telephone: '',
@@ -211,8 +213,9 @@ export const useCheckoutStore = create<CheckoutState>()(
         
         // Validate delivery-specific fields
         if (formData.deliveryType === 'office') {
-          // Office delivery requires Econt office selection
-          return !!formData.econtOfficeId && formData.econtOfficeId.trim() !== '';
+          const hasOfficeSelection = !!formData.econtOfficeId && formData.econtOfficeId.trim() !== '';
+          const hasMissingOffice = !!formData.missingEcontOffice && formData.missingEcontOffice.trim() !== '';
+          return hasOfficeSelection || hasMissingOffice;
         }
         
         if (formData.deliveryType === 'address') {

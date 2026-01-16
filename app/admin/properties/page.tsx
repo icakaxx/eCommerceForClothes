@@ -35,6 +35,9 @@ export default function PropertiesPage() {
   const [availableProductTypes, setAvailableProductTypes] = useState<ProductType[]>([]);
   const [selectedProductTypeIds, setSelectedProductTypeIds] = useState<string[]>([]);
   const [loadingProductTypes, setLoadingProductTypes] = useState(false);
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -45,11 +48,21 @@ export default function PropertiesPage() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentProperties = properties.slice(startIndex, endIndex);
+  const currentPropertyIds = currentProperties.map((prop) => prop.propertyid);
+  const allSelectedOnPage =
+    currentPropertyIds.length > 0 &&
+    currentPropertyIds.every((id) => selectedPropertyIds.includes(id));
 
   // Reset to first page when properties change
   useEffect(() => {
     setCurrentPage(1);
   }, [properties.length]);
+
+  useEffect(() => {
+    setSelectedPropertyIds((prev) =>
+      prev.filter((id) => properties.some((prop) => prop.propertyid === id))
+    );
+  }, [properties]);
   const [formData, setFormData] = useState({ name: '', description: '', datatype: 'select' as 'text' | 'select' | 'number' });
   const [expandedProperties, setExpandedProperties] = useState<Set<string>>(new Set());
   const [showValueModal, setShowValueModal] = useState(false);
@@ -219,6 +232,59 @@ export default function PropertiesPage() {
       alert('Failed to delete property');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const togglePropertySelection = (propertyId: string) => {
+    setSelectedPropertyIds((prev) =>
+      prev.includes(propertyId)
+        ? prev.filter((id) => id !== propertyId)
+        : [...prev, propertyId]
+    );
+  };
+
+  const toggleSelectAllPropertiesOnPage = () => {
+    setSelectedPropertyIds((prev) => {
+      if (allSelectedOnPage) {
+        return prev.filter((id) => !currentPropertyIds.includes(id));
+      }
+      const next = new Set(prev);
+      currentPropertyIds.forEach((id) => next.add(id));
+      return Array.from(next);
+    });
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedPropertyIds.length === 0) return;
+    try {
+      setBulkDeleting(true);
+      const results = await Promise.all(
+        selectedPropertyIds.map(async (id) => {
+          const response = await fetch(`/api/properties/${id}`, { method: 'DELETE' });
+          const result = await response.json();
+          return { id, ok: response.ok && result.success, error: result.error };
+        })
+      );
+
+      const failed = results.filter((item) => !item.ok);
+      if (failed.length > 0) {
+        alert(
+          language === 'bg'
+            ? `Неуспешно изтриване за ${failed.length} характеристики.`
+            : `Failed to delete ${failed.length} properties.`
+        );
+        setSelectedPropertyIds(failed.map((item) => item.id));
+      } else {
+        setSelectedPropertyIds([]);
+        setShowBulkDeleteModal(false);
+      }
+
+      loadProperties();
+    } catch (error) {
+      console.error('Failed to bulk delete properties:', error);
+      alert(language === 'bg' ? 'Неуспешно масово изтриване' : 'Bulk delete failed');
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -470,17 +536,30 @@ export default function PropertiesPage() {
         <PageHeader
           title={language === 'bg' ? 'Характеристики' : 'Characteristics'}
           actions={
-            <button
-              onClick={() => {
-                setEditingProperty(null);
-                setFormData({ name: '', description: '', datatype: 'select' });
-                setShowModal(true);
-              }}
-              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation text-sm sm:text-base"
-            >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              {t.addProperty}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              {selectedPropertyIds.length > 0 && (
+                <button
+                  onClick={() => setShowBulkDeleteModal(true)}
+                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 active:bg-red-800 transition-colors touch-manipulation text-sm sm:text-base"
+                >
+                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {language === 'bg'
+                    ? `Изтрий избрани (${selectedPropertyIds.length})`
+                    : `Delete selected (${selectedPropertyIds.length})`}
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setEditingProperty(null);
+                  setFormData({ name: '', description: '', datatype: 'select' });
+                  setShowModal(true);
+                }}
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation text-sm sm:text-base"
+              >
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                {t.addProperty}
+              </button>
+            </div>
           }
         />
 
@@ -493,12 +572,12 @@ export default function PropertiesPage() {
           <>
             <Section
               title={language === 'bg' ? 'Списък с характеристики' : 'Characteristics List'}
-              description={language === 'bg' ? 'Управлявайте свойствата на продуктите и техните стойности' : 'Manage product properties and their values'}
+              description={language === 'bg' ? 'Управлявайте характеристиките на продуктите и техните стойности' : 'Manage product characteristics and their values'}
             >
               {properties.length === 0 ? (
                 <EmptyState
                   title={language === 'bg' ? 'Няма характеристики' : 'No Characteristics'}
-                  description={language === 'bg' ? 'Създайте първото свойство, за да започнете да организирате продуктите си.' : 'Create your first property to start organizing your products.'}
+                  description={language === 'bg' ? 'Създайте първата характеристика, за да започнете да организирате продуктите си.' : 'Create your first characteristic to start organizing your products.'}
                   action={
                     <button
                       onClick={() => {
@@ -522,6 +601,15 @@ export default function PropertiesPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="px-4 xl:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <input
+                          type="checkbox"
+                          checked={allSelectedOnPage}
+                          onChange={toggleSelectAllPropertiesOnPage}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          aria-label={language === 'bg' ? 'Избери всички' : 'Select all'}
+                        />
+                      </th>
                       <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         {t.name}
                       </th>
@@ -540,6 +628,15 @@ export default function PropertiesPage() {
                     {currentProperties.map((prop) => (
                       <React.Fragment key={prop.propertyid}>
                         <tr className="hover:bg-gray-50">
+                          <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedPropertyIds.includes(prop.propertyid)}
+                              onChange={() => togglePropertySelection(prop.propertyid)}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              aria-label={language === 'bg' ? 'Избери характеристика' : 'Select property'}
+                            />
+                          </td>
                           <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             <div className="flex items-center gap-2">
                               {prop.datatype === 'select' && (
@@ -589,7 +686,7 @@ export default function PropertiesPage() {
                               <button
                                 onClick={() => handleDeleteClick(prop)}
                                 className="p-1.5 sm:p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors touch-manipulation"
-                                title={language === 'bg' ? 'Изтрий свойство' : 'Delete Property'}
+                                title={language === 'bg' ? 'Изтрий характеристика' : 'Delete Property'}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -600,11 +697,11 @@ export default function PropertiesPage() {
                         {/* Expanded property values - Desktop */}
                         {expandedProperties.has(prop.propertyid) && prop.datatype === 'select' && (
                           <tr>
-                            <td colSpan={4} className="px-4 xl:px-6 py-0">
+                            <td colSpan={5} className="px-4 xl:px-6 py-0">
                               <div className="bg-gray-50 rounded-md p-3 sm:p-4 m-2">
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
                                   <h4 className="text-xs sm:text-sm font-medium text-gray-700">
-                                    {language === 'bg' ? 'Стойности на свойство' : 'Property Values'}
+                                    {language === 'bg' ? 'Стойности на характеристика' : 'Property Values'}
                                   </h4>
                                   <button
                                     onClick={() => handleAddValue(prop)}
@@ -644,7 +741,7 @@ export default function PropertiesPage() {
                                   </div>
                                 ) : (
                                   <div className="text-center py-4 text-gray-500 text-xs sm:text-sm">
-                                    {t.noValuesDefined || (language === 'bg' ? 'Не са дефинирани стойности. Натиснете "Добавяне на стойност", за да създадете опции за този свойство.' : 'No values defined. Click "Add Value" to create options for this property.')}
+                                    {t.noValuesDefined || (language === 'bg' ? 'Не са дефинирани стойности. Натиснете "Добавяне на стойност", за да създадете опции за тази характеристика.' : 'No values defined. Click "Add Value" to create options for this property.')}
                                   </div>
                                 )}
                               </div>
@@ -667,6 +764,17 @@ export default function PropertiesPage() {
                 title={language === 'bg' ? 'Списък с характеристики' : 'Characteristics List'}
                 className="md:hidden"
               >
+                <div className="flex items-center justify-between mb-2">
+                  <label className="flex items-center gap-2 text-xs text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={allSelectedOnPage}
+                      onChange={toggleSelectAllPropertiesOnPage}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    {language === 'bg' ? 'Избери всички на страницата' : 'Select all on page'}
+                  </label>
+                </div>
                 <div className="space-y-3">
               {currentProperties.map((prop) => {
                 const isExpanded = expandedProperties.has(prop.propertyid);
@@ -675,6 +783,13 @@ export default function PropertiesPage() {
                     <div className="flex justify-between items-start gap-3 mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
+                          <input
+                            type="checkbox"
+                            checked={selectedPropertyIds.includes(prop.propertyid)}
+                            onChange={() => togglePropertySelection(prop.propertyid)}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            aria-label={language === 'bg' ? 'Избери характеристика' : 'Select property'}
+                          />
                           {prop.datatype === 'select' && (
                             <button
                               onClick={() => togglePropertyExpansion(prop.propertyid)}
@@ -718,7 +833,7 @@ export default function PropertiesPage() {
                         <button
                           onClick={() => handleDeleteClick(prop)}
                           className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 active:bg-red-100 rounded transition-colors touch-manipulation"
-                          title={language === 'bg' ? 'Изтрий свойство' : 'Delete Property'}
+                          title={language === 'bg' ? 'Изтрий характеристика' : 'Delete Property'}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -810,7 +925,7 @@ export default function PropertiesPage() {
             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between w-full">
               <div>
                 <p className="text-xs sm:text-sm text-gray-700">
-                  {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, properties.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{properties.length}</span> {language === 'bg' ? 'свойства' : 'properties'}
+                  {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, properties.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{properties.length}</span> {language === 'bg' ? 'характеристики' : 'properties'}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -874,8 +989,8 @@ export default function PropertiesPage() {
           onClose={() => setShowModal(false)}
           title={editingProperty ? t.editProperty : t.addProperty}
           subheader={editingProperty 
-            ? (language === 'bg' ? 'Редактирайте информацията за свойството' : 'Edit the property information')
-            : (language === 'bg' ? 'Създайте ново свойство за избор' : 'Create a new choice property')
+            ? (language === 'bg' ? 'Редактирайте информацията за характеристиката' : 'Edit the property information')
+            : (language === 'bg' ? 'Създайте нова характеристика за избор' : 'Create a new choice property')
           }
           maxWidth="max-w-2xl"
           minWidth={520}
@@ -978,7 +1093,7 @@ export default function PropertiesPage() {
             onClose={() => setShowValueModal(false)}
             title={editingValue ? t.editPropertyValue : t.addPropertyValue}
             subheader={editingValue
-              ? (language === 'bg' ? 'Редактирайте стойността на свойството' : 'Edit the property value')
+              ? (language === 'bg' ? 'Редактирайте стойността на характеристиката' : 'Edit the property value')
               : (language === 'bg' ? 'Добавете нова стойност за избор' : 'Add a new choice value')
             }
             maxWidth="max-w-md"
@@ -1058,7 +1173,7 @@ export default function PropertiesPage() {
           }}
           title={language === 'bg' ? 'Потвърди изтриване' : 'Confirm Delete'}
           subheader={language === 'bg' 
-            ? 'Сигурни ли сте, че искате да изтриете това свойство? Продуктите към него ще бъдат изтрити. Това действие не може да бъде отменено.'
+            ? 'Сигурни ли сте, че искате да изтриете тази характеристика? Продуктите към нея ще бъдат изтрити. Това действие не може да бъде отменено.'
             : 'Are you sure you want to delete this property? Products linked to it will be deleted. This action cannot be undone.'}
           maxWidth="max-w-md"
           minWidth={400}
@@ -1068,7 +1183,7 @@ export default function PropertiesPage() {
             {propertyToDelete && (
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm font-medium text-gray-900 mb-1">
-                  {language === 'bg' ? 'Свойство:' : 'Property:'}
+                  {language === 'bg' ? 'Характеристика:' : 'Property:'}
                 </p>
                 <p className="text-sm text-gray-700">{propertyToDelete.name}</p>
               </div>
@@ -1130,6 +1245,47 @@ export default function PropertiesPage() {
                 className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-red-600 text-white rounded hover:bg-red-700 active:bg-red-800 transition-colors touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deleting ? (language === 'bg' ? 'Изтриване...' : 'Deleting...') : (language === 'bg' ? 'Изтрий' : 'Delete')}
+              </button>
+            </div>
+          </div>
+        </AdminModal>
+
+        <AdminModal
+          isOpen={showBulkDeleteModal}
+          onClose={() => setShowBulkDeleteModal(false)}
+          title={language === 'bg' ? 'Потвърди масово изтриване' : 'Confirm Bulk Delete'}
+          subheader={language === 'bg'
+            ? 'Избраните характеристики и свързаните продукти ще бъдат изтрити. Това действие не може да бъде отменено.'
+            : 'Selected properties and linked products will be deleted. This action cannot be undone.'}
+          maxWidth="max-w-md"
+          minWidth={400}
+          minHeight={260}
+        >
+          <div className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm font-medium text-gray-900 mb-1">
+                {language === 'bg' ? 'Избрани характеристики:' : 'Selected properties:'}
+              </p>
+              <p className="text-sm text-gray-700">
+                {selectedPropertyIds.length}
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(false)}
+                disabled={bulkDeleting}
+                className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation disabled:opacity-50"
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkDeleteConfirm}
+                disabled={bulkDeleting}
+                className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-red-600 text-white rounded hover:bg-red-700 active:bg-red-800 transition-colors touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {bulkDeleting ? (language === 'bg' ? 'Изтриване...' : 'Deleting...') : (language === 'bg' ? 'Изтрий избраните' : 'Delete selected')}
               </button>
             </div>
           </div>

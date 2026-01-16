@@ -42,10 +42,10 @@ export const adminSearchIndex: SearchableItem[] = [
     id: 'dashboard-product-type-performance',
     type: 'section',
     path: '/admin',
-    title: 'Orders by Product Type',
-    titleBg: 'Поръчки по тип продукт',
+    title: 'Orders by Category',
+    titleBg: 'Поръчки по Категория',
     parentPath: '/admin',
-    keywords: ['product type', 'performance', 'category', 'тип продукт', 'категория']
+    keywords: ['product type', 'performance', 'category', 'Категория', 'категория']
   },
   {
     id: 'dashboard-recent-orders',
@@ -99,7 +99,7 @@ export const adminSearchIndex: SearchableItem[] = [
     type: 'field',
     path: '/admin/properties',
     title: 'Property Name',
-    titleBg: 'Име на свойство',
+    titleBg: 'Име на характеристика',
     parentPath: '/admin/properties',
     keywords: ['name', 'title', 'име']
   },
@@ -126,7 +126,7 @@ export const adminSearchIndex: SearchableItem[] = [
     type: 'section',
     path: '/admin/properties',
     title: 'Property Values',
-    titleBg: 'Стойности на свойство',
+    titleBg: 'Стойности на характеристика',
     parentPath: '/admin/properties',
     keywords: ['values', 'options', 'choices', 'стойности', 'опции']
   },
@@ -182,7 +182,7 @@ export const adminSearchIndex: SearchableItem[] = [
     type: 'field',
     path: '/admin/product-types',
     title: 'Product Type Name',
-    titleBg: 'Име на тип продукт',
+    titleBg: 'Име на Категория',
     parentPath: '/admin/product-types',
     keywords: ['name', 'title', 'име']
   },
@@ -200,9 +200,9 @@ export const adminSearchIndex: SearchableItem[] = [
     type: 'action',
     path: '/admin/product-types',
     title: 'Manage Properties',
-    titleBg: 'Управлявай свойства',
+    titleBg: 'Управлявай характеристиките',
     parentPath: '/admin/product-types',
-    keywords: ['manage', 'properties', 'configure', 'управлявай', 'свойства']
+    keywords: ['manage', 'properties', 'configure', 'управлявай', 'характеристики']
   },
 
   // Products
@@ -274,9 +274,9 @@ export const adminSearchIndex: SearchableItem[] = [
     type: 'field',
     path: '/admin/products',
     title: 'Product Type',
-    titleBg: 'Тип продукт',
+    titleBg: 'Категория',
     parentPath: '/admin/products',
-    keywords: ['type', 'product type', 'тип', 'тип продукт']
+    keywords: ['type', 'product type', 'тип', 'Категория']
   },
   {
     id: 'product-featured',
@@ -292,9 +292,9 @@ export const adminSearchIndex: SearchableItem[] = [
     type: 'section',
     path: '/admin/products',
     title: 'Variant Properties',
-    titleBg: 'Свойства на вариантите',
+    titleBg: 'Характеристики на вариантите',
     parentPath: '/admin/products',
-    keywords: ['variants', 'properties', 'options', 'варианти', 'свойства']
+    keywords: ['variants', 'properties', 'options', 'варианти', 'характеристики']
   },
   {
     id: 'product-generate-variants',

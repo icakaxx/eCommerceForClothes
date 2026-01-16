@@ -126,7 +126,7 @@ export default function ProductTypeDetailsPage() {
 
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">{language === 'bg' ? 'Присвоени свойства' : 'Assigned Properties'}</h2>
+            <h2 className="text-xl font-semibold">{language === 'bg' ? 'Присвоени характеристики' : 'Assigned Properties'}</h2>
             <button
               onClick={() => setShowAddModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -137,7 +137,7 @@ export default function ProductTypeDetailsPage() {
           </div>
 
           {assignedProperties.length === 0 ? (
-            <p className="text-gray-500">{language === 'bg' ? 'Няма присвоени свойства все още.' : 'No properties assigned yet.'}</p>
+            <p className="text-gray-500">{language === 'bg' ? 'Няма присвоени характеристики все още.' : 'No properties assigned yet.'}</p>
           ) : (
             <div className="space-y-2">
               {assignedProperties.map((ap) => (
@@ -168,7 +168,7 @@ export default function ProductTypeDetailsPage() {
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
           title={t.addProperty}
-          subheader={language === 'bg' ? 'Добавете свойство към този тип продукт' : 'Add a property to this product type'}
+          subheader={language === 'bg' ? 'Добавете характеристика към тази категория' : 'Add a property to this category'}
           maxWidth="max-w-md"
           minWidth={400}
           minHeight={300}

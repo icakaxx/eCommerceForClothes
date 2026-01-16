@@ -20,6 +20,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const { theme } = useTheme();
   const t = translations[language];
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
+  const bgnPrice = product.price * 1.95;
 
   // Deduplicate images - only show unique/distinct images
   const getUniqueImages = (images: string[] | undefined): string[] => {
@@ -128,7 +129,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             className="text-xl sm:text-2xl font-bold transition-colors duration-300"
             style={{ color: theme.colors.primary }}
           >
-            €{product.price.toFixed(2)}
+            €{product.price.toFixed(2)} / {bgnPrice.toFixed(2)} лв
           </div>
           <div
             className="text-xs mt-0.5 transition-colors duration-300"

@@ -16,6 +16,7 @@ interface OrderData {
   delivery: {
     type: string;
     notes: string;
+    missingEcontOffice?: string;
     econtOfficeId?: string;
     street?: string;
     streetNumber?: string;
@@ -262,11 +263,16 @@ async function createOrder(orderData: OrderData): Promise<string> {
   // Get or create customer first
   const customerId = await getOrCreateCustomer(orderData.customer);
 
+  const baseNotes = orderData.delivery.notes?.trim();
+  const missingOffice = orderData.delivery.missingEcontOffice?.trim();
+  const missingOfficeNote = missingOffice ? `НОВ ОФИС ЕКОНТ: ${missingOffice}` : '';
+  const deliveryNotes = [baseNotes, missingOfficeNote].filter(Boolean).join('\n');
+
   const orderRecord = {
     orderid: orderId,
     customerid: customerId,
     deliverytype: orderData.delivery.type,
-    deliverynotes: orderData.delivery.notes || null,
+    deliverynotes: deliveryNotes || null,
     econtoffice: orderData.delivery.econtOfficeId || null,
     deliverystreet: orderData.delivery.street || null,
     deliverystreetnumber: orderData.delivery.streetNumber || null,

@@ -28,9 +28,37 @@ export async function GET(request: NextRequest) {
           productsCount: item.productscount || 0
         }));
 
+        const productTypeIds = productTypesWithCounts.map((pt: any) => pt.producttypeid);
+        const { data: propertyLinks } = await supabase
+          .from('product_type_properties')
+          .select(`
+            producttypeid,
+            properties (
+              propertyid,
+              name
+            )
+          `)
+          .in('producttypeid', productTypeIds);
+
+        const propertiesMap: Record<string, Array<{ propertyid: string; name: string }>> = {};
+        (propertyLinks || []).forEach((link: any) => {
+          if (!propertiesMap[link.producttypeid]) {
+            propertiesMap[link.producttypeid] = [];
+          }
+          if (link.properties?.propertyid && link.properties?.name) {
+            propertiesMap[link.producttypeid].push({
+              propertyid: link.properties.propertyid,
+              name: link.properties.name
+            });
+          }
+        });
+
         return NextResponse.json({
           success: true,
-          productTypes: productTypesWithCounts
+          productTypes: productTypesWithCounts.map((pt: any) => ({
+            ...pt,
+            properties: propertiesMap[pt.producttypeid] || []
+          }))
         });
       }
     } catch (rpcErr) {
@@ -72,6 +100,17 @@ export async function GET(request: NextRequest) {
     const { data: propertiesData, error: propertiesError } = await supabase
       .from('product_type_properties')
       .select('producttypeid')
+      .in('producttypeid', productTypeIds);
+
+    const { data: propertyLinks } = await supabase
+      .from('product_type_properties')
+      .select(`
+        producttypeid,
+        properties (
+          propertyid,
+          name
+        )
+      `)
       .in('producttypeid', productTypeIds);
 
     // Batch fetch all product counts in one query (excluding deleted)
@@ -118,9 +157,25 @@ export async function GET(request: NextRequest) {
       productsCount: productsCountMap[pt.producttypeid] || 0
     }));
 
+    const propertiesMap: Record<string, Array<{ propertyid: string; name: string }>> = {};
+    (propertyLinks || []).forEach((link: any) => {
+      if (!propertiesMap[link.producttypeid]) {
+        propertiesMap[link.producttypeid] = [];
+      }
+      if (link.properties?.propertyid && link.properties?.name) {
+        propertiesMap[link.producttypeid].push({
+          propertyid: link.properties.propertyid,
+          name: link.properties.name
+        });
+      }
+    });
+
     return NextResponse.json({
       success: true,
-      productTypes: productTypesWithCounts
+      productTypes: productTypesWithCounts.map((pt: any) => ({
+        ...pt,
+        properties: propertiesMap[pt.producttypeid] || []
+      }))
     });
 
   } catch (error) {

@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Edit2, ChevronDown, ChevronUp, Package } from 'lucide-react';
+import { Edit2, ChevronDown, ChevronUp, Package, Eye } from 'lucide-react';
+import AdminModal from '../components/AdminModal';
 import AdminLayout from '../components/AdminLayout';
 import { getAdminSession } from '@/lib/auth';
 import type { EcontOfficesData, EcontOffice } from '@/types/econt';
@@ -31,11 +32,23 @@ interface OrderItem {
 interface Order {
   orderid: string;
   customeremail?: string;
+  customerfirstname?: string;
+  customerlastname?: string;
+  customertelephone?: string;
+  customercountry?: string;
+  customercity?: string;
   total: number;
+  subtotal?: number;
+  deliverycost?: number;
+  discountcode?: string | null;
+  discounttype?: string | null;
+  discountvalue?: number | null;
+  discountamount?: number | null;
   status: string;
   createdat: string;
   deliverytype?: string;
   econtoffice?: string;
+  deliverynotes?: string | null;
   deliverystreet?: string | null;
   deliverystreetnumber?: string | null;
   deliveryentrance?: string | null;
@@ -58,6 +71,8 @@ export default function SalesPage() {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['pending', 'confirmed', 'shipped']);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showOrderModal, setShowOrderModal] = useState(false);
 
   const getStatusTranslation = (status: string): string => {
     switch (status) {
@@ -191,6 +206,20 @@ export default function SalesPage() {
     return office ? office.name : officeId;
   };
 
+  const getDeliveryTypeLabel = (type?: string): string => {
+    if (!type) return '-';
+    switch (type) {
+      case 'office':
+        return language === 'bg' ? 'Офис на Еконт' : 'Econt Office';
+      case 'address':
+        return language === 'bg' ? 'Адрес' : 'Address';
+      case 'econtomat':
+        return language === 'bg' ? 'Еконтомат' : 'Econtomat';
+      default:
+        return type;
+    }
+  };
+
   // Handle status filter change
   const handleStatusFilterChange = (status: string, checked: boolean) => {
     if (checked) {
@@ -199,6 +228,27 @@ export default function SalesPage() {
       setSelectedStatuses(selectedStatuses.filter(s => s !== status));
     }
     setCurrentPage(1); // Reset to first page when filter changes
+  };
+
+  const openOrderModal = (order: Order) => {
+    setSelectedOrder(order);
+    setShowOrderModal(true);
+  };
+
+  const closeOrderModal = () => {
+    setShowOrderModal(false);
+    setSelectedOrder(null);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(language === 'bg' ? 'bg-BG' : 'en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   // Reset pagination when filters change
@@ -239,6 +289,132 @@ export default function SalesPage() {
           <h1 className="text-2xl sm:text-3xl font-bold">Продажби</h1>
           <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">Управление и преглед на вашите поръчки</p>
         </div>
+
+        <AdminModal
+          isOpen={showOrderModal}
+          onClose={closeOrderModal}
+          title={language === 'bg' ? 'Детайли за поръчката' : 'Order details'}
+          subheader={selectedOrder ? `${language === 'bg' ? 'Поръчка' : 'Order'} #${selectedOrder.orderid}` : undefined}
+          maxWidth="max-w-4xl"
+          minWidth={320}
+          minHeight={400}
+        >
+          {selectedOrder && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-xs text-gray-500 mb-1">{language === 'bg' ? 'Статус' : 'Status'}</p>
+                  <Badge variant={getOrderStatusVariant(selectedOrder.status)}>
+                    {getStatusTranslation(selectedOrder.status)}
+                  </Badge>
+                  <p className="text-xs text-gray-500 mt-3">{language === 'bg' ? 'Дата' : 'Date'}</p>
+                  <p className="text-sm font-medium text-gray-900">{formatDate(selectedOrder.createdat)}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-xs text-gray-500 mb-1">{language === 'bg' ? 'Клиент' : 'Customer'}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {`${selectedOrder.customerfirstname || ''} ${selectedOrder.customerlastname || ''}`.trim() || 'N/A'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">{language === 'bg' ? 'Имейл' : 'Email'}</p>
+                  <p className="text-sm text-gray-900">{selectedOrder.customeremail || 'N/A'}</p>
+                  <p className="text-xs text-gray-500 mt-2">{language === 'bg' ? 'Телефон' : 'Phone'}</p>
+                  <p className="text-sm text-gray-900">{selectedOrder.customertelephone || 'N/A'}</p>
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                  {language === 'bg' ? 'Доставка' : 'Delivery'}
+                </h4>
+                <p className="text-sm text-gray-700">
+                  <span className="font-medium">{language === 'bg' ? 'Тип:' : 'Type:'}</span>{' '}
+                  {getDeliveryTypeLabel(selectedOrder.deliverytype)}
+                </p>
+                {selectedOrder.deliverytype === 'address' && (selectedOrder.deliverystreet || selectedOrder.deliverystreetnumber) && (
+                  <p className="text-sm text-gray-700 mt-2">
+                    <span className="font-medium">{language === 'bg' ? 'Адрес:' : 'Address:'}</span>{' '}
+                    {selectedOrder.deliverystreet || ''} {selectedOrder.deliverystreetnumber || ''}
+                    {selectedOrder.deliveryentrance ? `, ${language === 'bg' ? 'вх.' : 'Entrance'} ${selectedOrder.deliveryentrance}` : ''}
+                    {selectedOrder.deliveryfloor ? `, ${language === 'bg' ? 'ет.' : 'Floor'} ${selectedOrder.deliveryfloor}` : ''}
+                    {selectedOrder.deliveryapartment ? `, ${language === 'bg' ? 'ап.' : 'Apt'} ${selectedOrder.deliveryapartment}` : ''}
+                  </p>
+                )}
+                {selectedOrder.deliverytype === 'office' && selectedOrder.econtoffice && (
+                  <div className="text-sm text-gray-700 mt-2">
+                    <p>
+                      <span className="font-medium">{language === 'bg' ? 'Офис:' : 'Office:'}</span>{' '}
+                      {getEcontOfficeName(selectedOrder.econtoffice)}
+                    </p>
+                    {getEcontOffice(selectedOrder.econtoffice)?.address && (
+                      <p className="text-xs text-gray-500 mt-1">{getEcontOffice(selectedOrder.econtoffice)?.address}</p>
+                    )}
+                  </div>
+                )}
+                {(selectedOrder.deliverynotes || '').trim() && (
+                  <p className="text-sm text-gray-700 mt-3">
+                    <span className="font-medium">{language === 'bg' ? 'Бележки:' : 'Notes:'}</span>{' '}
+                    {selectedOrder.deliverynotes}
+                  </p>
+                )}
+                {(selectedOrder.customercity || selectedOrder.customercountry) && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    {selectedOrder.customercity || ''}{selectedOrder.customercountry ? `, ${selectedOrder.customercountry}` : ''}
+                  </p>
+                )}
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                  {language === 'bg' ? 'Артикули' : 'Items'}
+                </h4>
+                <div className="space-y-3">
+                  {(selectedOrder.order_items || []).map((item, index) => (
+                    <div key={item.OrderItemID || index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gray-50 rounded-lg p-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{item.product.name}</p>
+                        {item.product.allProperties && Object.keys(item.product.allProperties).length > 0 && (
+                          <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                            {Object.entries(item.product.allProperties).map(([propName, propValue]) => (
+                              <p key={propName} className="truncate">
+                                <span className="font-medium">{propName}:</span> {propValue}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-700">
+                        <p>{language === 'bg' ? 'Кол.' : 'Qty'}: {item.quantity}</p>
+                        <p>€{item.price?.toFixed(2) || '0.00'}</p>
+                        <p className="font-medium">€{(item.price * item.quantity)?.toFixed(2) || '0.00'}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center justify-between text-sm text-gray-700">
+                  <span>{language === 'bg' ? 'Междинна сума' : 'Subtotal'}</span>
+                  <span>€{selectedOrder.subtotal?.toFixed(2) || '0.00'}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-gray-700 mt-2">
+                  <span>{language === 'bg' ? 'Доставка' : 'Delivery'}</span>
+                  <span>€{selectedOrder.deliverycost?.toFixed(2) || '0.00'}</span>
+                </div>
+                {selectedOrder.discountamount && selectedOrder.discountamount > 0 && (
+                  <div className="flex items-center justify-between text-sm text-green-700 mt-2">
+                    <span>{language === 'bg' ? 'Отстъпка' : 'Discount'} {selectedOrder.discountcode ? `(${selectedOrder.discountcode})` : ''}</span>
+                    <span>-€{selectedOrder.discountamount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-base font-semibold text-gray-900 mt-3">
+                  <span>{language === 'bg' ? 'Общо' : 'Total'}</span>
+                  <span>€{selectedOrder.total?.toFixed(2) || '0.00'}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </AdminModal>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
@@ -351,21 +527,31 @@ export default function SalesPage() {
                             {new Date(order.createdat).toLocaleDateString()}
                           </td>
                           <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <select
-                              value={order.status}
-                              onChange={(e) => updateOrderStatus(order.orderid, e.target.value)}
-                              disabled={updatingStatus === order.orderid}
-                              className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1 disabled:opacity-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            >
-                              <option value="pending">{t.pending}</option>
-                              <option value="confirmed">{t.confirmed}</option>
-                              <option value="shipped">{t.shipped}</option>
-                              <option value="delivered">{t.delivered}</option>
-                              <option value="cancelled">{t.cancelled}</option>
-                            </select>
-                            {updatingStatus === order.orderid && (
-                              <span className="ml-2 text-xs text-gray-500">Обновяване...</span>
-                            )}
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => openOrderModal(order)}
+                                className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
+                                title={language === 'bg' ? 'Преглед' : 'View'}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <select
+                                value={order.status}
+                                onChange={(e) => updateOrderStatus(order.orderid, e.target.value)}
+                                disabled={updatingStatus === order.orderid}
+                                className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1 disabled:opacity-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              >
+                                <option value="pending">{t.pending}</option>
+                                <option value="confirmed">{t.confirmed}</option>
+                                <option value="shipped">{t.shipped}</option>
+                                <option value="delivered">{t.delivered}</option>
+                                <option value="cancelled">{t.cancelled}</option>
+                              </select>
+                              {updatingStatus === order.orderid && (
+                                <span className="ml-2 text-xs text-gray-500">Обновяване...</span>
+                              )}
+                            </div>
                           </td>
                         </tr>
 
@@ -526,6 +712,14 @@ export default function SalesPage() {
                               <p className="text-sm text-gray-700">{new Date(order.createdat).toLocaleDateString()}</p>
                             </div>
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => openOrderModal(order)}
+                            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
+                            title={language === 'bg' ? 'Преглед' : 'View'}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
                         </div>
 
                         <div className="flex items-center justify-between gap-2 pt-2">
@@ -542,18 +736,28 @@ export default function SalesPage() {
                             )}
                           </button>
 
-                          <select
-                            value={order.status}
-                            onChange={(e) => updateOrderStatus(order.orderid, e.target.value)}
-                            disabled={updatingStatus === order.orderid}
-                            className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1.5 disabled:opacity-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          >
-                            <option value="pending">{t.pending}</option>
-                            <option value="confirmed">{t.confirmed}</option>
-                            <option value="shipped">{t.shipped}</option>
-                            <option value="delivered">{t.delivered}</option>
-                            <option value="cancelled">{t.cancelled}</option>
-                          </select>
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={order.status}
+                              onChange={(e) => updateOrderStatus(order.orderid, e.target.value)}
+                              disabled={updatingStatus === order.orderid}
+                              className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1.5 disabled:opacity-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                              <option value="pending">{t.pending}</option>
+                              <option value="confirmed">{t.confirmed}</option>
+                              <option value="shipped">{t.shipped}</option>
+                              <option value="delivered">{t.delivered}</option>
+                              <option value="cancelled">{t.cancelled}</option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => openOrderModal(order)}
+                              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
+                              title={language === 'bg' ? 'Преглед' : 'View'}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                         {updatingStatus === order.orderid && (
                           <p className="text-xs text-gray-500 text-center">Обновяване...</p>

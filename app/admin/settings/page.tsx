@@ -921,7 +921,7 @@ export default function AdminSettingsPage() {
               className="text-xl font-semibold mb-6"
               style={{ color: theme.colors.text }}
             >
-              {language === 'bg' ? 'Социални мрежи' : 'Social Media'}
+              {language === 'bg' ? 'Социални мрежи (Оставете празно, ако не желаете да показвате линк)' : 'Social Media (Leave empty if you do not want to display a link)'}
             </h2>
 
             <div className="space-y-4">

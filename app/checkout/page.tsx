@@ -55,6 +55,7 @@ export default function CheckoutPage() {
   const [selectedOffice, setSelectedOffice] = useState<EcontOffice | null>(null);
   const [showCityDropdown, setShowCityDropdown] = useState<boolean>(false);
   const cityDropdownRef = useRef<HTMLDivElement>(null);
+  const [showMissingOfficePrompt, setShowMissingOfficePrompt] = useState(false);
 
   useEffect(() => {
     const adminState = localStorage.getItem('isAdmin');
@@ -199,8 +200,9 @@ export default function CheckoutPage() {
   };
 
   const handleDeliveryTypeChange = (deliveryType: DeliveryType) => {
-    updateFormData({ deliveryType, econtOfficeId: '' });
+    updateFormData({ deliveryType, econtOfficeId: '', missingEcontOffice: '' });
     setSelectedOffice(null);
+    setShowMissingOfficePrompt(false);
     
     // Clear validation errors when delivery type changes
     setValidationErrors(prev => {
@@ -230,6 +232,18 @@ export default function CheckoutPage() {
       const office = cityOffices.find(o => o.id === officeId);
       setSelectedOffice(office || null);
     }
+  };
+
+  const handleOfficeSelectValue = (value: string) => {
+    if (value === '__missing__') {
+      updateFormData({ econtOfficeId: '', missingEcontOffice: formData.missingEcontOffice || '' });
+      setSelectedOffice(null);
+      setShowMissingOfficePrompt(true);
+      return;
+    }
+
+    setShowMissingOfficePrompt(false);
+    handleOfficeSelect(value);
   };
 
   const getDeliveryCost = (deliveryType: DeliveryType) => {
@@ -278,7 +292,11 @@ export default function CheckoutPage() {
     }
 
     // Validate Econt office selection for office delivery
-    if (formData.deliveryType === 'office' && !formData.econtOfficeId) {
+    if (
+      formData.deliveryType === 'office' &&
+      !formData.econtOfficeId &&
+      !(formData.missingEcontOffice && formData.missingEcontOffice.trim())
+    ) {
       setValidationErrors(prev => ({ ...prev, econtOfficeId: t.selectEcontOffice }));
       setError(t.selectEcontOffice);
       return;
@@ -321,6 +339,7 @@ export default function CheckoutPage() {
         delivery: {
           type: formData.deliveryType,
           notes: formData.notes,
+          missingEcontOffice: formData.missingEcontOffice,
           econtOfficeId: formData.econtOfficeId,
           street: formData.street,
           streetNumber: formData.streetNumber,
@@ -625,8 +644,9 @@ export default function CheckoutPage() {
                             setShowCityDropdown(true);
                             // Reset office selection when city changes
                             if (formData.deliveryType === 'office') {
-                              updateFormData({ econtOfficeId: '' });
+                              updateFormData({ econtOfficeId: '', missingEcontOffice: '' });
                               setSelectedOffice(null);
+                              setShowMissingOfficePrompt(false);
                             }
                           }}
                           onFocus={() => setShowCityDropdown(true)}
@@ -650,8 +670,9 @@ export default function CheckoutPage() {
                                       handleInputChange('city', city);
                                       setShowCityDropdown(false);
                                       if (formData.deliveryType === 'office') {
-                                        updateFormData({ econtOfficeId: '' });
+                                        updateFormData({ econtOfficeId: '', missingEcontOffice: '' });
                                         setSelectedOffice(null);
+                                        setShowMissingOfficePrompt(false);
                                       }
                                     }}
                                     className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
@@ -674,8 +695,9 @@ export default function CheckoutPage() {
                                       handleInputChange('city', city.displayName);
                                       setShowCityDropdown(false);
                                       if (formData.deliveryType === 'office') {
-                                        updateFormData({ econtOfficeId: '' });
+                                        updateFormData({ econtOfficeId: '', missingEcontOffice: '' });
                                         setSelectedOffice(null);
+                                        setShowMissingOfficePrompt(false);
                                       }
                                     }}
                                     className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
@@ -744,13 +766,16 @@ export default function CheckoutPage() {
                       </label>
                       <select
                         value={formData.econtOfficeId || ''}
-                        onChange={(e) => handleOfficeSelect(e.target.value)}
+                        onChange={(e) => handleOfficeSelectValue(e.target.value)}
                         className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                           validationErrors.econtOfficeId ? 'border-red-500' : 'border-gray-300'
                         }`}
-                        required
+                        required={!(formData.missingEcontOffice && formData.missingEcontOffice.trim())}
                       >
                         <option value="">{t.selectEcontOffice}</option>
+                        <option value="__missing__">
+                          {language === 'bg' ? 'Офисът не е наличен' : 'Office not available'}
+                        </option>
                         {(econtOffices.officesByCity[formData.city] || []).map((office) => (
                           <option key={office.id} value={office.id}>
                             {office.name}
@@ -777,10 +802,31 @@ export default function CheckoutPage() {
                         </div>
                       )}
                       
-                      {formData.city && (!econtOffices.officesByCity[formData.city] || econtOffices.officesByCity[formData.city].length === 0) && (
-                        <p className="text-sm text-amber-600 mt-2">
-                          {t.noOfficesInCity}
-                        </p>
+                      {(showMissingOfficePrompt ||
+                        (formData.city && (!econtOffices.officesByCity[formData.city] || econtOffices.officesByCity[formData.city].length === 0))) && (
+                        <div className="mt-2 space-y-3">
+                          {formData.city && (!econtOffices.officesByCity[formData.city] || econtOffices.officesByCity[formData.city].length === 0) && (
+                            <p className="text-sm text-amber-600">
+                              {t.noOfficesInCity}
+                            </p>
+                          )}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {language === 'bg'
+                                ? 'Липсващ офис? моля напишете име и адрес?'
+                                : 'Missing office? Please enter name and address.'}
+                            </label>
+                            <textarea
+                              value={formData.missingEcontOffice || ''}
+                              onChange={(e) => handleInputChange('missingEcontOffice', e.target.value)}
+                              placeholder={language === 'bg'
+                                ? 'Напр. Еконт офис Център, ул. Примерна 10'
+                                : 'e.g. Econt office Center, Example St 10'}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              rows={3}
+                            />
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}
@@ -800,7 +846,7 @@ export default function CheckoutPage() {
                             <input
                               type="text"
                               value={formData.street || ''}
-                              onChange={(e) => handleInputChange('street', e.target.value)}
+                          onChange={(e) => handleInputChange('street', e.target.value)}
                               placeholder="ул. Васил Левски"
                               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                                 validationErrors.street ? 'border-red-500' : 'border-gray-300'

@@ -10,6 +10,7 @@ import { useTheme } from '@/context/ThemeContext';
 interface ProductMediaGalleryProps {
   images: string[];
   productName: string;
+  focusImage?: string | null;
 }
 
 const PrevArrow = (props: any) => {
@@ -27,9 +28,11 @@ const PrevArrow = (props: any) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(255, 255, 255, 0.9)',
-        borderRadius: '50%',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+        background: 'rgba(15, 23, 42, 0.75)',
+        color: '#ffffff',
+        borderRadius: '999px',
+        border: '1px solid rgba(255, 255, 255, 0.4)',
+        boxShadow: '0 6px 16px rgba(15, 23, 42, 0.35)'
       }}
     >
       <svg
@@ -64,9 +67,11 @@ const NextArrow = (props: any) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(255, 255, 255, 0.9)',
-        borderRadius: '50%',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+        background: 'rgba(15, 23, 42, 0.75)',
+        color: '#ffffff',
+        borderRadius: '999px',
+        border: '1px solid rgba(255, 255, 255, 0.4)',
+        boxShadow: '0 6px 16px rgba(15, 23, 42, 0.35)'
       }}
     >
       <svg
@@ -86,7 +91,7 @@ const NextArrow = (props: any) => {
   );
 };
 
-export default function ProductMediaGallery({ images, productName }: ProductMediaGalleryProps) {
+export default function ProductMediaGallery({ images, productName, focusImage }: ProductMediaGalleryProps) {
   const { theme } = useTheme();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
@@ -99,8 +104,7 @@ export default function ProductMediaGallery({ images, productName }: ProductMedi
     : ['/image.png'];
 
   const mainSliderSettings = {
-    dots: safeImages.length > 1,
-    dotsClass: 'slick-dots slick-thumb',
+    dots: false,
     infinite: safeImages.length > 1,
     speed: 500,
     slidesToShow: 1,
@@ -128,8 +132,7 @@ export default function ProductMediaGallery({ images, productName }: ProductMedi
   };
 
   const modalSliderSettings = {
-    dots: safeImages.length > 1,
-    dotsClass: 'slick-dots slick-thumb',
+    dots: false,
     infinite: safeImages.length > 1,
     speed: 500,
     slidesToShow: 1,
@@ -141,20 +144,22 @@ export default function ProductMediaGallery({ images, productName }: ProductMedi
     adaptiveHeight: true,
     fade: false,
     swipe: true,
-    customPaging: function (i: number) {
-      return (
-        <div className="thumbnail-wrapper" style={{ padding: '4px' }}>
-          <Image
-            src={safeImages[i]}
-            alt={`Thumbnail ${i + 1}`}
-            width={80}
-            height={80}
-            style={{ objectFit: 'cover', borderRadius: '4px' }}
-          />
-        </div>
-      );
-    }
+    customPaging: undefined
   };
+
+  React.useEffect(() => {
+    if (!focusImage) return;
+    const targetIndex = safeImages.findIndex((image) => image === focusImage);
+    if (targetIndex === -1) return;
+
+    setActiveSlide(targetIndex);
+    if (mainSliderRef.current) {
+      mainSliderRef.current.slickGoTo(targetIndex);
+    }
+    if (modalSliderRef.current) {
+      modalSliderRef.current.slickGoTo(targetIndex);
+    }
+  }, [focusImage, safeImages]);
 
   const openModal = (index: number) => {
     setActiveSlide(index);
@@ -200,7 +205,7 @@ export default function ProductMediaGallery({ images, productName }: ProductMedi
                 alt={`${productName} - Image ${index + 1}`}
                 width={800}
                 height={600}
-                style={{ objectFit: 'contain', maxWidth: '100%', maxHeight: '100%' }}
+                style={{ objectFit: 'contain', objectPosition: 'center', maxWidth: '100%', maxHeight: '100%' }}
                 priority={index === 0}
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px"
               />
@@ -252,7 +257,7 @@ export default function ProductMediaGallery({ images, productName }: ProductMedi
                       alt={`${productName} - Image ${index + 1}`}
                       width={1200}
                       height={960}
-                      style={{ objectFit: 'contain', maxWidth: '100%', maxHeight: '100%' }}
+                      style={{ objectFit: 'contain', objectPosition: 'center', maxWidth: '100%', maxHeight: '100%' }}
                     />
                   </div>
                 ))}

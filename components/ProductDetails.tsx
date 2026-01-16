@@ -197,6 +197,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   // Get current price and quantity
   const currentPrice = selectedVariant?.price || product.price || 0;
   const currentQuantity = selectedVariant?.quantity || product.quantity || 0;
+  const currentPriceBgn = currentPrice * 1.95;
 
   const getCategoryLabel = () => {
     if (product.category === 'clothes') return product.type || t.clothes;
@@ -378,7 +379,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
           className="text-4xl font-bold transition-colors duration-300"
           style={{ color: theme.colors.primary }}
         >
-          €{currentPrice.toFixed(2)}
+          €{currentPrice.toFixed(2)} / {currentPriceBgn.toFixed(2)} лв
         </div>
         <div 
           className="text-sm mt-1 transition-colors duration-300"

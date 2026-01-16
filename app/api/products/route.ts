@@ -225,6 +225,9 @@ export async function GET(request: NextRequest) {
         };
         const category = categoryMap[product.product_types?.code?.toLowerCase() || ''] || 'clothes';
 
+        const productImages = (images || []).filter((img: any) => !img.productvariantid);
+        const productImageUrls = productImages.map((img: any) => img.imageurl).filter(Boolean);
+
         const legacyProduct = {
           // New schema fields
           ...product,
@@ -243,7 +246,7 @@ export async function GET(request: NextRequest) {
           price: firstVariant?.price || 0,
           quantity: firstVariant?.quantity || 0,
           visible: firstVariant?.isvisible ?? true,
-          images: images?.map((img: any) => img.imageurl) || ['/image.png'],
+          images: productImageUrls.length > 0 ? productImageUrls : ['/image.png'],
           description: product.description || '',
           subtitle: product.subtitle || '',
           propertyValues: variantProperties
@@ -276,6 +279,7 @@ export async function POST(request: NextRequest) {
     console.log('📝 POST /api/products - Received body:', JSON.stringify(body, null, 2));
 
     const { name, sku, description, subtitle, producttypeid, rfproducttypeid, isfeatured, Variants = [] } = body;
+    const productImages = Array.isArray(body.productImages) ? body.productImages.filter(Boolean) : [];
 
     // Ensure SKUs are unique before creating variants
     const uniqueVariants = await ensureUniqueSKUs(Variants, supabase);
@@ -319,6 +323,25 @@ export async function POST(request: NextRequest) {
         { error: productError.message },
         { status: 500 }
       );
+    }
+
+    if (productImages.length > 0) {
+      const uniqueImages = Array.from(new Set(productImages)) as string[];
+      const imageRows = uniqueImages.map((imageurl, index) => ({
+        productid: product.productid,
+        productvariantid: null,
+        imageurl,
+        isprimary: index === 0,
+        sortorder: index
+      }));
+
+      const { error: productImagesError } = await supabase
+        .from('product_images')
+        .insert(imageRows);
+
+      if (productImagesError) {
+        console.error('Error creating product images:', productImagesError);
+      }
     }
 
       // Create new variants

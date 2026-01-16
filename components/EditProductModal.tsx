@@ -628,7 +628,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                   className="block text-xs sm:text-sm font-medium mb-1.5 transition-colors duration-300"
                   style={{ color: theme.colors.text }}
                 >
-                  {language === 'bg' ? 'Тип продукт' : 'Product Type'}
+                  {language === 'bg' ? 'Категория' : 'Category'}
                 </label>
                 <select
                   value={formData.productTypeID || ''}
@@ -847,7 +847,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                 className="font-medium text-sm sm:text-base transition-colors duration-300"
                 style={{ color: theme.colors.text }}
               >
-                {language === 'bg' ? 'Свойства' : 'Properties'}
+                {language === 'bg' ? 'Характеристики' : 'Properties'}
               </h3>
 
               {loadingProperties ? (

@@ -429,7 +429,7 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
 
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    {language === 'bg' ? 'Тип продукт' : 'Product Type'} *
+                    {language === 'bg' ? 'Категория' : 'Category'} *
                   </label>
                   <select
                     required
@@ -531,8 +531,8 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
                   </p>
                   <p className="text-sm opacity-75 mt-2">
                     {language === 'bg'
-                      ? 'Добавете варианти за да управлявате различни комбинации от свойства'
-                      : 'Add variants to manage different property combinations'
+                      ? 'Добавете варианти за да управлявате различни комбинации от характеристики'
+                      : 'Add variants to manage different characteristic combinations'
                     }
                   </p>
                 </div>
@@ -717,11 +717,11 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
             <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <List size={20} />
-                {language === 'bg' ? 'Налични стойности на свойствата' : 'Available Property Values'}
+                {language === 'bg' ? 'Налични стойности на характеристиките' : 'Available Property Values'}
               </h3>
               <p className="text-sm opacity-75">
                 {language === 'bg'
-                  ? 'Изберете кои стойности на свойствата са налични за този продукт'
+                  ? 'Изберете кои стойности на характеристиките са налични за този продукт'
                   : 'Select which property values are available for this product'
                 }
               </p>
@@ -772,7 +772,7 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
               {availableProperties.filter(prop => prop.datatype === 'select').length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   {language === 'bg'
-                    ? 'Няма select свойства за този тип продукт'
+                    ? 'Няма select характеристики за тази категория'
                     : 'No select properties for this product type'
                   }
                 </div>
@@ -1088,7 +1088,7 @@ function VariantModal({
           {availableProperties.length > 0 && (
             <div className="space-y-4">
               <h4 className="text-lg font-semibold">
-                {language === 'bg' ? 'Свойства на варианта' : 'Variant Properties'}
+                {language === 'bg' ? 'Характеристики на варианта' : 'Variant Properties'}
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

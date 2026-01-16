@@ -354,6 +354,7 @@ export async function PUT(
       isfeatured,
       Variants = []
     } = body;
+    const productImages = Array.isArray(body.productImages) ? body.productImages.filter(Boolean) : [];
 
 
     // Ensure SKUs are unique before creating variants
@@ -382,6 +383,43 @@ export async function PUT(
         { error: productError.message },
         { status: 500 }
       );
+    }
+
+    const { error: deleteProductImagesError } = await supabase
+      .from('product_images')
+      .delete()
+      .eq('productid', id)
+      .is('productvariantid', null);
+
+    if (deleteProductImagesError) {
+      console.error('Error deleting product images:', deleteProductImagesError);
+      return NextResponse.json(
+        { error: deleteProductImagesError.message },
+        { status: 500 }
+      );
+    }
+
+    if (productImages.length > 0) {
+      const uniqueImages = Array.from(new Set(productImages)) as string[];
+      const imageRows = uniqueImages.map((imageurl, index) => ({
+        productid: id,
+        productvariantid: null,
+        imageurl,
+        isprimary: index === 0,
+        sortorder: index
+      }));
+
+      const { error: productImagesError } = await supabase
+        .from('product_images')
+        .insert(imageRows);
+
+      if (productImagesError) {
+        console.error('Error creating product images:', productImagesError);
+        return NextResponse.json(
+          { error: productImagesError.message },
+          { status: 500 }
+        );
+      }
     }
 
     // Handle variants
