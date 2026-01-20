@@ -23,7 +23,8 @@ export default function ProductDetailPage() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const pageTitle = product?.name || (t.productDetails || (language === 'bg' ? 'Детайли на продукта' : 'Product Details'));
+    const productName = product ? `${product.brand} ${product.model}` : '';
+    const pageTitle = productName || (t.productDetails || (language === 'bg' ? 'Детайли на продукта' : 'Product Details'));
     const storeName = settings?.storename || '';
     document.title = storeName ? `${pageTitle} - ${storeName}` : pageTitle;
   }, [product, language, t, settings?.storename]);

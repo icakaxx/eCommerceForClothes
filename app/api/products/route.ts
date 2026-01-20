@@ -378,7 +378,7 @@ export async function POST(request: NextRequest) {
 
         // Batch insert all property values
         const allPropertyValues: any[] = [];
-        createdVariants.forEach((variant, index) => {
+        createdVariants.forEach((variant: any, index: number) => {
           const variantData = uniqueVariants[index];
           const propertyvalues = variantData.propertyvalues || [];
           
@@ -403,7 +403,7 @@ export async function POST(request: NextRequest) {
 
         // Batch insert all variant images
         const allVariantImages: any[] = [];
-        createdVariants.forEach((variant, index) => {
+        createdVariants.forEach((variant: any, index: number) => {
           const variantData = uniqueVariants[index];
           const { imageurl, images, IsPrimaryImage } = variantData;
           

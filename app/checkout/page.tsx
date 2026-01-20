@@ -51,7 +51,6 @@ export default function CheckoutPage() {
     discountedTotal
   } = useCheckoutStore();
 
-  const t = translations[language || 'en'];
   const [isAdmin, setIsAdmin] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{
     telephone?: string;

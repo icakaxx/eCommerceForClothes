@@ -104,8 +104,8 @@ export default function ProductView({ product }: ProductViewProps) {
         }
 
         // Get current product's property values and category
-        const currentPropertyValues = product.propertyValues || product.propertyvalues || {};
-        const currentCategoryId = product.productTypeID || product.producttypeid;
+        const currentPropertyValues = product.propertyValues || (product as any).propertyvalues || {};
+        const currentCategoryId = product.productTypeID || (product as any).producttypeid;
 
         // Priority groups
         const sameCharacteristics: Product[] = [];
@@ -116,8 +116,8 @@ export default function ProductView({ product }: ProductViewProps) {
           const pid = p.id || p.productid;
           if (pid === currentProductId) return;
 
-          const productPropertyValues = p.propertyValues || p.propertyvalues || {};
-          const productCategoryId = p.productTypeID || p.producttypeid;
+          const productPropertyValues = p.propertyValues || (p as any).propertyvalues || {};
+          const productCategoryId = p.productTypeID || (p as any).producttypeid;
 
           // Check if shares characteristics (at least one property value match)
           const hasMatchingCharacteristics = Object.keys(currentPropertyValues).some(propId => {
@@ -168,7 +168,7 @@ export default function ProductView({ product }: ProductViewProps) {
     if (product.id || product.productid) {
       fetchMaybeYouWillLikeProducts();
     }
-  }, [product.id, product.productid, product.propertyValues, product.propertyvalues, product.productTypeID, product.producttypeid]);
+  }, [product.id, product.productid, product.propertyValues, product.productTypeID]);
 
   const handleVariantImageChange = useCallback((images: string[] | string | undefined) => {
     if (images) {

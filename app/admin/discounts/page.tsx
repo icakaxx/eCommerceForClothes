@@ -59,6 +59,7 @@ export default function DiscountsPage() {
   });
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [showCompleteAnimation, setShowCompleteAnimation] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
