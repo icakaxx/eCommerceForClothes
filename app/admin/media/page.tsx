@@ -22,6 +22,10 @@ export default function MediaPage() {
   const { language } = useLanguage();
   const t = translations[language || 'en'];
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    document.title = t.mediaLibrary || t.media || (language === 'bg' ? 'Медия' : 'Media');
+  }, [language, t]);
   const [isLoading, setIsLoading] = useState(true);
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(true);

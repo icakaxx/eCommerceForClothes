@@ -8,11 +8,21 @@ import CartDrawer from '@/components/CartDrawer';
 import LoadingScreen from '@/components/LoadingScreen';
 import { useProducts } from '@/context/ProductContext';
 import { useStoreSettings } from '@/context/StoreSettingsContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/lib/translations';
 
 export default function ProductsPage() {
   const { products } = useProducts();
   const [isAdmin, setIsAdmin] = useState(false);
-  const { isLoading: settingsLoading } = useStoreSettings();
+  const { isLoading: settingsLoading, settings } = useStoreSettings();
+  const { language } = useLanguage();
+  const t = translations[language];
+
+  useEffect(() => {
+    const pageTitle = t.products || (language === 'bg' ? 'Артикули' : 'Items');
+    const storeName = settings?.storename || '';
+    document.title = storeName ? `${pageTitle} - ${storeName}` : pageTitle;
+  }, [language, t, settings?.storename]);
 
   useEffect(() => {
     const adminState = localStorage.getItem('isAdmin');

@@ -62,6 +62,10 @@ export default function SalesPage() {
   const { language } = useLanguage();
   const t = translations[language];
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    document.title = t.sales || (language === 'bg' ? 'Продажби' : 'Sales');
+  }, [language, t]);
   const [isLoading, setIsLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -468,7 +472,7 @@ export default function SalesPage() {
                       ID на поръчка
                     </th>
                     <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Продукти
+                      Артикули
                     </th>
                     <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Покупател

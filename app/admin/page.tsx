@@ -6,11 +6,19 @@ import Dashboard from './components/Dashboard';
 import AdminLayout from './components/AdminLayout';
 import { getAdminSession, isAdminAuthenticated } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/lib/translations';
 
 export default function AdminPage() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { language } = useLanguage();
+  const t = translations[language];
+
+  useEffect(() => {
+    document.title = t.dashboard || (language === 'bg' ? 'Табло' : 'Dashboard');
+  }, [language, t]);
 
   useEffect(() => {
     // Check if user is authenticated with Supabase session

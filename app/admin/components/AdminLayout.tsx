@@ -67,7 +67,7 @@ export default function AdminLayout({ children, currentPath }: AdminLayoutProps)
         sidebarCollapsed={isCollapsed}
         sidebarWidth={sidebarWidth}
       />
-      <main className="flex-1 overflow-auto transition-all duration-300">
+      <main className="flex-1 overflow-auto">
         <div className="lg:pt-[56px] pt-16">
           {children}
         </div>

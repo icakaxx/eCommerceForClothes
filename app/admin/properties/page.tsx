@@ -10,12 +10,17 @@ import AdminModal from '../components/AdminModal';
 import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
 import { AdminPage, PageHeader, DataTableShell, TableHeader, TableHeaderRow, TableHeaderCell, TableBody, TableRow, TableCell, SectionSurface, EmptyState, Section } from '../components/layout';
+import CompleteAnimation from '@/components/CompleteAnimation';
 
 export default function PropertiesPage() {
   const router = useRouter();
   const { language } = useLanguage();
   const t = translations[language || 'en'];
   const [properties, setProperties] = useState<Property[]>([]);
+
+  useEffect(() => {
+    document.title = t.properties || (language === 'bg' ? 'Характеристики' : 'Properties');
+  }, [language, t]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
@@ -38,6 +43,9 @@ export default function PropertiesPage() {
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showCompleteAnimation, setShowCompleteAnimation] = useState(false);
+  const [showDeleteCompleteAnimation, setShowDeleteCompleteAnimation] = useState(false);
+  const [showBulkDeleteCompleteAnimation, setShowBulkDeleteCompleteAnimation] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -184,11 +192,18 @@ export default function PropertiesPage() {
 
       const result = await response.json();
       if (result.success) {
-        setShowModal(false);
-        setFormData({ name: '', description: '', datatype: 'select' });
-        setEditingProperty(null);
-        setSelectedProductTypeIds([]);
-        loadProperties();
+        // Show complete animation
+        setShowCompleteAnimation(true);
+        
+        // Close modal and reset after animation completes
+        setTimeout(() => {
+          setShowModal(false);
+          setShowCompleteAnimation(false);
+          setFormData({ name: '', description: '', datatype: 'select' });
+          setEditingProperty(null);
+          setSelectedProductTypeIds([]);
+          loadProperties();
+        }, 1200);
       } else {
         alert('Error: ' + result.error);
       }
@@ -221,9 +236,16 @@ export default function PropertiesPage() {
       const response = await fetch(`/api/properties/${propertyToDelete.propertyid}`, { method: 'DELETE' });
       const result = await response.json();
       if (result.success) {
-        setShowDeleteModal(false);
-        setPropertyToDelete(null);
-        loadProperties();
+        // Show complete animation
+        setShowDeleteCompleteAnimation(true);
+        
+        // Close modal and reset after animation completes
+        setTimeout(() => {
+          setShowDeleteModal(false);
+          setShowDeleteCompleteAnimation(false);
+          setPropertyToDelete(null);
+          loadProperties();
+        }, 1200);
       } else {
         alert('Error: ' + result.error);
       }
@@ -275,11 +297,22 @@ export default function PropertiesPage() {
         );
         setSelectedPropertyIds(failed.map((item) => item.id));
       } else {
-        setSelectedPropertyIds([]);
-        setShowBulkDeleteModal(false);
+        // Show complete animation
+        setShowBulkDeleteCompleteAnimation(true);
+        
+        // Close modal and reset after animation completes
+        setTimeout(() => {
+          setSelectedPropertyIds([]);
+          setShowBulkDeleteModal(false);
+          setShowBulkDeleteCompleteAnimation(false);
+          loadProperties();
+        }, 1200);
       }
 
-      loadProperties();
+      if (failed.length === 0) {
+        // Don't reload if there were failures
+        return;
+      }
     } catch (error) {
       console.error('Failed to bulk delete properties:', error);
       alert(language === 'bg' ? 'Неуспешно масово изтриване' : 'Bulk delete failed');
@@ -572,12 +605,12 @@ export default function PropertiesPage() {
           <>
             <Section
               title={language === 'bg' ? 'Списък с характеристики' : 'Characteristics List'}
-              description={language === 'bg' ? 'Управлявайте характеристиките на продуктите и техните стойности' : 'Manage product characteristics and their values'}
+              description={language === 'bg' ? 'Управлявайте характеристиките на артикулите и техните стойности' : 'Manage item characteristics and their values'}
             >
               {properties.length === 0 ? (
                 <EmptyState
                   title={language === 'bg' ? 'Няма характеристики' : 'No Characteristics'}
-                  description={language === 'bg' ? 'Създайте първата характеристика, за да започнете да организирате продуктите си.' : 'Create your first characteristic to start organizing your products.'}
+                  description={language === 'bg' ? 'Създайте първата характеристика, за да започнете да организирате артикулите си.' : 'Create your first characteristic to start organizing your items.'}
                   action={
                     <button
                       onClick={() => {
@@ -986,7 +1019,12 @@ export default function PropertiesPage() {
 
         <AdminModal
           isOpen={showModal}
-          onClose={() => setShowModal(false)}
+          onClose={() => {
+            if (!showCompleteAnimation) {
+              setShowModal(false);
+              setShowCompleteAnimation(false);
+            }
+          }}
           title={editingProperty ? t.editProperty : t.addProperty}
           subheader={editingProperty 
             ? (language === 'bg' ? 'Редактирайте информацията за характеристиката' : 'Edit the property information')
@@ -996,8 +1034,9 @@ export default function PropertiesPage() {
           minWidth={520}
           minHeight={550}
         >
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
+          <div className="relative">
+            <form onSubmit={handleSubmit}>
+              <div className={`space-y-4 transition-all duration-300 ${showCompleteAnimation ? 'blur-sm pointer-events-none' : ''}`}>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   {t.name}
@@ -1071,7 +1110,12 @@ export default function PropertiesPage() {
               <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-2 pt-4 border-t border-gray-200">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    if (!showCompleteAnimation) {
+                      setShowModal(false);
+                      setShowCompleteAnimation(false);
+                    }
+                  }}
                   className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
                 >
                   {t.cancel}
@@ -1085,6 +1129,14 @@ export default function PropertiesPage() {
               </div>
             </div>
           </form>
+          
+          {/* Complete Animation Overlay */}
+          {showCompleteAnimation && (
+            <div className="absolute inset-0 flex items-center justify-center z-50">
+              <CompleteAnimation size={120} />
+            </div>
+          )}
+          </div>
         </AdminModal>
 
         {showValueModal && currentProperty && (
@@ -1168,18 +1220,22 @@ export default function PropertiesPage() {
         <AdminModal
           isOpen={showDeleteModal}
           onClose={() => {
-            setShowDeleteModal(false);
-            setPropertyToDelete(null);
+            if (!showDeleteCompleteAnimation) {
+              setShowDeleteModal(false);
+              setPropertyToDelete(null);
+              setShowDeleteCompleteAnimation(false);
+            }
           }}
           title={language === 'bg' ? 'Потвърди изтриване' : 'Confirm Delete'}
           subheader={language === 'bg' 
-            ? 'Сигурни ли сте, че искате да изтриете тази характеристика? Продуктите към нея ще бъдат изтрити. Това действие не може да бъде отменено.'
+            ? 'Сигурни ли сте, че искате да изтриете тази характеристика? Артикулите към нея ще бъдат изтрити. Това действие не може да бъде отменено.'
             : 'Are you sure you want to delete this property? Products linked to it will be deleted. This action cannot be undone.'}
           maxWidth="max-w-md"
           minWidth={400}
           minHeight={550}
         >
-          <div className="space-y-4">
+          <div className="relative">
+            <div className={`space-y-4 transition-all duration-300 ${showDeleteCompleteAnimation ? 'blur-sm pointer-events-none' : ''}`}>
             {propertyToDelete && (
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm font-medium text-gray-900 mb-1">
@@ -1230,10 +1286,13 @@ export default function PropertiesPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setShowDeleteModal(false);
-                  setPropertyToDelete(null);
+                  if (!showDeleteCompleteAnimation) {
+                    setShowDeleteModal(false);
+                    setPropertyToDelete(null);
+                    setShowDeleteCompleteAnimation(false);
+                  }
                 }}
-                disabled={deleting}
+                disabled={deleting || showDeleteCompleteAnimation}
                 className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation disabled:opacity-50"
               >
                 {t.cancel}
@@ -1241,27 +1300,41 @@ export default function PropertiesPage() {
               <button
                 type="button"
                 onClick={handleDeleteConfirm}
-                disabled={deleting || (deleteProducts.items.length > 0 && !deleteConfirmed)}
+                disabled={deleting || showDeleteCompleteAnimation || (deleteProducts.items.length > 0 && !deleteConfirmed)}
                 className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-red-600 text-white rounded hover:bg-red-700 active:bg-red-800 transition-colors touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deleting ? (language === 'bg' ? 'Изтриване...' : 'Deleting...') : (language === 'bg' ? 'Изтрий' : 'Delete')}
               </button>
             </div>
+            </div>
+            
+            {/* Complete Animation Overlay */}
+            {showDeleteCompleteAnimation && (
+              <div className="absolute inset-0 flex items-center justify-center z-50">
+                <CompleteAnimation size={120} />
+              </div>
+            )}
           </div>
         </AdminModal>
 
         <AdminModal
           isOpen={showBulkDeleteModal}
-          onClose={() => setShowBulkDeleteModal(false)}
+          onClose={() => {
+            if (!showBulkDeleteCompleteAnimation) {
+              setShowBulkDeleteModal(false);
+              setShowBulkDeleteCompleteAnimation(false);
+            }
+          }}
           title={language === 'bg' ? 'Потвърди масово изтриване' : 'Confirm Bulk Delete'}
           subheader={language === 'bg'
-            ? 'Избраните характеристики и свързаните продукти ще бъдат изтрити. Това действие не може да бъде отменено.'
+            ? 'Избраните характеристики и свързаните артикули ще бъдат изтрити. Това действие не може да бъде отменено.'
             : 'Selected properties and linked products will be deleted. This action cannot be undone.'}
           maxWidth="max-w-md"
           minWidth={400}
           minHeight={260}
         >
-          <div className="space-y-4">
+          <div className="relative">
+            <div className={`space-y-4 transition-all duration-300 ${showBulkDeleteCompleteAnimation ? 'blur-sm pointer-events-none' : ''}`}>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm font-medium text-gray-900 mb-1">
                 {language === 'bg' ? 'Избрани характеристики:' : 'Selected properties:'}
@@ -1273,8 +1346,13 @@ export default function PropertiesPage() {
             <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
               <button
                 type="button"
-                onClick={() => setShowBulkDeleteModal(false)}
-                disabled={bulkDeleting}
+                onClick={() => {
+                  if (!showBulkDeleteCompleteAnimation) {
+                    setShowBulkDeleteModal(false);
+                    setShowBulkDeleteCompleteAnimation(false);
+                  }
+                }}
+                disabled={bulkDeleting || showBulkDeleteCompleteAnimation}
                 className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation disabled:opacity-50"
               >
                 {t.cancel}
@@ -1282,12 +1360,20 @@ export default function PropertiesPage() {
               <button
                 type="button"
                 onClick={handleBulkDeleteConfirm}
-                disabled={bulkDeleting}
+                disabled={bulkDeleting || showBulkDeleteCompleteAnimation}
                 className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-red-600 text-white rounded hover:bg-red-700 active:bg-red-800 transition-colors touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {bulkDeleting ? (language === 'bg' ? 'Изтриване...' : 'Deleting...') : (language === 'bg' ? 'Изтрий избраните' : 'Delete selected')}
               </button>
             </div>
+            </div>
+            
+            {/* Complete Animation Overlay */}
+            {showBulkDeleteCompleteAnimation && (
+              <div className="absolute inset-0 flex items-center justify-center z-50">
+                <CompleteAnimation size={120} />
+              </div>
+            )}
           </div>
         </AdminModal>
 

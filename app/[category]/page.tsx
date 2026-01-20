@@ -7,12 +7,27 @@ import Footer from '@/components/Footer';
 import StorePage from '@/components/StorePage';
 import { useProducts } from '@/context/ProductContext';
 import { useProductTypes } from '@/context/ProductTypeContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { useStoreSettings } from '@/context/StoreSettingsContext';
+import { translations } from '@/lib/translations';
 
 export default function CategoryPage() {
   const { category } = useParams();
   const { products } = useProducts();
   const { productTypes } = useProductTypes();
   const [isAdmin, setIsAdmin] = useState(false);
+  const { language } = useLanguage();
+  const { settings } = useStoreSettings();
+  const t = translations[language];
+
+  useEffect(() => {
+    const productType = productTypes.find(type =>
+      type.producttypeid === category || type.code === category
+    );
+    const pageTitle = productType?.name || t.products || (language === 'bg' ? 'Артикули' : 'Items');
+    const storeName = settings?.storename || '';
+    document.title = storeName ? `${pageTitle} - ${storeName}` : pageTitle;
+  }, [category, productTypes, language, t, settings?.storename]);
 
   useEffect(() => {
     const adminState = localStorage.getItem('isAdmin');

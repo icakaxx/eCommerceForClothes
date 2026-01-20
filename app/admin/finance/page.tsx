@@ -37,6 +37,10 @@ export default function FinancePage() {
   const { language } = useLanguage();
   const t = translations[language || 'en'];
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    document.title = t.finance || (language === 'bg' ? 'Финанси' : 'Finance');
+  }, [language, t]);
   const [isLoading, setIsLoading] = useState(true);
   const [financeData, setFinanceData] = useState<FinancialData | null>(null);
   const [loading, setLoading] = useState(true);

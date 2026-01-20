@@ -640,6 +640,7 @@ export interface Translations {
   deliveryMethods: string;
   youMightLike: string;
   relatedProducts: string;
+  maybeYouWillLike: string;
   showMore: string;
   showLess: string;
 }
@@ -1288,6 +1289,7 @@ export const translations: Record<Language, Translations> = {
     deliveryMethods: 'Available delivery methods: Econt Office, Address, Econtomat',
     youMightLike: 'You might like',
     relatedProducts: 'Related Products',
+    maybeYouWillLike: 'Maybe you will like',
     showMore: 'Show More',
     showLess: 'Show Less'
 
@@ -1312,10 +1314,10 @@ export const translations: Record<Language, Translations> = {
     clothesInStock: 'Дрехи в наличност',
     shoesInStock: 'Обувки в наличност',
     accessoriesInStock: 'Аксесоари в наличност',
-    browseDescription: 'Разгледайте наличните ни продукти',
+    browseDescription: 'Разгледайте наличните ни артикули',
     allItemsInStock: 'Всички артикули изброени тук са в наличност',
     all: 'Всички',
-    noProductsAvailable: 'Няма налични продукти',
+    noProductsAvailable: 'Няма налични артикули',
 
     // Product Card
     color: 'Цвят',
@@ -1326,11 +1328,11 @@ export const translations: Record<Language, Translations> = {
     inclVAT: 'с ДДС',
 
     // Admin Panel
-    products: 'Продукти',
+    products: 'Артикули',
     items: 'Артикули',
     categories: 'Категории',
     characteristics: 'Характеристики',
-    manageProducts: 'Управление на видимостта на продуктите, детайлите и количествата на склад',
+    manageProducts: 'Управление на видимостта на артикулите, детайлите и количествата на склад',
     searchPlaceholder: 'Търсене по марка, модел или цвят...',
     allCategories: 'Всички категории',
     allItems: 'Всички артикули',
@@ -1343,10 +1345,10 @@ export const translations: Record<Language, Translations> = {
     qty: 'Кол.',
     price: 'Цена',
     actions: 'Действия',
-    noProductsFound: 'Няма намерени продукти',
+    noProductsFound: 'Няма намерени артикули',
 
     // Edit Modal
-    editProduct: 'Редактиране на продукт',
+    editProduct: 'Редактиране на артикул',
     basicInfo: 'Основна информация',
     attributes: 'Атрибути',
     pricing: 'Ценообразуване',
@@ -1370,27 +1372,27 @@ export const translations: Record<Language, Translations> = {
 
     // Home Page
     welcomeToStore: 'Добре дошли в нашия магазин',
-    homeDescription: 'Открийте нашата най-нова колекция от мода и стил',
+    homeDescription: 'Открийте нашата най-нова колекция от дрехи, обувки и аксесоари',
     shopNow: 'Пазарувайте сега',
     wideSelection: 'Широк избор',
-    wideSelectionDesc: 'Разгледайте нашата обширна колекция от качествени продукти',
+    wideSelectionDesc: 'Разгледайте нашата обширна колекция от качествени артикули',
     qualityAssured: 'Гарантирано качество',
     qualityAssuredDesc: 'Всеки продукт е внимателно избран за качество и стил',
     customerFirst: 'Клиентът на първо място',
     customerFirstDesc: 'Вашето удовлетворение е наш приоритет',
     readyToShop: 'Готови ли сте да започнете пазаруване?',
-    readyToShopDesc: 'Разгледайте нашите продукти и намерете своя перфектен стил',
-    viewProducts: 'Вижте продуктите',
+    readyToShopDesc: 'Разгледайте нашите артикули и намерете своя перфектен стил',
+    viewProducts: 'Вижте артикулите',
 
     // About Page
     aboutUs: 'За нас',
     ourMission: 'Нашата мисия',
-    missionDescription: 'Нашата мисия е да предоставяме висококачествени модни продукти, които помагат на нашите клиенти да изразят своя уникален стил и личност. Ние сме ангажирани да предлагаме изключителна стойност, отлично обслужване на клиенти и безпроблемно пазаруване.',
+    missionDescription: 'Нашата мисия е да предоставяме висококачествени дрехи, обувки и аксесоари, които помагат на нашите клиенти да изразят своя уникален стил и личност. Ние сме ангажирани да предлагаме изключителна стойност, отлично обслужване на клиенти и безпроблемно пазаруване.',
     ourValues: 'Нашите ценности',
     customerFocus: 'Фокус върху клиента',
     customerFocusDesc: 'Поставяме нашите клиенти в центъра на всичко, което правим, като гарантираме, че техните нужди и удовлетворение са наш приоритет.',
     qualityExcellence: 'Качество и отличност',
-    qualityExcellenceDesc: 'Ние сме посветени на поддържането на най-високите стандарти за качество във всички наши продукти и услуги.',
+    qualityExcellenceDesc: 'Ние сме посветени на поддържането на най-високите стандарти за качество във всички наши артикули и услуги.',
     integrity: 'Честност',
     integrityDesc: 'Ние водим бизнеса си с честност, прозрачност и етични практики във всички наши взаимодействия.',
     innovation: 'Иновации',
@@ -1404,10 +1406,10 @@ export const translations: Record<Language, Translations> = {
     totalSales: 'Общи продажби',
     fromLastMonth: 'от миналия месец',
     weeklySales: 'Седмични продажби',
-    salesByCategory: 'Продажби по категория',
+    salesByCategory: 'Продажби по категории',
     recentOrders: 'Последни поръчки',
-    topProducts: 'Топ продукти',
-    productTypes: 'Типове продукти',
+    topProducts: 'Топ артикули',
+    productTypes: 'Категории',
     settings: 'Настройки',
     backToStore: 'Обратно към магазина',
     storeSettings: 'Настройки на магазина',
@@ -1427,7 +1429,7 @@ export const translations: Record<Language, Translations> = {
     pleaseSelectImage: 'Моля изберете изображение',
     fileTooLarge: 'Файлът е твърде голям. Максимален размер: 5MB',
     errorUploadingLogo: 'Грешка при качване на лого',
-    addProduct: 'Добави продукт',
+    addProduct: 'Добави артикул',
     expressAdd: 'Бързо добавяне',
     addToCart: 'Добави в количката',
     pleaseSelectSize: 'Моля, изберете размер',
@@ -1444,9 +1446,9 @@ export const translations: Record<Language, Translations> = {
     productAttributes: 'Атрибути',
     productPricing: 'Ценообразуване',
     productVisibility: 'Видимост',
-    saveProduct: 'Запази продукт',
-    createProduct: 'Създай продукт',
-    productName: 'Име на продукта',
+    saveProduct: 'Запази артикул',
+    createProduct: 'Създай артикул',
+    productName: 'Име на артикула',
     productSKU: 'SKU',
     productDescription: 'Описание',
     productCategory: 'Категория',
@@ -1500,8 +1502,8 @@ export const translations: Record<Language, Translations> = {
 
     // Tooltips
     tooltipDashboard: 'Отиди в Таблото',
-    tooltipProducts: 'Управление на продукти',
-    tooltipProductTypes: 'Управление на типове продукти',
+    tooltipProducts: 'Управление на артикули',
+    tooltipProductTypes: 'Управление на категории',
     tooltipProperties: 'Управление на характеристиките',
     tooltipSettings: 'Настройки на магазина',
     tooltipBackToStore: 'Връщане в магазина',
@@ -1784,7 +1786,7 @@ export const translations: Record<Language, Translations> = {
   salesByStatus: 'Продажби по статус',
   ordersText: 'поръчки',
   sold: 'продадени',
-  noProductData: 'Няма налични данни за продукти',
+  noProductData: 'Няма налични данни за артикули',
   noAnalyticsData: 'Няма налични аналитични данни',
   loadingAnalyticsData: 'Зареждане на аналитични данни...',
   recentSales: 'Последни продажби',
@@ -1843,7 +1845,7 @@ export const translations: Record<Language, Translations> = {
 
   // Product Types
   loading: 'Зареждане...',
-  noProductTypesFound: 'Няма намерени типове продукти. Създайте един, за да започнете.',
+  noProductTypesFound: 'Няма намерени категории. Създайте една, за да започнете.',
   confirmDeleteProductType: 'Сигурни ли сте, че искате да изтриете тази категория?',
   errorPrefix: 'Грешка: ',
   failedToSaveProductType: 'Неуспешно запазване на типа продукт',
@@ -1930,7 +1932,8 @@ export const translations: Record<Language, Translations> = {
     deliveryTime: 'Стандартната доставка отнема 2-3 работни дни',
     deliveryMethods: 'Налични методи за доставка: Офис на Еконт, Адрес, Еконтомат',
     youMightLike: 'Може да харесате',
-    relatedProducts: 'Свързани продукти',
+    relatedProducts: 'Свързани артикули',
+    maybeYouWillLike: 'Може да харесате',
     showMore: 'Покажи повече',
     showLess: 'Покажи по-малко'
 

@@ -50,6 +50,10 @@ export default function AdminSettingsPage() {
   const { refreshSettings } = useStoreSettings();
   const t = translations[language || 'en'];
 
+  useEffect(() => {
+    document.title = t.settings || (language === 'bg' ? 'Настройки' : 'Settings');
+  }, [language, t]);
+
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);

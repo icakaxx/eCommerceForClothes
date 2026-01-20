@@ -10,6 +10,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
 import { AdminPage, PageHeader, Section, SectionSurface, EmptyState, DataTableShell, TableHeader, TableHeaderRow, TableHeaderCell, TableBody, TableRow, TableCell } from '../components/layout';
 import { Package } from 'lucide-react';
+import CompleteAnimation from '@/components/CompleteAnimation';
 
 interface Product {
   productid: string;
@@ -41,6 +42,10 @@ export default function ProductsPage() {
   const { language } = useLanguage();
   const t = translations[language || 'en'];
   const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    document.title = t.products || (language === 'bg' ? 'Артикули' : 'Items');
+  }, [language, t]);
   const [productTypes, setProductTypes] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -78,6 +83,10 @@ export default function ProductsPage() {
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<number, { price?: boolean; quantity?: boolean }>>({});
+  const [showCompleteAnimation, setShowCompleteAnimation] = useState(false);
+  const [showDeleteCompleteAnimation, setShowDeleteCompleteAnimation] = useState(false);
+  const [showBulkDeleteCompleteAnimation, setShowBulkDeleteCompleteAnimation] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -365,9 +374,50 @@ export default function ProductsPage() {
     e.preventDefault();
     
     if (variants.length === 0) {
-      alert('Please generate at least one variant');
+      alert(language === 'bg' ? 'Моля, генерирайте поне един вариант' : 'Please generate at least one variant');
       return;
     }
+
+    // Validate that all variants have valid price and quantity
+    const errors: Record<number, { price?: boolean; quantity?: boolean }> = {};
+    let hasErrors = false;
+
+    variants.forEach((variant, index) => {
+      const variantErrors: { price?: boolean; quantity?: boolean } = {};
+      let variantHasErrors = false;
+
+      // Check if price is missing, zero, or invalid
+      if (!variant.price || variant.price <= 0 || isNaN(variant.price)) {
+        variantErrors.price = true;
+        variantHasErrors = true;
+      }
+
+      // Check if quantity is missing, zero, or invalid
+      if (!variant.quantity || variant.quantity <= 0 || isNaN(variant.quantity)) {
+        variantErrors.quantity = true;
+        variantHasErrors = true;
+      }
+
+      if (variantHasErrors) {
+        errors[index] = variantErrors;
+        hasErrors = true;
+      }
+    });
+
+    if (hasErrors) {
+      setValidationErrors(errors);
+      // Scroll to bottom of form to show error message
+      setTimeout(() => {
+        const errorMessage = document.querySelector('[data-validation-error]');
+        if (errorMessage) {
+          errorMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+      }, 100);
+      return;
+    }
+
+    // Clear validation errors if validation passes
+    setValidationErrors({});
 
     try {
       const url = editingProduct 
@@ -397,17 +447,24 @@ export default function ProductsPage() {
       console.log('API response:', result);
       
       if (result.success) {
-        setShowModal(false);
-        setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, propertyvalues: {} });
-        setEditingProduct(null);
-        setVariants([]);
-        setVariantDisplayValues({});
-        setOriginalPropertyValues({});
-        setSelectedPropertyValues({});
-        setNewPropertyValues({});
-        setProductImages([]);
-
-        loadProducts();
+        // Show complete animation
+        setShowCompleteAnimation(true);
+        
+        // Close modal and reset after animation completes
+        setTimeout(() => {
+          setShowModal(false);
+          setShowCompleteAnimation(false);
+          setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, propertyvalues: {} });
+          setEditingProduct(null);
+          setVariants([]);
+          setVariantDisplayValues({});
+          setOriginalPropertyValues({});
+          setSelectedPropertyValues({});
+          setNewPropertyValues({});
+          setProductImages([]);
+          setValidationErrors({});
+          loadProducts();
+        }, 1200);
       } else {
         alert('Error: ' + result.error);
       }
@@ -419,6 +476,7 @@ export default function ProductsPage() {
 
   const handleEdit = async (product: Product) => {
     setEditingProduct(product);
+    setValidationErrors({});
     
     // Fetch full product details including variants
     try {
@@ -520,9 +578,16 @@ export default function ProductsPage() {
       const response = await fetch(`/api/products/${productToDelete.productid}`, { method: 'DELETE' });
       const result = await response.json();
       if (result.success) {
-        setShowDeleteModal(false);
-        setProductToDelete(null);
-        loadProducts();
+        // Show complete animation
+        setShowDeleteCompleteAnimation(true);
+        
+        // Close modal and reset after animation completes
+        setTimeout(() => {
+          setShowDeleteModal(false);
+          setShowDeleteCompleteAnimation(false);
+          setProductToDelete(null);
+          loadProducts();
+        }, 1200);
       } else {
         alert('Error: ' + result.error);
       }
@@ -574,11 +639,22 @@ export default function ProductsPage() {
         );
         setSelectedProductIds(failed.map((item) => item.id));
       } else {
-        setSelectedProductIds([]);
-        setShowBulkDeleteModal(false);
+        // Show complete animation
+        setShowBulkDeleteCompleteAnimation(true);
+        
+        // Close modal and reset after animation completes
+        setTimeout(() => {
+          setSelectedProductIds([]);
+          setShowBulkDeleteModal(false);
+          setShowBulkDeleteCompleteAnimation(false);
+          loadProducts();
+        }, 1200);
       }
 
-      loadProducts();
+      if (failed.length === 0) {
+        // Don't reload if there were failures
+        return;
+      }
     } catch (error) {
       console.error('Failed to bulk delete products:', error);
       alert(language === 'bg' ? 'Неуспешно масово изтриване' : 'Bulk delete failed');
@@ -821,7 +897,7 @@ export default function ProductsPage() {
     <AdminLayout currentPath="/admin/products">
       <AdminPage>
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-          <h1 className="text-2xl sm:text-3xl font-bold">Продукти</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Артикули</h1>
           <div className="flex flex-wrap items-center gap-2">
             {selectedProductIds.length > 0 && (
               <button
@@ -843,6 +919,7 @@ export default function ProductsPage() {
                 setVariants([]);
                 setVariantDisplayValues({});
               setProductImages([]);
+                setValidationErrors({});
                 setShowModal(true);
               }}
               className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation text-sm sm:text-base"
@@ -862,7 +939,7 @@ export default function ProductsPage() {
           <>
           <Section
             title={language === 'bg' ? 'Списък с артикули' : 'Items List'}
-            description={language === 'bg' ? 'Управлявайте продуктите и техните варианти' : 'Manage products and their variants'}
+            description={language === 'bg' ? 'Управлявайте артикулите и техните варианти' : 'Manage items and their variants'}
           >
             {products.length === 0 ? (
               <EmptyState
@@ -878,6 +955,7 @@ export default function ProductsPage() {
                       setVariants([]);
                       setProductImages([]);
         setVariantDisplayValues({});
+                      setValidationErrors({});
                       setShowModal(true);
                     }}
                     className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
@@ -1056,7 +1134,7 @@ export default function ProductsPage() {
                 <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between w-full">
                   <div>
                     <p className="text-xs sm:text-sm text-gray-700">
-                      {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, products.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{products.length}</span> {language === 'bg' ? 'продукти' : 'products'}
+                      {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, products.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{products.length}</span> {language === 'bg' ? 'артикули' : 'items'}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1121,8 +1199,10 @@ export default function ProductsPage() {
       <AdminModal
           isOpen={showModal}
           onClose={() => {
-            setShowModal(false);
-            // Don't clear the data here - only clear when starting a new product
+            if (!showCompleteAnimation) {
+              setShowModal(false);
+              // Don't clear the data here - only clear when starting a new product
+            }
           }}
           title={editingProduct ? t.editProduct : t.addProduct}
           subheader={editingProduct
@@ -1133,8 +1213,9 @@ export default function ProductsPage() {
           minWidth={320}
           minHeight={400}
         >
+          <div className="relative">
               <form onSubmit={handleSubmit}>
-                <div className="space-y-4">
+                <div className={`space-y-4 transition-all duration-300 ${showCompleteAnimation ? 'blur-sm pointer-events-none' : ''}`}>
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                       {t.productName}
@@ -1508,10 +1589,23 @@ export default function ProductsPage() {
                                   <td className="px-3 py-2">
                                     <input
                                       type="text"
+                                      data-variant-index={index}
                                       value={formatNumericValue(variant.price, index, 'price')}
                                       onChange={(e) => {
                                         const validated = handleNumericInput(e.target.value, true);
                                         const key = `variant_${index}`;
+                                        
+                                        // Clear validation error for this field
+                                        setValidationErrors(prev => {
+                                          const updated = { ...prev };
+                                          if (updated[index]?.price) {
+                                            delete updated[index].price;
+                                            if (Object.keys(updated[index]).length === 0) {
+                                              delete updated[index];
+                                            }
+                                          }
+                                          return updated;
+                                        });
                                         
                                         // Store the display value
                                         setVariantDisplayValues(prev => ({
@@ -1572,16 +1666,33 @@ export default function ProductsPage() {
                                           }
                                         }
                                       }}
-                                      className="w-20 px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      className={`w-20 px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 ${
+                                        validationErrors[index]?.price
+                                          ? 'border-red-500 focus:ring-red-500'
+                                          : 'focus:ring-blue-500'
+                                      }`}
                                     />
                                   </td>
                                   <td className="px-3 py-2">
                                     <input
                                       type="text"
+                                      data-variant-index={index}
                                       value={formatNumericValue(variant.quantity, index, 'quantity')}
                                       onChange={(e) => {
                                         const validated = handleNumericInput(e.target.value, false);
                                         const key = `variant_${index}`;
+                                        
+                                        // Clear validation error for this field
+                                        setValidationErrors(prev => {
+                                          const updated = { ...prev };
+                                          if (updated[index]?.quantity) {
+                                            delete updated[index].quantity;
+                                            if (Object.keys(updated[index]).length === 0) {
+                                              delete updated[index];
+                                            }
+                                          }
+                                          return updated;
+                                        });
                                         
                                         // Store the display value
                                         setVariantDisplayValues(prev => ({
@@ -1637,7 +1748,11 @@ export default function ProductsPage() {
                                           });
                                         }
                                       }}
-                                      className="w-20 px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      className={`w-20 px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 ${
+                                        validationErrors[index]?.quantity
+                                          ? 'border-red-500 focus:ring-red-500'
+                                          : 'focus:ring-blue-500'
+                                      }`}
                                     />
                                   </td>
                                   <td className="px-3 py-2">
@@ -1720,10 +1835,23 @@ export default function ProductsPage() {
                                   <label className="block text-gray-500 mb-1">{t.price}</label>
                                   <input
                                     type="text"
+                                    data-variant-index={index}
                                     value={formatNumericValue(variant.price, index, 'price')}
                                     onChange={(e) => {
                                       const validated = handleNumericInput(e.target.value, true);
                                       const key = `variant_${index}`;
+                                        
+                                      // Clear validation error for this field
+                                      setValidationErrors(prev => {
+                                        const updated = { ...prev };
+                                        if (updated[index]?.price) {
+                                          delete updated[index].price;
+                                          if (Object.keys(updated[index]).length === 0) {
+                                            delete updated[index];
+                                          }
+                                        }
+                                        return updated;
+                                      });
                                         
                                       // Store the display value
                                       setVariantDisplayValues(prev => ({
@@ -1784,17 +1912,34 @@ export default function ProductsPage() {
                                         }
                                       }
                                     }}
-                                    className="w-full px-2 py-1.5 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+                                    className={`w-full px-2 py-1.5 border rounded focus:outline-none focus:ring-2 text-xs ${
+                                      validationErrors[index]?.price
+                                        ? 'border-red-500 focus:ring-red-500'
+                                        : 'focus:ring-blue-500'
+                                    }`}
                                   />
                                 </div>
                                 <div>
                                   <label className="block text-gray-500 mb-1">{t.quantity}</label>
                                   <input
                                     type="text"
+                                    data-variant-index={index}
                                     value={formatNumericValue(variant.quantity, index, 'quantity')}
                                     onChange={(e) => {
                                       const validated = handleNumericInput(e.target.value, false);
                                       const key = `variant_${index}`;
+                                        
+                                      // Clear validation error for this field
+                                      setValidationErrors(prev => {
+                                        const updated = { ...prev };
+                                        if (updated[index]?.quantity) {
+                                          delete updated[index].quantity;
+                                          if (Object.keys(updated[index]).length === 0) {
+                                            delete updated[index];
+                                          }
+                                        }
+                                        return updated;
+                                      });
                                         
                                       // Store the display value
                                       setVariantDisplayValues(prev => ({
@@ -1850,7 +1995,11 @@ export default function ProductsPage() {
                                         });
                                       }
                                     }}
-                                    className="w-full px-2 py-1.5 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+                                    className={`w-full px-2 py-1.5 border rounded focus:outline-none focus:ring-2 text-xs ${
+                                      validationErrors[index]?.quantity
+                                        ? 'border-red-500 focus:ring-red-500'
+                                        : 'focus:ring-blue-500'
+                                    }`}
                                   />
                                 </div>
                                 <div>
@@ -1905,18 +2054,34 @@ export default function ProductsPage() {
                   )}
                     </div>
 
+                    {/* Validation Error Message */}
+                    {Object.keys(validationErrors).length > 0 && (
+                      <div 
+                        data-validation-error
+                        className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md"
+                      >
+                        <p className="text-sm text-red-800 font-medium">
+                          {language === 'bg' ? 'Моля попълнете липсващите полета' : 'Please fill in the missing fields'}
+                        </p>
+                      </div>
+                    )}
+
                     <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-2 pt-4 border-t border-gray-200 mt-6">
                       <button
                         type="button"
                         onClick={() => {
-                          setShowModal(false);
-                          setProductTypeProperties([]);
-                          setShowMediaModal(false);
-                          setMediaTarget(null);
-                          setSelectedPropertyValues({});
-                          setVariants([]);
+                          if (!showCompleteAnimation) {
+                            setShowModal(false);
+                            setProductTypeProperties([]);
+                            setShowMediaModal(false);
+                            setMediaTarget(null);
+                            setSelectedPropertyValues({});
+                            setVariants([]);
         setVariantDisplayValues({});
-                          setNewPropertyValues({});
+                            setNewPropertyValues({});
+                            setValidationErrors({});
+                            setShowCompleteAnimation(false);
+                          }
                         }}
                         className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
                       >
@@ -1933,6 +2098,14 @@ export default function ProductsPage() {
                       </button>
                     </div>
                   </form>
+                  
+                  {/* Complete Animation Overlay */}
+                  {showCompleteAnimation && (
+                    <div className="absolute inset-0 flex items-center justify-center z-50">
+                      <CompleteAnimation size={120} />
+                    </div>
+                  )}
+          </div>
         </AdminModal>
 
         {/* Media Selection Modal */}
@@ -2069,8 +2242,11 @@ export default function ProductsPage() {
         <AdminModal
           isOpen={showDeleteModal}
           onClose={() => {
-            setShowDeleteModal(false);
-            setProductToDelete(null);
+            if (!showDeleteCompleteAnimation) {
+              setShowDeleteModal(false);
+              setProductToDelete(null);
+              setShowDeleteCompleteAnimation(false);
+            }
           }}
           title={language === 'bg' ? 'Потвърди изтриване' : 'Confirm Delete'}
           subheader={language === 'bg' 
@@ -2080,7 +2256,8 @@ export default function ProductsPage() {
           minWidth={400}
           minHeight={200}
         >
-          <div className="space-y-4">
+          <div className="relative">
+            <div className={`space-y-4 transition-all duration-300 ${showDeleteCompleteAnimation ? 'blur-sm pointer-events-none' : ''}`}>
             {productToDelete && (
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm font-medium text-gray-900 mb-1">
@@ -2093,10 +2270,13 @@ export default function ProductsPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setShowDeleteModal(false);
-                  setProductToDelete(null);
+                  if (!showDeleteCompleteAnimation) {
+                    setShowDeleteModal(false);
+                    setProductToDelete(null);
+                    setShowDeleteCompleteAnimation(false);
+                  }
                 }}
-                disabled={deleting}
+                disabled={deleting || showDeleteCompleteAnimation}
                 className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation disabled:opacity-50"
               >
                 {t.cancel}
@@ -2104,30 +2284,44 @@ export default function ProductsPage() {
               <button
                 type="button"
                 onClick={handleDeleteConfirm}
-                disabled={deleting}
+                disabled={deleting || showDeleteCompleteAnimation}
                 className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-danger text-danger-foreground rounded hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deleting ? (language === 'bg' ? 'Изтриване...' : 'Deleting...') : (language === 'bg' ? 'Изтрий' : 'Delete')}
               </button>
             </div>
+            </div>
+            
+            {/* Complete Animation Overlay */}
+            {showDeleteCompleteAnimation && (
+              <div className="absolute inset-0 flex items-center justify-center z-50">
+                <CompleteAnimation size={120} />
+              </div>
+            )}
           </div>
         </AdminModal>
 
         <AdminModal
           isOpen={showBulkDeleteModal}
-          onClose={() => setShowBulkDeleteModal(false)}
+          onClose={() => {
+            if (!showBulkDeleteCompleteAnimation) {
+              setShowBulkDeleteModal(false);
+              setShowBulkDeleteCompleteAnimation(false);
+            }
+          }}
           title={language === 'bg' ? 'Потвърди масово изтриване' : 'Confirm Bulk Delete'}
           subheader={language === 'bg'
-            ? 'Избраните продукти ще бъдат изтрити. Това действие не може да бъде отменено.'
+            ? 'Избраните артикули ще бъдат изтрити. Това действие не може да бъде отменено.'
             : 'Selected products will be deleted. This action cannot be undone.'}
           maxWidth="max-w-md"
           minWidth={400}
           minHeight={200}
         >
-          <div className="space-y-4">
+          <div className="relative">
+            <div className={`space-y-4 transition-all duration-300 ${showBulkDeleteCompleteAnimation ? 'blur-sm pointer-events-none' : ''}`}>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm font-medium text-gray-900 mb-1">
-                {language === 'bg' ? 'Избрани продукти:' : 'Selected products:'}
+                {language === 'bg' ? 'Избрани артикули:' : 'Selected items:'}
               </p>
               <p className="text-sm text-gray-700">
                 {selectedProductIds.length}
@@ -2136,8 +2330,13 @@ export default function ProductsPage() {
             <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
               <button
                 type="button"
-                onClick={() => setShowBulkDeleteModal(false)}
-                disabled={bulkDeleting}
+                onClick={() => {
+                  if (!showBulkDeleteCompleteAnimation) {
+                    setShowBulkDeleteModal(false);
+                    setShowBulkDeleteCompleteAnimation(false);
+                  }
+                }}
+                disabled={bulkDeleting || showBulkDeleteCompleteAnimation}
                 className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation disabled:opacity-50"
               >
                 {t.cancel}
@@ -2145,12 +2344,20 @@ export default function ProductsPage() {
               <button
                 type="button"
                 onClick={handleBulkDeleteConfirm}
-                disabled={bulkDeleting}
+                disabled={bulkDeleting || showBulkDeleteCompleteAnimation}
                 className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-danger text-danger-foreground rounded hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {bulkDeleting ? (language === 'bg' ? 'Изтриване...' : 'Deleting...') : (language === 'bg' ? 'Изтрий избраните' : 'Delete selected')}
               </button>
             </div>
+            </div>
+            
+            {/* Complete Animation Overlay */}
+            {showBulkDeleteCompleteAnimation && (
+              <div className="absolute inset-0 flex items-center justify-center z-50">
+                <CompleteAnimation size={120} />
+              </div>
+            )}
           </div>
         </AdminModal>
     </AdminLayout>

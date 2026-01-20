@@ -23,6 +23,10 @@ export default function CustomersPage() {
   const { language } = useLanguage();
   const t = translations[language || 'en'];
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    document.title = t.customers || (language === 'bg' ? 'Клиенти' : 'Customers');
+  }, [language, t]);
   const [isLoading, setIsLoading] = useState(true);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);

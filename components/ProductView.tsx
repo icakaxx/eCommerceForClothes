@@ -3,11 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import ProductMediaGallery from './ProductMediaGallery';
 import ProductDetails from './ProductDetails';
+import ProductCard from './ProductCard';
 import { Product } from '@/lib/data';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import Link from 'next/link';
 
 interface ProductViewProps {
   product: Product;
@@ -22,6 +24,7 @@ export default function ProductView({ product }: ProductViewProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isDeliveryExpanded, setIsDeliveryExpanded] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [maybeYouWillLikeProducts, setMaybeYouWillLikeProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     const productImageUrls = Array.isArray(product.images) && product.images.length > 0
@@ -73,6 +76,99 @@ export default function ProductView({ product }: ProductViewProps) {
 
     fetchRelatedProducts();
   }, [product.id, product.productid]);
+
+  // Fetch and prioritize "Maybe you will like" products
+  useEffect(() => {
+    const fetchMaybeYouWillLikeProducts = async () => {
+      try {
+        // Fetch all products
+        const response = await fetch('/api/products');
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        if (!data.success || !data.products) return;
+
+        const allProducts = data.products as Product[];
+        const currentProductId = product.id || product.productid;
+        
+        // Filter out current product and non-visible products
+        const otherProducts = allProducts.filter(p => {
+          const pid = p.id || p.productid;
+          return pid !== currentProductId && p.visible !== false;
+        });
+
+        // If no other products, don't show section
+        if (otherProducts.length === 0) {
+          setMaybeYouWillLikeProducts([]);
+          return;
+        }
+
+        // Get current product's property values and category
+        const currentPropertyValues = product.propertyValues || product.propertyvalues || {};
+        const currentCategoryId = product.productTypeID || product.producttypeid;
+
+        // Priority groups
+        const sameCharacteristics: Product[] = [];
+        const sameCategory: Product[] = [];
+        const rest: Product[] = [];
+
+        otherProducts.forEach(p => {
+          const pid = p.id || p.productid;
+          if (pid === currentProductId) return;
+
+          const productPropertyValues = p.propertyValues || p.propertyvalues || {};
+          const productCategoryId = p.productTypeID || p.producttypeid;
+
+          // Check if shares characteristics (at least one property value match)
+          const hasMatchingCharacteristics = Object.keys(currentPropertyValues).some(propId => {
+            const currentValue = currentPropertyValues[propId];
+            const productValue = productPropertyValues[propId];
+            return currentValue && productValue && currentValue === productValue;
+          });
+
+          if (hasMatchingCharacteristics) {
+            sameCharacteristics.push(p);
+          } else if (productCategoryId === currentCategoryId) {
+            sameCategory.push(p);
+          } else {
+            rest.push(p);
+          }
+        });
+
+        // Combine: characteristics first, then category, then rest, up to at least 4 items
+        const suggestedProducts: Product[] = [];
+        
+        // Add same characteristics products (up to 4)
+        suggestedProducts.push(...sameCharacteristics.slice(0, 4));
+        
+        // If we need more, add same category products
+        if (suggestedProducts.length < 4) {
+          const needed = 4 - suggestedProducts.length;
+          suggestedProducts.push(...sameCategory.slice(0, needed));
+        }
+        
+        // If we still need more, add rest
+        if (suggestedProducts.length < 4) {
+          const needed = 4 - suggestedProducts.length;
+          suggestedProducts.push(...rest.slice(0, needed));
+        }
+
+        // If there are fewer than 4 total, show what's available
+        if (suggestedProducts.length > 0) {
+          setMaybeYouWillLikeProducts(suggestedProducts);
+        } else {
+          setMaybeYouWillLikeProducts([]);
+        }
+      } catch (error) {
+        console.error('Error fetching maybe you will like products:', error);
+        setMaybeYouWillLikeProducts([]);
+      }
+    };
+
+    if (product.id || product.productid) {
+      fetchMaybeYouWillLikeProducts();
+    }
+  }, [product.id, product.productid, product.propertyValues, product.propertyvalues, product.productTypeID, product.producttypeid]);
 
   const handleVariantImageChange = useCallback((images: string[] | string | undefined) => {
     if (images) {
@@ -236,6 +332,25 @@ export default function ProductView({ product }: ProductViewProps) {
                   </a>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Maybe You Will Like Section */}
+        {maybeYouWillLikeProducts.length > 0 && (
+          <div className="mt-16 pt-16 border-t" style={{ borderColor: theme.colors.border }}>
+            <h2 
+              className="text-2xl font-bold mb-8"
+              style={{ color: theme.colors.text }}
+            >
+              {t.maybeYouWillLike}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              {maybeYouWillLikeProducts.map((suggestedProduct) => (
+                <div key={suggestedProduct.id || suggestedProduct.productid}>
+                  <ProductCard product={suggestedProduct} />
+                </div>
+              ))}
             </div>
           </div>
         )}

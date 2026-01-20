@@ -69,7 +69,7 @@ export async function GET(
   }
 }
 
-// POST - Assign property to product type
+// POST - Assign property(ies) to product type
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -79,26 +79,30 @@ export async function POST(
     const { id } = await params;
     const body = await request.json();
 
-    const { propertyid } = body;
+    // Support both single propertyid (backward compatibility) and array of propertyids
+    const { propertyid, propertyids } = body;
+    const propertyIds = propertyids || (propertyid ? [propertyid] : []);
 
-    if (!propertyid) {
+    if (!propertyIds || propertyIds.length === 0) {
       return NextResponse.json(
-        { error: 'Missing required field: propertyid' },
+        { error: 'Missing required field: propertyid or propertyids' },
         { status: 400 }
       );
     }
 
-    const { data: productTypeProperty, error } = await supabase
+    // Insert all properties at once
+    const insertData = propertyIds.map((pid: string) => ({
+      producttypeid: id,
+      propertyid: pid
+    }));
+
+    const { data: productTypeProperties, error } = await supabase
       .from('product_type_properties')
-      .insert({
-        producttypeid: id,
-        propertyid
-      })
-      .select()
-      .single();
+      .insert(insertData)
+      .select();
 
     if (error) {
-      console.error('Error assigning property to product type:', error);
+      console.error('Error assigning properties to product type:', error);
       return NextResponse.json(
         { error: error.message },
         { status: 500 }
@@ -107,7 +111,8 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      productTypeProperty
+      productTypeProperty: productTypeProperties?.length === 1 ? productTypeProperties[0] : undefined,
+      productTypeProperties: productTypeProperties
     });
 
   } catch (error) {

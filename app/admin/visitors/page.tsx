@@ -27,6 +27,10 @@ export default function VisitorsPage() {
   const { language } = useLanguage();
   const t = translations[language || 'en'];
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    document.title = t.visitors || (language === 'bg' ? 'Посетители' : 'Visitors');
+  }, [language, t]);
   const [isLoading, setIsLoading] = useState(true);
   const [analytics, setAnalytics] = useState<VisitorAnalytics | null>(null);
   const [loading, setLoading] = useState(true);

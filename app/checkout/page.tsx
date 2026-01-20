@@ -8,6 +8,7 @@ import CartDrawer from '@/components/CartDrawer';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useCart } from '@/context/CartContext';
+import { useStoreSettings } from '@/context/StoreSettingsContext';
 import { useCheckoutStore, type DeliveryType, type CityOption } from '@/store/checkoutStore';
 import { translations } from '@/lib/translations';
 import { ShoppingBag, Truck, MapPin, Package } from 'lucide-react';
@@ -18,6 +19,14 @@ export default function CheckoutPage() {
   const { language } = useLanguage();
   const { theme } = useTheme();
   const { items, totalItems, totalPrice, clearCart } = useCart();
+  const { settings } = useStoreSettings();
+  const t = translations[language];
+
+  useEffect(() => {
+    const pageTitle = t.checkout || (language === 'bg' ? 'Поръчка' : 'Checkout');
+    const storeName = settings?.storename || '';
+    document.title = storeName ? `${pageTitle} - ${storeName}` : pageTitle;
+  }, [language, t, settings?.storename]);
   const {
     formData,
     cities,

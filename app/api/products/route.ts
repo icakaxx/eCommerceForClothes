@@ -6,27 +6,30 @@ const getSupabase = () => supabaseAdmin as any;
 
 // Ensure SKUs are unique by checking database and generating alternatives if needed
 async function ensureUniqueSKUs(variants: any[], supabase: any) {
-  const processedVariants = [];
+  if (variants.length === 0) return variants;
 
+  // Get all SKUs from variants
+  const skus = variants.map(v => v.sku).filter(Boolean);
+  if (skus.length === 0) return variants;
+
+  // Batch check all SKUs at once
+  const { data: existingVariants } = await supabase
+    .from('product_variants')
+    .select('sku')
+    .in('sku', skus);
+
+  const existingSKUs = new Set((existingVariants || []).map((v: any) => v.sku));
+
+  // Process each variant to ensure unique SKU
+  const processedVariants = [];
   for (const variant of variants) {
     let finalSKU = variant.sku;
     let counter = 1;
 
-    // Check if SKU exists and generate unique alternative if needed
-    while (true) {
-      const { data: existingVariant } = await supabase
-        .from('product_variants')
-        .select('productvariantid')
-        .eq('sku', finalSKU)
-        .single();
-
-      if (!existingVariant) {
-        // SKU is unique, use it
-        break;
-      }
-
+    // Only check if SKU is in the existing set
+    while (existingSKUs.has(finalSKU)) {
       // Generate alternative SKU
-      const baseSKU = variant.sku.split('-').slice(0, -1).join('-'); // Remove last part
+      const baseSKU = variant.sku.split('-').slice(0, -1).join('-') || variant.sku;
       finalSKU = `${baseSKU}-${counter}`;
       counter++;
 
@@ -35,6 +38,11 @@ async function ensureUniqueSKUs(variants: any[], supabase: any) {
         finalSKU = `${variant.sku}_${Date.now()}`;
         break;
       }
+    }
+
+    // Add to set to prevent duplicates within the same batch
+    if (finalSKU !== variant.sku) {
+      existingSKUs.add(finalSKU);
     }
 
     processedVariants.push({
@@ -344,104 +352,91 @@ export async function POST(request: NextRequest) {
       }
     }
 
-      // Create new variants
-      for (const variantData of uniqueVariants) {
-        const {
-          sku: variantsku,
-          price,
-          compareatprice,
-          cost,
-          quantity,
-          weight,
-          weightunit,
-          barcode,
-          trackquantity,
-          isvisible,
-          propertyvalues = [],
-          imageurl,
-          images,
-          IsPrimaryImage
-        } = variantData;
+      // Batch create all variants at once
+      if (uniqueVariants.length > 0) {
+        const variantRows = uniqueVariants.map((variantData) => ({
+          productid: product.productid,
+          sku: variantData.sku,
+          price: variantData.price,
+          quantity: variantData.quantity,
+          trackquantity: variantData.trackquantity ?? true,
+          isvisible: variantData.isvisible ?? true
+        }));
 
-        // Create new variant (no upsert - variants should be unique per product)
-        const { data: variant, error: variantError } = await supabase
+        const { data: createdVariants, error: variantError } = await supabase
           .from('product_variants')
-          .insert({
-            productid: product.productid,
-            sku: variantsku,
-            price,
-            quantity,
-            trackquantity: trackquantity ?? true,
-            isvisible: isvisible ?? true
-          })
-          .select()
-          .single();
+          .insert(variantRows)
+          .select();
 
         if (variantError) {
-          console.error('❌ Error creating variant:', variantError);
-          continue; // Continue with other variants
+          console.error('❌ Error creating variants:', variantError);
+          return NextResponse.json(
+            { error: variantError.message },
+            { status: 500 }
+          );
         }
 
-        // Create/update property values for this variant
-        if (propertyvalues.length > 0) {
-          // First, delete existing property values for this variant
-          await supabase
-            .from('product_variant_property_values')
-            .delete()
-            .eq('productvariantid', variant.productvariantid);
+        // Batch insert all property values
+        const allPropertyValues: any[] = [];
+        createdVariants.forEach((variant, index) => {
+          const variantData = uniqueVariants[index];
+          const propertyvalues = variantData.propertyvalues || [];
+          
+          propertyvalues.forEach((pv: any) => {
+            allPropertyValues.push({
+              productvariantid: variant.productvariantid,
+              propertyid: pv.propertyid,
+              value: pv.value
+            });
+          });
+        });
 
-          // Then insert the new property values
-          const propertyValuesData = propertyvalues.map((pv: any) => ({
-            productvariantid: variant.productvariantid,
-            propertyid: pv.propertyid,
-            value: pv.value
-          }));
-
+        if (allPropertyValues.length > 0) {
           const { error: pvError } = await supabase
             .from('product_variant_property_values')
-            .insert(propertyValuesData);
+            .insert(allPropertyValues);
 
           if (pvError) {
             console.error('Error creating property values:', pvError);
           }
         }
 
-        // Handle variant images - prioritize images array, fall back to imageurl
-        const variantImages = images && Array.isArray(images) && images.length > 0 
-          ? images 
-          : imageurl 
-            ? [imageurl] 
-            : [];
-
-        if (variantImages.length > 0) {
-          console.log('🖼️ Saving variant images:', {
-            productid: product.productid,
-            productvariantid: variant.productvariantid,
-            imagesCount: variantImages.length,
-            images: variantImages
-          });
+        // Batch insert all variant images
+        const allVariantImages: any[] = [];
+        createdVariants.forEach((variant, index) => {
+          const variantData = uniqueVariants[index];
+          const { imageurl, images, IsPrimaryImage } = variantData;
           
-          // Insert all images for this variant
-          const imageDataArray = variantImages.map((imgUrl, index) => ({
-            productid: product.productid,
-            productvariantid: variant.productvariantid,
-            imageurl: imgUrl,
-            isprimary: (IsPrimaryImage && index === 0) || index === 0,
-            sortorder: index
-          }));
+          // Handle variant images - prioritize images array, fall back to imageurl
+          const variantImages = images && Array.isArray(images) && images.length > 0 
+            ? images 
+            : imageurl 
+              ? [imageurl] 
+              : [];
 
-          const { data: imageData, error: imageError } = await supabase
+          if (variantImages.length > 0) {
+            variantImages.forEach((imgUrl: string, imgIndex: number) => {
+              allVariantImages.push({
+                productid: product.productid,
+                productvariantid: variant.productvariantid,
+                imageurl: imgUrl,
+                isprimary: (IsPrimaryImage && imgIndex === 0) || imgIndex === 0,
+                sortorder: imgIndex
+              });
+            });
+          }
+        });
+
+        if (allVariantImages.length > 0) {
+          const { error: imageError } = await supabase
             .from('product_images')
-            .insert(imageDataArray)
-            .select();
+            .insert(allVariantImages);
 
           if (imageError) {
             console.error('❌ Error creating variant images:', imageError);
           } else {
-            console.log(`✅ Saved ${imageData.length} variant image(s):`, imageData);
+            console.log(`✅ Saved ${allVariantImages.length} variant image(s) in batch`);
           }
-        } else {
-          console.log('⚠️ No images for variant:', variant.productvariantid);
         }
       }
 

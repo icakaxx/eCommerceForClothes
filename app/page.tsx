@@ -26,6 +26,12 @@ export default function Home() {
   const t = translations[language];
 
   useEffect(() => {
+    const pageTitle = t.home || (language === 'bg' ? 'Начало' : 'Home');
+    const storeName = settings?.storename || '';
+    document.title = storeName ? `${pageTitle} - ${storeName}` : pageTitle;
+  }, [language, t, settings?.storename]);
+
+  useEffect(() => {
     const adminState = localStorage.getItem('isAdmin');
     if (adminState === 'true') {
       setIsAdmin(true);
@@ -243,7 +249,7 @@ export default function Home() {
               className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center transition-colors duration-300"
               style={{ color: theme.colors.text }}
             >
-              {language === 'bg' ? 'Избрани продукти' : 'Featured Products'}
+              {language === 'bg' ? 'Избрани артикули' : 'Featured Items'}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {featuredProducts.map((product) => (

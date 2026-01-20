@@ -9,6 +9,7 @@ import { getAdminSession } from '@/lib/auth';
 import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
 import { Plus, Edit2, Trash2, ChevronDown } from 'lucide-react';
+import CompleteAnimation from '@/components/CompleteAnimation';
 
 interface Discount {
   discountid: string;
@@ -35,6 +36,10 @@ export default function DiscountsPage() {
   const { language } = useLanguage();
   const t = translations[language || 'en'];
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    document.title = t.discounts || (language === 'bg' ? 'Отстъпки' : 'Discounts');
+  }, [language, t]);
   const [isLoading, setIsLoading] = useState(true);
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,8 +133,11 @@ export default function DiscountsPage() {
   };
 
   const closeModal = () => {
-    setShowModal(false);
-    resetForm();
+    if (!showCompleteAnimation) {
+      setShowModal(false);
+      setShowCompleteAnimation(false);
+      resetForm();
+    }
   };
 
   const validateForm = (): string[] => {
@@ -207,8 +215,15 @@ export default function DiscountsPage() {
       }
 
       if (result.success) {
-        await loadDiscounts();
-        closeModal();
+        // Show complete animation
+        setShowCompleteAnimation(true);
+        
+        // Close modal and reset after animation completes
+        setTimeout(async () => {
+          await loadDiscounts();
+          closeModal();
+          setShowCompleteAnimation(false);
+        }, 1200);
       }
     } catch (error) {
       console.error('Failed to save discount:', error);
@@ -550,7 +565,8 @@ export default function DiscountsPage() {
           minWidth={400}
           minHeight={500}
         >
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="relative">
+            <form onSubmit={handleSubmit} className={`space-y-4 transition-all duration-300 ${showCompleteAnimation ? 'blur-sm pointer-events-none' : ''}`}>
                 {/* Form Errors */}
                 {formErrors.length > 0 && (
                   <div className="bg-red-50 border border-red-200 rounded-md p-3">
@@ -677,6 +693,14 @@ export default function DiscountsPage() {
                   </button>
                 </div>
               </form>
+              
+              {/* Complete Animation Overlay */}
+              {showCompleteAnimation && (
+                <div className="absolute inset-0 flex items-center justify-center z-50">
+                  <CompleteAnimation size={120} />
+                </div>
+              )}
+          </div>
         </AdminModal>
       </div>
     </AdminLayout>

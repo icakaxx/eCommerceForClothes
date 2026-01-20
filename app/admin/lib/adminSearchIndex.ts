@@ -61,9 +61,9 @@ export const adminSearchIndex: SearchableItem[] = [
     type: 'section',
     path: '/admin',
     title: 'Top Products',
-    titleBg: 'Топ продукти',
+    titleBg: 'Топ артикули',
     parentPath: '/admin',
-    keywords: ['top', 'products', 'best', 'selling', 'топ', 'продукти']
+    keywords: ['top', 'products', 'best', 'selling', 'топ', 'артикули']
   },
 
   // Properties
@@ -73,7 +73,7 @@ export const adminSearchIndex: SearchableItem[] = [
     path: '/admin/properties',
     title: 'Characteristics',
     titleBg: 'Характеристики',
-    description: 'Управляване на характеристиките на продуктите и техните стойности',
+    description: 'Управляване на характеристиките на артикулите и техните стойности',
     keywords: ['properties', 'attributes', 'characteristics', 'характеристики', 'атрибути']
   },
   {
@@ -156,7 +156,7 @@ export const adminSearchIndex: SearchableItem[] = [
     path: '/admin/product-types',
     title: 'Categories',
     titleBg: 'Категории',
-    description: 'Управляване на категориите на продуктите',
+    description: 'Управляване на категориите на артикулите',
     keywords: ['product types', 'categories', 'types', 'категории', 'типове']
   },
   {

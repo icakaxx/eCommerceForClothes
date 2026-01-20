@@ -373,7 +373,7 @@ export default function Dashboard() {
                 className="text-center py-6 sm:py-8 text-xs sm:text-sm"
                 style={{ color: theme.colors.textSecondary }}
               >
-                {language === 'bg' ? 'Няма данни за типове продукти' : 'No product type data available'}
+                {language === 'bg' ? 'Няма данни за категории' : 'No product type data available'}
               </div>
             )}
           </div>

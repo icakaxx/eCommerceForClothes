@@ -10,6 +10,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
 import { AdminPage, PageHeader, Section, SectionSurface, EmptyState, DataTableShell, TableHeader, TableHeaderRow, TableHeaderCell, TableBody, TableRow, TableCell } from '../components/layout';
 import { Tag } from 'lucide-react';
+import CompleteAnimation from '@/components/CompleteAnimation';
 
 type ProductTypeRow = ProductType & {
   properties?: Array<{ propertyid: string; name: string }>;
@@ -22,10 +23,15 @@ export default function ProductTypesPage() {
   const { language } = useLanguage();
   const t = translations[language || 'bg'];
   const [productTypes, setProductTypes] = useState<ProductTypeRow[]>([]);
+
+  useEffect(() => {
+    document.title = t.productTypes || (language === 'bg' ? 'Категории' : 'Product Types');
+  }, [language, t]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProductType, setEditingProductType] = useState<ProductType | null>(null);
   const [formData, setFormData] = useState({ name: '' });
+  const [showCompleteAnimation, setShowCompleteAnimation] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productTypeToDelete, setProductTypeToDelete] = useState<ProductType | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -44,6 +50,8 @@ export default function ProductTypesPage() {
   const [selectedProductTypeIds, setSelectedProductTypeIds] = useState<string[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showDeleteCompleteAnimation, setShowDeleteCompleteAnimation] = useState(false);
+  const [showBulkDeleteCompleteAnimation, setShowBulkDeleteCompleteAnimation] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -165,10 +173,17 @@ export default function ProductTypesPage() {
             );
           }
         }
-        setShowModal(false);
-        setFormData({ name: '' });
-        setEditingProductType(null);
-        loadProductTypes();
+        // Show complete animation
+        setShowCompleteAnimation(true);
+        
+        // Close modal and reset after animation completes
+        setTimeout(() => {
+          setShowModal(false);
+          setShowCompleteAnimation(false);
+          setFormData({ name: '' });
+          setEditingProductType(null);
+          loadProductTypes();
+        }, 1200); // Wait for animation to complete (0.6s dash + 0.5s grow + buffer)
       } else {
         alert('Error: ' + result.error);
       }
@@ -197,9 +212,16 @@ export default function ProductTypesPage() {
       const response = await fetch(`/api/product-types/${productTypeToDelete.producttypeid}`, { method: 'DELETE' });
       const result = await response.json();
       if (result.success) {
-        setShowDeleteModal(false);
-        setProductTypeToDelete(null);
-        loadProductTypes();
+        // Show complete animation
+        setShowDeleteCompleteAnimation(true);
+        
+        // Close modal and reset after animation completes
+        setTimeout(() => {
+          setShowDeleteModal(false);
+          setShowDeleteCompleteAnimation(false);
+          setProductTypeToDelete(null);
+          loadProductTypes();
+        }, 1200);
       } else {
         alert('Error: ' + result.error);
       }
@@ -251,11 +273,22 @@ export default function ProductTypesPage() {
         );
         setSelectedProductTypeIds(failed.map((item) => item.id));
       } else {
-        setSelectedProductTypeIds([]);
-        setShowBulkDeleteModal(false);
+        // Show complete animation
+        setShowBulkDeleteCompleteAnimation(true);
+        
+        // Close modal and reset after animation completes
+        setTimeout(() => {
+          setSelectedProductTypeIds([]);
+          setShowBulkDeleteModal(false);
+          setShowBulkDeleteCompleteAnimation(false);
+          loadProductTypes();
+        }, 1200);
       }
 
-      loadProductTypes();
+      if (failed.length === 0) {
+        // Don't reload if there were failures
+        return;
+      }
     } catch (error) {
       console.error('Failed to bulk delete product types:', error);
       alert(language === 'bg' ? 'Неуспешно масово изтриване' : 'Bulk delete failed');
@@ -326,12 +359,12 @@ export default function ProductTypesPage() {
           <>
           <Section
             title={language === 'bg' ? 'Списък с категории' : 'Categories List'}
-            description={language === 'bg' ? 'Управлявайте категориите на продуктите' : 'Manage product categories'}
+            description={language === 'bg' ? 'Управлявайте категориите на артикулите' : 'Manage product categories'}
           >
             {productTypes.length === 0 ? (
               <EmptyState
                 title={language === 'bg' ? 'Няма категории' : 'No Categories'}
-                description={language === 'bg' ? 'Създайте първата категория, за да започнете да организирате продуктите си.' : 'Create your first category to start organizing your products.'}
+                description={language === 'bg' ? 'Създайте първата категория, за да започнете да организирате артикулите си.' : 'Create your first category to start organizing your items.'}
                 action={
                   <button
                     onClick={() => {
@@ -581,7 +614,7 @@ export default function ProductTypesPage() {
                 <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between w-full">
                   <div>
                     <p className="text-xs sm:text-sm text-gray-700">
-                      {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, productTypes.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{productTypes.length}</span> {language === 'bg' ? 'типове продукти' : 'product types'}
+                      {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, productTypes.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{productTypes.length}</span> {language === 'bg' ? 'категории' : 'categories'}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -644,7 +677,12 @@ export default function ProductTypesPage() {
 
         <AdminModal
           isOpen={showModal}
-          onClose={() => setShowModal(false)}
+          onClose={() => {
+            if (!showCompleteAnimation) {
+              setShowModal(false);
+              setShowCompleteAnimation(false);
+            }
+          }}
           title={editingProductType ? t.editProductType : t.addProductType}
           subheader={editingProductType
             ? (language === 'bg' ? 'Редактирайте информацията за типа продукт' : 'Edit the product type information')
@@ -654,8 +692,9 @@ export default function ProductTypesPage() {
           minWidth={520}
           minHeight={550}
         >
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
+          <div className="relative">
+            <form onSubmit={handleSubmit}>
+              <div className={`space-y-4 transition-all duration-300 ${showCompleteAnimation ? 'blur-sm pointer-events-none' : ''}`}>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   {t.name}
@@ -737,24 +776,36 @@ export default function ProductTypesPage() {
               </div>
             </div>
           </form>
+          
+          {/* Complete Animation Overlay */}
+          {showCompleteAnimation && (
+            <div className="absolute inset-0 flex items-center justify-center z-50">
+              <CompleteAnimation size={120} />
+            </div>
+          )}
+          </div>
         </AdminModal>
 
         {/* Delete Confirmation Modal */}
         <AdminModal
           isOpen={showDeleteModal}
           onClose={() => {
-            setShowDeleteModal(false);
-            setProductTypeToDelete(null);
+            if (!showDeleteCompleteAnimation) {
+              setShowDeleteModal(false);
+              setProductTypeToDelete(null);
+              setShowDeleteCompleteAnimation(false);
+            }
           }}
           title={language === 'bg' ? 'Потвърди изтриване' : 'Confirm Delete'}
           subheader={language === 'bg' 
-            ? 'Сигурни ли сте, че искате да изтриете тази категория? Продуктите и характеристиките към нея също ще бъдат изтрити. Това действие не може да бъде отменено.'
+            ? 'Сигурни ли сте, че искате да изтриете тази категория? Артикулите и характеристиките към нея също ще бъдат изтрити. Това действие не може да бъде отменено.'
             : 'Are you sure you want to delete this product type? Products and characteristics linked to it will also be deleted. This action cannot be undone.'}
           maxWidth="max-w-md"
           minWidth={400}
           minHeight={550}
         >
-          <div className="space-y-4">
+          <div className="relative">
+            <div className={`space-y-4 transition-all duration-300 ${showDeleteCompleteAnimation ? 'blur-sm pointer-events-none' : ''}`}>
             {productTypeToDelete && (
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm font-medium text-gray-900 mb-1">
@@ -815,10 +866,13 @@ export default function ProductTypesPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setShowDeleteModal(false);
-                  setProductTypeToDelete(null);
+                  if (!showDeleteCompleteAnimation) {
+                    setShowDeleteModal(false);
+                    setProductTypeToDelete(null);
+                    setShowDeleteCompleteAnimation(false);
+                  }
                 }}
-                disabled={deleting}
+                disabled={deleting || showDeleteCompleteAnimation}
                 className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation disabled:opacity-50"
               >
                 {t.cancel}
@@ -826,27 +880,41 @@ export default function ProductTypesPage() {
               <button
                 type="button"
                 onClick={handleDeleteConfirm}
-                disabled={deleting}
+                disabled={deleting || showDeleteCompleteAnimation}
                 className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-red-600 text-white rounded hover:bg-red-700 active:bg-red-800 transition-colors touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deleting ? (language === 'bg' ? 'Изтриване...' : 'Deleting...') : (language === 'bg' ? 'Изтрий' : 'Delete')}
               </button>
             </div>
+            </div>
+            
+            {/* Complete Animation Overlay */}
+            {showDeleteCompleteAnimation && (
+              <div className="absolute inset-0 flex items-center justify-center z-50">
+                <CompleteAnimation size={120} />
+              </div>
+            )}
           </div>
         </AdminModal>
 
         <AdminModal
           isOpen={showBulkDeleteModal}
-          onClose={() => setShowBulkDeleteModal(false)}
+          onClose={() => {
+            if (!showBulkDeleteCompleteAnimation) {
+              setShowBulkDeleteModal(false);
+              setShowBulkDeleteCompleteAnimation(false);
+            }
+          }}
           title={language === 'bg' ? 'Потвърди масово изтриване' : 'Confirm Bulk Delete'}
           subheader={language === 'bg'
-            ? 'Избраните категории и всички свързани продукти и характеристики ще бъдат изтрити. Това действие не може да бъде отменено.'
+            ? 'Избраните категории и всички свързани артикули и характеристики ще бъдат изтрити. Това действие не може да бъде отменено.'
             : 'Selected categories and all related products and characteristics will be deleted. This action cannot be undone.'}
           maxWidth="max-w-md"
           minWidth={400}
           minHeight={360}
         >
-          <div className="space-y-4">
+          <div className="relative">
+            <div className={`space-y-4 transition-all duration-300 ${showBulkDeleteCompleteAnimation ? 'blur-sm pointer-events-none' : ''}`}>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm font-medium text-gray-900 mb-1">
                 {language === 'bg' ? 'Избрани категории:' : 'Selected categories:'}
@@ -858,8 +926,13 @@ export default function ProductTypesPage() {
             <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
               <button
                 type="button"
-                onClick={() => setShowBulkDeleteModal(false)}
-                disabled={bulkDeleting}
+                onClick={() => {
+                  if (!showBulkDeleteCompleteAnimation) {
+                    setShowBulkDeleteModal(false);
+                    setShowBulkDeleteCompleteAnimation(false);
+                  }
+                }}
+                disabled={bulkDeleting || showBulkDeleteCompleteAnimation}
                 className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation disabled:opacity-50"
               >
                 {t.cancel}
@@ -867,12 +940,20 @@ export default function ProductTypesPage() {
               <button
                 type="button"
                 onClick={handleBulkDeleteConfirm}
-                disabled={bulkDeleting}
+                disabled={bulkDeleting || showBulkDeleteCompleteAnimation}
                 className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-red-600 text-white rounded hover:bg-red-700 active:bg-red-800 transition-colors touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {bulkDeleting ? (language === 'bg' ? 'Изтриване...' : 'Deleting...') : (language === 'bg' ? 'Изтрий избраните' : 'Delete selected')}
               </button>
             </div>
+            </div>
+            
+            {/* Complete Animation Overlay */}
+            {showBulkDeleteCompleteAnimation && (
+              <div className="absolute inset-0 flex items-center justify-center z-50">
+                <CompleteAnimation size={120} />
+              </div>
+            )}
           </div>
         </AdminModal>
       </AdminPage>

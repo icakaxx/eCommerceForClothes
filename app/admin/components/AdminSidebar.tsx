@@ -210,8 +210,8 @@ export default function AdminSidebar({ currentPath, collapsed: externalCollapsed
         className={`
           fixed lg:sticky top-0 left-0 z-40
           h-screen
-          transform transition-all duration-300 ease-in-out
-          lg:transform-none
+          transform transition-transform duration-300 ease-in-out
+          lg:transform-none lg:transition-none
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           ${isCollapsed ? 'w-16 lg:w-16' : 'w-64 lg:w-64'}
           flex-shrink-0 border-r rounded-r-lg

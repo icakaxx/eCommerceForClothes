@@ -7,6 +7,7 @@ import { ProductType, Property } from '@/lib/types/product-types';
 import AdminModal from '../../components/AdminModal';
 import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
+import CompleteAnimation from '@/components/CompleteAnimation';
 
 export default function ProductTypeDetailsPage() {
   const router = useRouter();
@@ -16,10 +17,21 @@ export default function ProductTypeDetailsPage() {
   const t = translations[language || 'bg'];
 
   const [productType, setProductType] = useState<ProductType | null>(null);
+
+  useEffect(() => {
+    if (productType) {
+      document.title = productType.name || t.productTypes || (language === 'bg' ? 'Категория' : 'Product Type');
+    } else {
+      document.title = t.productTypes || (language === 'bg' ? 'Категория' : 'Product Type');
+    }
+  }, [productType, language, t]);
   const [assignedProperties, setAssignedProperties] = useState<any[]>([]);
   const [availableProperties, setAvailableProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<Set<string>>(new Set());
+  const [addingProperties, setAddingProperties] = useState(false);
+  const [showCompleteAnimation, setShowCompleteAnimation] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -56,24 +68,68 @@ export default function ProductTypeDetailsPage() {
     }
   };
 
-  const handleAddProperty = async (propertyId: string) => {
+  const handleAddProperty = async (propertyId?: string) => {
+    // If propertyId is provided, use it for backward compatibility
+    // Otherwise, use selectedPropertyIds
+    const propertyIds = propertyId 
+      ? [propertyId] 
+      : Array.from(selectedPropertyIds);
+
+    if (propertyIds.length === 0) {
+      alert(language === 'bg' ? 'Моля, изберете поне една характеристика' : 'Please select at least one property');
+      return;
+    }
+
     try {
+      setAddingProperties(true);
       const response = await fetch(`/api/product-types/${id}/properties`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ propertyid: propertyId })
+        body: JSON.stringify({ propertyids: propertyIds })
       });
 
       const result = await response.json();
       if (result.success) {
-        loadProductType();
-        setShowAddModal(false);
+        // Show complete animation
+        setShowCompleteAnimation(true);
+        
+        // Close modal and reset after animation completes
+        setTimeout(() => {
+          loadProductType();
+          setSelectedPropertyIds(new Set());
+          setShowAddModal(false);
+          setShowCompleteAnimation(false);
+        }, 1200);
       } else {
         alert('Error: ' + result.error);
       }
     } catch (error) {
-      console.error('Failed to add property:', error);
-      alert('Failed to add property');
+      console.error('Failed to add properties:', error);
+      alert(language === 'bg' ? 'Грешка при добавяне на характеристики' : 'Failed to add properties');
+    } finally {
+      setAddingProperties(false);
+    }
+  };
+
+  const handleToggleProperty = (propertyId: string) => {
+    setSelectedPropertyIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(propertyId)) {
+        newSet.delete(propertyId);
+      } else {
+        newSet.add(propertyId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedPropertyIds.size === unassignedProperties.length) {
+      // Deselect all
+      setSelectedPropertyIds(new Set());
+    } else {
+      // Select all
+      setSelectedPropertyIds(new Set(unassignedProperties.map(p => p.propertyid)));
     }
   };
 
@@ -166,31 +222,106 @@ export default function ProductTypeDetailsPage() {
 
         <AdminModal
           isOpen={showAddModal}
-          onClose={() => setShowAddModal(false)}
+          onClose={() => {
+            if (!showCompleteAnimation) {
+              setShowAddModal(false);
+              setSelectedPropertyIds(new Set());
+              setShowCompleteAnimation(false);
+            }
+          }}
           title={t.addProperty}
-          subheader={language === 'bg' ? 'Добавете характеристика към тази категория' : 'Add a property to this category'}
+          subheader={language === 'bg' ? 'Изберете характеристики за добавяне към тази категория' : 'Select properties to add to this category'}
           maxWidth="max-w-md"
           minWidth={400}
           minHeight={300}
         >
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-                {unassignedProperties.length === 0 ? (
-                  <p className="text-gray-500">{t.allPropertiesAssigned}</p>
-                ) : (
-                  unassignedProperties.map((prop) => (
-                    <button
+          <div className="relative">
+            <div className={`space-y-4 transition-all duration-300 ${showCompleteAnimation ? 'blur-sm pointer-events-none' : ''}`}>
+            {unassignedProperties.length === 0 ? (
+              <p className="text-gray-500">{t.allPropertiesAssigned}</p>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 pb-2 border-b">
+                  <input
+                    type="checkbox"
+                    id="select-all-properties"
+                    checked={selectedPropertyIds.size === unassignedProperties.length && unassignedProperties.length > 0}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label
+                    htmlFor="select-all-properties"
+                    className="text-sm font-medium text-gray-700 cursor-pointer"
+                  >
+                    {language === 'bg' ? 'Избери всички' : 'Select All'}
+                  </label>
+                </div>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {unassignedProperties.map((prop) => (
+                    <label
                       key={prop.propertyid}
-                      onClick={() => handleAddProperty(prop.propertyid)}
-                      className="w-full text-left p-3 border border-gray-200 rounded hover:bg-gray-50"
+                      className="flex items-start gap-3 w-full text-left p-3 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer"
                     >
-                      <div className="font-medium">{prop.name}</div>
-                      {prop.description && (
-                        <div className="text-sm text-gray-500">{prop.description}</div>
-                      )}
-                      <div className="text-xs text-gray-400">Type: {prop.datatype}</div>
-                    </button>
-                  ))
-                )}
+                      <input
+                        type="checkbox"
+                        checked={selectedPropertyIds.has(prop.propertyid)}
+                        onChange={() => handleToggleProperty(prop.propertyid)}
+                        className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium">{prop.name}</div>
+                        {prop.description && (
+                          <div className="text-sm text-gray-500">{prop.description}</div>
+                        )}
+                        <div className="text-xs text-gray-400">Type: {prop.datatype}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                  <button
+                    onClick={() => {
+                      if (!showCompleteAnimation) {
+                        setShowAddModal(false);
+                        setSelectedPropertyIds(new Set());
+                        setShowCompleteAnimation(false);
+                      }
+                    }}
+                    disabled={showCompleteAnimation}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
+                  >
+                    {language === 'bg' ? 'Отказ' : 'Cancel'}
+                  </button>
+                  <button
+                    onClick={() => handleAddProperty()}
+                    disabled={selectedPropertyIds.size === 0 || addingProperties || showCompleteAnimation}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {addingProperties ? (
+                      <>
+                        <span className="animate-spin">⏳</span>
+                        {language === 'bg' ? 'Добавяне...' : 'Adding...'}
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        {language === 'bg' 
+                          ? `Добави (${selectedPropertyIds.size})` 
+                          : `Add (${selectedPropertyIds.size})`}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
+            </div>
+            
+            {/* Complete Animation Overlay */}
+            {showCompleteAnimation && (
+              <div className="absolute inset-0 flex items-center justify-center z-50">
+                <CompleteAnimation size={120} />
+              </div>
+            )}
           </div>
         </AdminModal>
       </div>

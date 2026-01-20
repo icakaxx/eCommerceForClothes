@@ -386,7 +386,7 @@ export default function AdminSearchBar({ sidebarCollapsed, sidebarWidth }: Admin
   return (
     <div
       ref={containerRef}
-      className="fixed top-0 z-50 transition-all duration-300"
+      className="fixed top-0 z-50"
       style={{
         left: isDesktop ? `${searchBarLeft}px` : mobileLeftOffset,
         width: isDesktop ? searchBarWidth : `calc(100% - ${mobileLeftOffset})`,

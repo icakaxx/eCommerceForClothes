@@ -1228,7 +1228,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                 style={{ color: theme.colors.textSecondary }}
               >
                 {language === 'bg'
-                  ? 'Изберете продукти, които да се показват в секцията "Може да харесате" на страницата на продукта.'
+                  ? 'Изберете артикули, които да се показват в секцията "Може да харесате" на страницата на артикула.'
                   : 'Select products to display in the "You might like" section on the product page.'
                 }
               </p>
@@ -1299,7 +1299,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                       className="text-sm py-4 text-center"
                       style={{ color: theme.colors.textSecondary }}
                     >
-                      {language === 'bg' ? 'Няма налични продукти' : 'No available products'}
+                      {language === 'bg' ? 'Няма налични артикули' : 'No available items'}
                     </p>
                   )}
                   

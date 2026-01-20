@@ -25,6 +25,10 @@ export default function AdminLoginPage() {
   const [error, setError] = useState<LoginError | null>(null);
   const [isClient, setIsClient] = useState<boolean>(false);
 
+  useEffect(() => {
+    document.title = 'Admin Login';
+  }, []);
+
   // Ensure we're on the client side before accessing localStorage
   useEffect(() => {
     setIsClient(true);

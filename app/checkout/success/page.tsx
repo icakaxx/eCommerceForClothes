@@ -67,6 +67,12 @@ function CheckoutSuccessContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const pageTitle = language === 'bg' ? 'Поръчката е успешна' : 'Order Successful';
+    const storeName = settings?.storename || '';
+    document.title = storeName ? `${pageTitle} - ${storeName}` : pageTitle;
+  }, [language, settings?.storename]);
   const [econtOffices, setEcontOffices] = useState<EcontOfficesData | null>(null);
 
   useEffect(() => {
@@ -291,7 +297,7 @@ function CheckoutSuccessContent() {
                 className="text-lg font-medium mb-4 transition-colors duration-300"
                 style={{ color: theme.colors.text }}
               >
-                {language === 'bg' ? 'Поръчани продукти' : 'Order Items'}
+                {language === 'bg' ? 'Поръчани артикули' : 'Order Items'}
               </h3>
               <div className="space-y-4">
                 {order.items.map((item) => (

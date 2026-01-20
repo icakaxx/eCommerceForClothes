@@ -8,12 +8,22 @@ import CartDrawer from '@/components/CartDrawer';
 import LoadingScreen from '@/components/LoadingScreen';
 import { Product } from '@/lib/data';
 import { useStoreSettings } from '@/context/StoreSettingsContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/lib/translations';
 
 export default function ForHimPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { isLoading: settingsLoading } = useStoreSettings();
+  const { isLoading: settingsLoading, settings } = useStoreSettings();
+  const { language } = useLanguage();
+  const t = translations[language];
+
+  useEffect(() => {
+    const pageTitle = language === 'bg' ? 'За Него' : 'For Him';
+    const storeName = settings?.storename || '';
+    document.title = storeName ? `${pageTitle} - ${storeName}` : pageTitle;
+  }, [language, settings?.storename]);
 
   useEffect(() => {
     const adminState = localStorage.getItem('isAdmin');
