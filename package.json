@@ -19,6 +19,10 @@
     "@tiptap/extension-underline": "^3.13.0",
     "@tiptap/react": "^3.13.0",
     "@tiptap/starter-kit": "^3.13.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.36.1",
+    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.344.0",
     "next": "^16.0.7",
@@ -30,6 +34,7 @@
     "slick-carousel": "^1.8.1",
     "tailwind-merge": "^3.4.0",
     "xlsx": "^0.18.5",
+    "zod": "^4.3.5",
     "zustand": "^5.0.9"
   },
   "devDependencies": {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, X, Settings, LogOut } from 'lucide-react';
+import { Menu, X, Settings, LogOut, ShoppingCart, User as UserIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -11,7 +11,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useProductTypes } from '@/context/ProductTypeContext';
 import { useStoreSettings } from '@/context/StoreSettingsContext';
 import { useCart } from '@/context/CartContext';
-import { ShoppingCart } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 interface HeaderProps {
   isAdmin: boolean;
@@ -45,6 +45,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
   const { theme } = useTheme();
   const { settings } = useStoreSettings();
   const { totalItems, openCart } = useCart();
+  const { user, isAuthenticated, logout } = useAuth();
 
   return (
     <>
@@ -122,21 +123,61 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
           {/* Right side actions */}
           <div className="flex items-center gap-2 sm:gap-4 flex-1 justify-end">
             {!isAdmin && (
-              <button
-                onClick={openCart}
-                className="relative p-2 transition-colors duration-300"
-                style={{ color: theme.colors.textSecondary }}
-                onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}
-                onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textSecondary}
-                aria-label="Shopping Cart"
-              >
-                <ShoppingCart size={20} />
-                {totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {totalItems > 99 ? '99+' : totalItems}
-                  </span>
+              <>
+                <button
+                  onClick={openCart}
+                  className="relative p-2 transition-colors duration-300"
+                  style={{ color: theme.colors.textSecondary }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}
+                  onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textSecondary}
+                  aria-label="Shopping Cart"
+                >
+                  <ShoppingCart size={20} />
+                  {totalItems > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {totalItems > 99 ? '99+' : totalItems}
+                    </span>
+                  )}
+                </button>
+                {isAuthenticated && user ? (
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href="/user/dashboard"
+                      className="p-2 transition-colors duration-300"
+                      style={{ color: theme.colors.textSecondary }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}
+                      onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textSecondary}
+                      aria-label="User Dashboard"
+                    >
+                      <UserIcon size={20} />
+                    </Link>
+                    <button
+                      onClick={() => {
+                        logout();
+                        router.push('/');
+                      }}
+                      className="p-2 transition-colors duration-300"
+                      style={{ color: theme.colors.textSecondary }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}
+                      onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textSecondary}
+                      aria-label="Logout"
+                    >
+                      <LogOut size={20} />
+                    </button>
+                  </div>
+                ) : (
+                  <Link
+                    href="/user"
+                    className="p-2 transition-colors duration-300"
+                    style={{ color: theme.colors.textSecondary }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}
+                    onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textSecondary}
+                    aria-label="Login"
+                  >
+                    <UserIcon size={20} />
+                  </Link>
                 )}
-              </button>
+              </>
             )}
 
             {isAdmin && (
@@ -255,6 +296,56 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                 {item.label}
               </Link>
             ))}
+
+            {/* User menu in mobile */}
+            {!isAdmin && (
+              <>
+                {isAuthenticated && user ? (
+                  <>
+                    <Link
+                      href="/user/dashboard"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-3 w-full text-left px-6 py-4 font-medium border-b transition-colors duration-300 hover:opacity-70"
+                      style={{
+                        color: theme.colors.text,
+                        borderColor: theme.colors.border
+                      }}
+                    >
+                      <UserIcon size={20} />
+                      {language === 'bg' ? 'Профил' : 'Profile'}
+                    </Link>
+                    <button
+                      onClick={() => {
+                        logout();
+                        setMobileMenuOpen(false);
+                        router.push('/');
+                      }}
+                      className="flex items-center gap-3 w-full text-left px-6 py-4 font-medium border-b transition-colors duration-300 hover:opacity-70"
+                      style={{
+                        color: theme.colors.text,
+                        borderColor: theme.colors.border
+                      }}
+                    >
+                      <LogOut size={20} />
+                      {language === 'bg' ? 'Изход' : 'Logout'}
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    href="/user"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 w-full text-left px-6 py-4 font-medium border-b transition-colors duration-300 hover:opacity-70"
+                    style={{
+                      color: theme.colors.text,
+                      borderColor: theme.colors.border
+                    }}
+                  >
+                    <UserIcon size={20} />
+                    {language === 'bg' ? 'Вход' : 'Login'}
+                  </Link>
+                )}
+              </>
+            )}
 
             {/* Admin Buttons (only shown when in admin mode) */}
             {isAdmin && (

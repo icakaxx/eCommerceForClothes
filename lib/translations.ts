@@ -643,6 +643,59 @@ export interface Translations {
   maybeYouWillLike: string;
   showMore: string;
   showLess: string;
+
+  // User Authentication
+  login: string;
+  register: string;
+  logout: string;
+  password: string;
+  confirmPassword: string;
+  phone: string;
+  loginTitle: string;
+  registerTitle: string;
+  loginButton: string;
+  registerButton: string;
+  switchToRegister: string;
+  switchToLogin: string;
+  forgotPassword: string;
+  resetPassword: string;
+  forgotPasswordTitle: string;
+  resetPasswordTitle: string;
+  forgotPasswordMessage: string;
+  resetPasswordMessage: string;
+  sendResetLink: string;
+  resetPasswordButton: string;
+  passwordResetSent: string;
+  passwordResetSuccess: string;
+  invalidCredentials: string;
+  emailAlreadyExists: string;
+  passwordTooShort: string;
+  passwordMustContain: string;
+  passwordsDoNotMatch: string;
+  userDashboard: string;
+  myProfile: string;
+  myOrders: string;
+  changePassword: string;
+  currentPassword: string;
+  newPassword: string;
+  updateProfile: string;
+  updatePassword: string;
+  profileUpdated: string;
+  passwordUpdated: string;
+  noOrdersYet: string;
+  orderDate: string;
+  orderStatus: string;
+  viewOrder: string;
+  loadingOrders: string;
+  errorLoadingOrders: string;
+  address: string;
+  addressInstructions: string;
+  save: string;
+  welcomeBack: string;
+  createAccount: string;
+  alreadyHaveAccount: string;
+  dontHaveAccount: string;
+  orContinueWith: string;
 }
 
 export type Language = 'en' | 'bg';
@@ -1291,7 +1344,60 @@ export const translations: Record<Language, Translations> = {
     relatedProducts: 'Related Products',
     maybeYouWillLike: 'Maybe you will like',
     showMore: 'Show More',
-    showLess: 'Show Less'
+    showLess: 'Show Less',
+
+    // User Authentication
+    login: 'Login',
+    register: 'Register',
+    logout: 'Logout',
+    password: 'Password',
+    confirmPassword: 'Confirm Password',
+    phone: 'Phone',
+    loginTitle: 'Welcome Back',
+    registerTitle: 'Create Account',
+    loginButton: 'Login',
+    registerButton: 'Register',
+    switchToRegister: 'Don\'t have an account? Register',
+    switchToLogin: 'Already have an account? Login',
+    forgotPassword: 'Forgot Password?',
+    resetPassword: 'Reset Password',
+    forgotPasswordTitle: 'Forgot Password',
+    resetPasswordTitle: 'Reset Password',
+    forgotPasswordMessage: 'Enter your email address and we\'ll send you a link to reset your password.',
+    resetPasswordMessage: 'Enter your new password below.',
+    sendResetLink: 'Send Reset Link',
+    resetPasswordButton: 'Reset Password',
+    passwordResetSent: 'Password reset link has been sent to your email.',
+    passwordResetSuccess: 'Password reset successful! Redirecting to login...',
+    invalidCredentials: 'Invalid email or password',
+    emailAlreadyExists: 'Email address already in use',
+    passwordTooShort: 'Password must be at least 8 characters',
+    passwordMustContain: 'Password must contain at least one letter and one number',
+    passwordsDoNotMatch: 'Passwords do not match',
+    userDashboard: 'User Dashboard',
+    myProfile: 'My Profile',
+    myOrders: 'My Orders',
+    changePassword: 'Change Password',
+    currentPassword: 'Current Password',
+    newPassword: 'New Password',
+    updateProfile: 'Update Profile',
+    updatePassword: 'Update Password',
+    profileUpdated: 'Profile updated successfully',
+    passwordUpdated: 'Password updated successfully',
+    noOrdersYet: 'You haven\'t placed any orders yet.',
+    orderDate: 'Order Date',
+    orderStatus: 'Status',
+    viewOrder: 'View Order',
+    loadingOrders: 'Loading orders...',
+    errorLoadingOrders: 'Error loading orders',
+    address: 'Address',
+    addressInstructions: 'Address Instructions',
+    save: 'Save',
+    welcomeBack: 'Welcome Back',
+    createAccount: 'Create Account',
+    alreadyHaveAccount: 'Already have an account?',
+    dontHaveAccount: 'Don\'t have an account?',
+    orContinueWith: 'or continue with'
 
   },
 
@@ -1935,7 +2041,60 @@ export const translations: Record<Language, Translations> = {
     relatedProducts: 'Свързани артикули',
     maybeYouWillLike: 'Може да харесате',
     showMore: 'Покажи повече',
-    showLess: 'Покажи по-малко'
+    showLess: 'Покажи по-малко',
+
+    // User Authentication
+    login: 'Вход',
+    register: 'Регистрация',
+    logout: 'Изход',
+    password: 'Парола',
+    confirmPassword: 'Потвърди парола',
+    phone: 'Телефон',
+    loginTitle: 'Добре дошли',
+    registerTitle: 'Създай профил',
+    loginButton: 'Влез',
+    registerButton: 'Регистрирай се',
+    switchToRegister: 'Нямате профил? Регистрирайте се',
+    switchToLogin: 'Вече имате профил? Влезте',
+    forgotPassword: 'Забравена парола?',
+    resetPassword: 'Възстанови парола',
+    forgotPasswordTitle: 'Забравена парола',
+    resetPasswordTitle: 'Възстанови парола',
+    forgotPasswordMessage: 'Въведете вашия имейл адрес и ще ви изпратим връзка за възстановяване на паролата.',
+    resetPasswordMessage: 'Въведете новата си парола по-долу.',
+    sendResetLink: 'Изпрати връзка',
+    resetPasswordButton: 'Възстанови парола',
+    passwordResetSent: 'Връзката за възстановяване е изпратена на вашия имейл.',
+    passwordResetSuccess: 'Паролата е възстановена успешно! Пренасочване към вход...',
+    invalidCredentials: 'Невалиден имейл или парола',
+    emailAlreadyExists: 'Имейл адресът вече се използва',
+    passwordTooShort: 'Паролата трябва да е поне 8 символа',
+    passwordMustContain: 'Паролата трябва да съдържа поне една буква и една цифра',
+    passwordsDoNotMatch: 'Паролите не съвпадат',
+    userDashboard: 'Потребителски профил',
+    myProfile: 'Моят профил',
+    myOrders: 'Моите поръчки',
+    changePassword: 'Смени парола',
+    currentPassword: 'Текуща парола',
+    newPassword: 'Нова парола',
+    updateProfile: 'Актуализирай профил',
+    updatePassword: 'Актуализирай парола',
+    profileUpdated: 'Профилът е актуализиран успешно',
+    passwordUpdated: 'Паролата е актуализирана успешно',
+    noOrdersYet: 'Все още не сте направили поръчки.',
+    orderDate: 'Дата на поръчка',
+    orderStatus: 'Статус',
+    viewOrder: 'Виж поръчка',
+    loadingOrders: 'Зареждане на поръчки...',
+    errorLoadingOrders: 'Грешка при зареждане на поръчки',
+    address: 'Адрес',
+    addressInstructions: 'Инструкции за адреса',
+    save: 'Запази',
+    welcomeBack: 'Добре дошли',
+    createAccount: 'Създай профил',
+    alreadyHaveAccount: 'Вече имате профил?',
+    dontHaveAccount: 'Нямате профил?',
+    orContinueWith: 'или продължете с'
 
   }
 };

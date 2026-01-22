@@ -8,6 +8,7 @@ import { ThemeProvider } from '@/context/ThemeContext';
 import { StoreSettingsProvider, useStoreSettings } from '@/context/StoreSettingsContext';
 import { CartProvider } from '@/context/CartContext';
 import { CookieConsentProvider } from '@/context/CookieConsentContext';
+import { AuthProvider } from '@/context/AuthContext';
 import CookieConsentBanner from '@/components/CookieConsentBanner';
 import AnalyticsTracker from '@/components/AnalyticsTracker';
 import MaintenanceMode from '@/components/MaintenanceMode';
@@ -21,23 +22,25 @@ function InnerProviders({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ThemeProvider>
-      <LanguageProvider>
-        <CookieConsentProvider>
-          <CartProvider>
-            <ProductTypeProvider>
-              <PropertiesProvider>
-                <ProductProvider>
-                  {children}
-                  <CookieConsentBanner />
-                  <AnalyticsTracker />
-                </ProductProvider>
-              </PropertiesProvider>
-            </ProductTypeProvider>
-          </CartProvider>
-        </CookieConsentProvider>
-      </LanguageProvider>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <CookieConsentProvider>
+            <CartProvider>
+              <ProductTypeProvider>
+                <PropertiesProvider>
+                  <ProductProvider>
+                    {children}
+                    <CookieConsentBanner />
+                    <AnalyticsTracker />
+                  </ProductProvider>
+                </PropertiesProvider>
+              </ProductTypeProvider>
+            </CartProvider>
+          </CookieConsentProvider>
+        </LanguageProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 
