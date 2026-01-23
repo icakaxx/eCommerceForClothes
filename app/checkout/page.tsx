@@ -9,6 +9,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useCart } from '@/context/CartContext';
 import { useStoreSettings } from '@/context/StoreSettingsContext';
+import { useAuth } from '@/context/AuthContext';
 import { useCheckoutStore, type DeliveryType, type CityOption } from '@/store/checkoutStore';
 import { translations } from '@/lib/translations';
 import { ShoppingBag, Truck, MapPin, Package } from 'lucide-react';
@@ -20,6 +21,7 @@ export default function CheckoutPage() {
   const { theme } = useTheme();
   const { items, totalItems, totalPrice, clearCart } = useCart();
   const { settings } = useStoreSettings();
+  const { user, isAuthenticated } = useAuth();
   const t = translations[language];
 
   useEffect(() => {
@@ -64,6 +66,7 @@ export default function CheckoutPage() {
   const [showCityDropdown, setShowCityDropdown] = useState<boolean>(false);
   const cityDropdownRef = useRef<HTMLDivElement>(null);
   const [showMissingOfficePrompt, setShowMissingOfficePrompt] = useState(false);
+  const hasAutoPopulated = useRef(false);
 
   useEffect(() => {
     const adminState = localStorage.getItem('isAdmin');
@@ -83,6 +86,91 @@ export default function CheckoutPage() {
     // Load Econt offices data
     loadEcontOffices();
   }, [totalItems, router]);
+
+  // Auto-populate form with user data when logged in (only once)
+  useEffect(() => {
+    if (isAuthenticated && user && !hasAutoPopulated.current) {
+      // Only populate if form is empty (first time loading)
+      const shouldPopulate = !formData.firstName && !formData.email && !formData.telephone;
+      
+      if (shouldPopulate) {
+        hasAutoPopulated.current = true;
+        
+        // Split name into first and last name
+        // If there's a second name (or more), put it in the surname field
+        const nameParts = user.name ? user.name.trim().split(/\s+/).filter(part => part.length > 0) : [];
+        let firstName = '';
+        let lastName = '';
+        
+        if (nameParts.length > 0) {
+          firstName = nameParts[0];
+          // If there's a second name or more, put everything after the first name in the surname field
+          if (nameParts.length > 1) {
+            lastName = nameParts.slice(1).join(' ');
+          }
+        }
+
+        // Prioritize preferred delivery data, fallback to locationText parsing
+        let city = user.preferredCity || '';
+        let street = user.preferredStreet || '';
+        let streetNumber = user.preferredStreetNumber || '';
+
+        // Normalize city name - if it's in display format like "Пловдив [4000]", keep it for the form
+        // but we'll handle matching in the office selection logic
+        if (city) {
+          // Keep the city as saved, but ensure it's trimmed
+          city = city.trim();
+        }
+
+        // If no preferred city, try to extract from locationText
+        if (!city && user.locationText) {
+          const locationParts = user.locationText.split(',').map(part => part.trim());
+          if (locationParts.length > 0) {
+            city = locationParts[0];
+          }
+          if (locationParts.length > 1 && !street) {
+            const streetPart = locationParts[1];
+            const streetMatch = streetPart.match(/^(.+?)\s+(\d+.*)$/);
+            if (streetMatch) {
+              street = streetMatch[1];
+              streetNumber = streetMatch[2];
+            } else {
+              street = streetPart;
+            }
+          }
+        }
+
+        // Get delivery type from user preferences, default to 'office'
+        const deliveryType = (user.preferredDeliveryType as 'office' | 'address' | 'econtomat') || 'office';
+
+        // Prepare form data with all user information and delivery preferences
+        const formUpdate: any = {
+          firstName: firstName,
+          lastName: lastName,
+          email: user.email || '',
+          telephone: user.phone || '',
+          city: city,
+          notes: user.addressInstructions || '',
+          // Delivery preferences
+          deliveryType: deliveryType,
+        };
+
+        // Add delivery-specific fields based on delivery type
+        if (deliveryType === 'office') {
+          formUpdate.econtOfficeId = user.preferredEcontOfficeId || '';
+        } else if (deliveryType === 'address') {
+          formUpdate.street = street;
+          formUpdate.streetNumber = streetNumber;
+          formUpdate.entrance = user.preferredEntrance || '';
+          formUpdate.floor = user.preferredFloor || '';
+          formUpdate.apartment = user.preferredApartment || '';
+        }
+
+        // Update form data
+        updateFormData(formUpdate);
+      }
+    }
+  }, [isAuthenticated, user, formData.firstName, formData.email, formData.telephone, updateFormData]);
 
   const loadCities = async () => {
     // This would typically come from an API, but for now we'll use static data
@@ -128,6 +216,60 @@ export default function CheckoutPage() {
       console.error('Failed to load Econt offices:', error);
     }
   };
+
+  // Set selected office when Econt offices load and user has a preferred office
+  useEffect(() => {
+    if (econtOffices && formData.deliveryType === 'office' && formData.city && formData.econtOfficeId) {
+      // Try to find the city in Econt offices - handle both display name format and plain city name
+      let cityName = formData.city;
+      
+      // If city is in display format like "Пловдив [4000]", extract just the city name
+      const displayNameMatch = cityName.match(/^(.+?)\s*\[/);
+      if (displayNameMatch) {
+        cityName = displayNameMatch[1].trim();
+      }
+      
+      // Try exact match first
+      let cityOffices = econtOffices.officesByCity[cityName] || [];
+      
+      // If no offices found, try to find by partial match
+      if (cityOffices.length === 0) {
+        const matchingCity = econtOffices.cities.find(c => 
+          c.toLowerCase() === cityName.toLowerCase() ||
+          c.toLowerCase().includes(cityName.toLowerCase()) ||
+          cityName.toLowerCase().includes(c.toLowerCase())
+        );
+        if (matchingCity) {
+          cityOffices = econtOffices.officesByCity[matchingCity] || [];
+        }
+      }
+      
+      // Find the office by ID in the city
+      let office = cityOffices.find(o => o.id === formData.econtOfficeId);
+      
+      // If not found in the city, search across all cities (in case city name doesn't match)
+      if (!office) {
+        for (const city of econtOffices.cities) {
+          const offices = econtOffices.officesByCity[city] || [];
+          office = offices.find(o => o.id === formData.econtOfficeId);
+          if (office) {
+            break;
+          }
+        }
+      }
+      
+      if (office) {
+        setSelectedOffice(office);
+      } else {
+        // Office not found - might be because city doesn't match or office was removed
+        console.warn('Could not find office with ID:', formData.econtOfficeId, 'in city:', cityName);
+        setSelectedOffice(null);
+      }
+    } else if (formData.deliveryType !== 'office' || !formData.econtOfficeId) {
+      // Clear selected office if delivery type changed or no office ID
+      setSelectedOffice(null);
+    }
+  }, [econtOffices, formData.deliveryType, formData.city, formData.econtOfficeId]);
 
   // Validation functions
   const validateBulgarianPhone = (phone: string): boolean => {
@@ -419,6 +561,45 @@ export default function CheckoutPage() {
       }
 
       console.log('Order placed successfully:', orderResult.orderId);
+
+      // Save delivery preferences if user is logged in and preferences are different or empty
+      if (isAuthenticated && user) {
+        const shouldUpdatePreferences = 
+          !user.preferredDeliveryType || 
+          !user.preferredCity ||
+          user.preferredDeliveryType !== formData.deliveryType ||
+          user.preferredCity !== formData.city ||
+          (formData.deliveryType === 'office' && user.preferredEcontOfficeId !== formData.econtOfficeId) ||
+          (formData.deliveryType === 'address' && (
+            user.preferredStreet !== formData.street ||
+            user.preferredStreetNumber !== formData.streetNumber
+          ));
+
+        if (shouldUpdatePreferences) {
+          try {
+            await fetch('/api/user/profile', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: user.id,
+                preferredDeliveryType: formData.deliveryType,
+                preferredEcontOfficeId: formData.deliveryType === 'office' ? (formData.econtOfficeId || null) : null,
+                preferredCity: formData.city || null,
+                preferredStreet: formData.deliveryType === 'address' ? (formData.street || null) : null,
+                preferredStreetNumber: formData.deliveryType === 'address' ? (formData.streetNumber || null) : null,
+                preferredEntrance: formData.deliveryType === 'address' ? (formData.entrance || null) : null,
+                preferredFloor: formData.deliveryType === 'address' ? (formData.floor || null) : null,
+                preferredApartment: formData.deliveryType === 'address' ? (formData.apartment || null) : null
+              })
+            });
+            // Note: We don't update the user context here as the redirect will happen
+            // The user will see updated preferences on next login or page refresh
+          } catch (prefError) {
+            console.error('Failed to save delivery preferences:', prefError);
+            // Don't fail the order if preference save fails
+          }
+        }
+      }
 
       // Redirect to success page with order ID using window.location for immediate redirect
       // This ensures the redirect happens before any state updates that might prevent navigation
@@ -767,29 +948,51 @@ export default function CheckoutPage() {
                   </div>
 
                   {/* Econt Office Selection - Only show if office delivery is selected */}
-                  {formData.deliveryType === 'office' && formData.city && econtOffices && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.econtOffice} *
-                      </label>
-                      <select
-                        value={formData.econtOfficeId || ''}
-                        onChange={(e) => handleOfficeSelectValue(e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          validationErrors.econtOfficeId ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        required={!(formData.missingEcontOffice && formData.missingEcontOffice.trim())}
-                      >
-                        <option value="">{t.selectEcontOffice}</option>
-                        <option value="__missing__">
-                          {language === 'bg' ? 'Офисът не е наличен' : 'Office not available'}
-                        </option>
-                        {(econtOffices.officesByCity[formData.city] || []).map((office) => (
-                          <option key={office.id} value={office.id}>
-                            {office.name}
+                  {formData.deliveryType === 'office' && formData.city && econtOffices && (() => {
+                    // Normalize city name - extract from display format if needed
+                    let cityName = formData.city;
+                    const displayNameMatch = cityName.match(/^(.+?)\s*\[/);
+                    if (displayNameMatch) {
+                      cityName = displayNameMatch[1].trim();
+                    }
+                    
+                    // Try to find matching city in Econt offices
+                    let cityOffices = econtOffices.officesByCity[cityName] || [];
+                    if (cityOffices.length === 0) {
+                      const matchingCity = econtOffices.cities.find(c => 
+                        c.toLowerCase() === cityName.toLowerCase() ||
+                        c.toLowerCase().includes(cityName.toLowerCase()) ||
+                        cityName.toLowerCase().includes(c.toLowerCase())
+                      );
+                      if (matchingCity) {
+                        cityName = matchingCity;
+                        cityOffices = econtOffices.officesByCity[matchingCity] || [];
+                      }
+                    }
+                    
+                    return (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {t.econtOffice} *
+                        </label>
+                        <select
+                          value={formData.econtOfficeId || ''}
+                          onChange={(e) => handleOfficeSelectValue(e.target.value)}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                            validationErrors.econtOfficeId ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                          required={!(formData.missingEcontOffice && formData.missingEcontOffice.trim())}
+                        >
+                          <option value="">{t.selectEcontOffice}</option>
+                          <option value="__missing__">
+                            {language === 'bg' ? 'Офисът не е наличен' : 'Office not available'}
                           </option>
-                        ))}
-                      </select>
+                          {cityOffices.map((office) => (
+                            <option key={office.id} value={office.id}>
+                              {office.name}
+                            </option>
+                          ))}
+                        </select>
                       {validationErrors.econtOfficeId && (
                         <p className="text-red-500 text-xs mt-1">{validationErrors.econtOfficeId}</p>
                       )}
@@ -811,9 +1014,9 @@ export default function CheckoutPage() {
                       )}
                       
                       {(showMissingOfficePrompt ||
-                        (formData.city && (!econtOffices.officesByCity[formData.city] || econtOffices.officesByCity[formData.city].length === 0))) && (
+                        (cityName && cityOffices.length === 0)) && (
                         <div className="mt-2 space-y-3">
-                          {formData.city && (!econtOffices.officesByCity[formData.city] || econtOffices.officesByCity[formData.city].length === 0) && (
+                          {cityName && cityOffices.length === 0 && (
                             <p className="text-sm text-amber-600">
                               {t.noOfficesInCity}
                             </p>
@@ -837,7 +1040,8 @@ export default function CheckoutPage() {
                         </div>
                       )}
                     </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Address Fields - Only show if address delivery is selected */}
                   {formData.deliveryType === 'address' && (

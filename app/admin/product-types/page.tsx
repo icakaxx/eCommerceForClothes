@@ -381,9 +381,10 @@ export default function ProductTypesPage() {
                 icon={Tag}
               />
             ) : (
-              <SectionSurface tone="soft" padding="md">
-                {/* Desktop Table View */}
-                <div className="hidden md:block overflow-hidden">
+              <div className="hidden md:block">
+                <SectionSurface tone="soft" padding="md">
+                  {/* Desktop Table View */}
+                  <div className="overflow-hidden">
                   <DataTableShell>
                     <TableHeader>
                       <TableHeaderRow>
@@ -478,16 +479,17 @@ export default function ProductTypesPage() {
                       })}
                     </TableBody>
                   </DataTableShell>
-                </div>
-              </SectionSurface>
+                  </div>
+                </SectionSurface>
+              </div>
             )}
           </Section>
 
           {/* Mobile/Tablet Card View */}
           {productTypes.length > 0 && (
             <Section className="md:hidden">
-              <div className="flex items-center justify-between mb-2">
-                <label className="flex items-center gap-2 text-xs text-gray-600">
+              <div className="flex items-center justify-between mb-4">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
                   <input
                     type="checkbox"
                     checked={allSelectedOnPage}
@@ -497,88 +499,95 @@ export default function ProductTypesPage() {
                   {language === 'bg' ? 'Избери всички на страницата' : 'Select all on page'}
                 </label>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {paginatedProductTypes.map((pt) => {
                   const characteristics = pt.properties || [];
+                  const propertiesCount = Number((pt as any).propertiesCount) || 0;
+                  const productsCount = Number((pt as any).productsCount) || 0;
+                  const highlightProducts = productsCount === 0;
+                  
                   return (
-                <div key={pt.producttypeid} className="bg-white p-3 sm:p-4 rounded-lg shadow border">
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start gap-2">
-                        <input
-                          type="checkbox"
-                          checked={selectedProductTypeIds.includes(pt.producttypeid)}
-                          onChange={() => toggleProductTypeSelection(pt.producttypeid)}
-                          className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          aria-label={language === 'bg' ? 'Избери категория' : 'Select category'}
-                        />
-                        <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-1 truncate">{pt.name}</h3>
+                    <div key={pt.producttypeid} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                      {/* Header with checkbox and name */}
+                      <div className="p-4 border-b border-gray-100">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedProductTypeIds.includes(pt.producttypeid)}
+                            onChange={() => toggleProductTypeSelection(pt.producttypeid)}
+                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 flex-shrink-0"
+                            aria-label={language === 'bg' ? 'Избери категория' : 'Select category'}
+                          />
+                          <h3 className="text-base font-semibold text-gray-900 flex-1 min-w-0">{pt.name}</h3>
+                        </div>
                       </div>
+
+                      {/* Characteristics section */}
                       {characteristics.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {characteristics.map((prop) => (
-                            <span
-                              key={prop.propertyid}
-                              className="inline-flex items-center px-2 py-0.5 text-[11px] rounded-full border border-gray-300 text-gray-600 bg-white"
-                            >
-                              {prop.name}
-                            </span>
-                          ))}
+                        <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+                          <div className="flex flex-wrap gap-2">
+                            {characteristics.map((prop) => (
+                              <span
+                                key={prop.propertyid}
+                                className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md border border-gray-300 text-gray-700 bg-white"
+                              >
+                                {prop.name}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       )}
-                      <div className="flex gap-4 mt-2 text-xs sm:text-sm">
-                        {(() => {
-                          const propertiesCount = Number((pt as any).propertiesCount) || 0;
-                          const productsCount = Number((pt as any).productsCount) || 0;
-                          const highlightProperties = propertiesCount === 0;
-                          const highlightProducts = productsCount === 0;
-                          return (
-                            <>
-                              <div 
-                                className={`px-2 py-1 rounded ${highlightProperties ? 'bg-yellow-200' : 'bg-gray-100'}`}
-                                style={highlightProperties ? { backgroundColor: '#fef3c7' } : undefined}
-                              >
-                                <span className="font-medium">{language === 'bg' ? 'Характеристики' : 'Characteristics'}: </span>
-                                <span className="font-semibold">{propertiesCount}</span>
-                              </div>
-                              <div 
-                                className={`px-2 py-1 rounded ${highlightProducts ? 'bg-yellow-200' : 'bg-gray-100'}`}
-                                style={highlightProducts ? { backgroundColor: '#fef3c7' } : undefined}
-                              >
-                                <span className="font-medium">{language === 'bg' ? 'Артикули' : 'Items'}: </span>
-                                <span className="font-semibold">{productsCount}</span>
-                              </div>
-                            </>
-                          );
-                        })()}
+
+                      {/* Stats section */}
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className={`px-3 py-2 rounded-md ${highlightProducts ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50'}`}>
+                            <div className="text-xs text-gray-600 mb-0.5">
+                              {language === 'bg' ? 'Артикули' : 'Items'}
+                            </div>
+                            <div className={`text-lg font-bold ${highlightProducts ? 'text-yellow-800' : 'text-gray-900'}`}>
+                              {productsCount}
+                            </div>
+                          </div>
+                          <div className="px-3 py-2 rounded-md bg-gray-50">
+                            <div className="text-xs text-gray-600 mb-0.5">
+                              {language === 'bg' ? 'Характеристики' : 'Characteristics'}
+                            </div>
+                            <div className="text-lg font-bold text-gray-900">
+                              {propertiesCount}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions section */}
+                      <div className="px-4 py-3 bg-gray-50">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleManageProperties(pt)}
+                            className="flex-1 px-3 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 rounded-md transition-colors touch-manipulation border border-blue-200"
+                            title={t.manageProperties || 'Manage Properties'}
+                          >
+                            {t.manageProperties || 'Manage'}
+                          </button>
+                          <button
+                            onClick={() => handleEdit(pt)}
+                            className="px-4 py-2.5 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 active:bg-indigo-100 rounded-md transition-colors touch-manipulation border border-indigo-200"
+                            title={t.editProductType || 'Edit'}
+                          >
+                            <Edit2 className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(pt)}
+                            className="px-4 py-2.5 text-red-600 hover:text-red-700 hover:bg-red-50 active:bg-red-100 rounded-md transition-colors touch-manipulation border border-red-200"
+                            title={language === 'bg' ? 'Изтрий' : 'Delete'}
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex gap-1 sm:gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => handleManageProperties(pt)}
-                        className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-blue-600 hover:text-blue-900 hover:bg-blue-50 active:bg-blue-100 rounded transition-colors touch-manipulation whitespace-nowrap"
-                        title={t.manageProperties || 'Manage Properties'}
-                      >
-                        {t.manageProperties || 'Manage'}
-                      </button>
-                      <button
-                        onClick={() => handleEdit(pt)}
-                        className="p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 active:bg-indigo-100 rounded transition-colors touch-manipulation"
-                        title={t.editProductType || 'Edit'}
-                      >
-                        <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(pt)}
-                        className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 active:bg-red-100 rounded transition-colors touch-manipulation"
-                        title={language === 'bg' ? 'Изтрий' : 'Delete'}
-                      >
-                        <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                );
+                  );
                 })}
               </div>
             </Section>

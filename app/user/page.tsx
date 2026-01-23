@@ -7,18 +7,23 @@ import styles from './user.module.css'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { translations } from '@/lib/translations'
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
+import CartDrawer from '@/components/CartDrawer'
 
 export default function UserPage() {
   const router = useRouter()
   const { login, user, isAuthenticated } = useAuth()
   const { language } = useLanguage()
   const t = translations[language]
+  const [isAdmin, setIsAdmin] = useState(false)
   
   const [isLogin, setIsLogin] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [error, setError] = useState<string | string[]>('')
+  const [loginError, setLoginError] = useState('')
+  const [registerError, setRegisterError] = useState('')
   const [success, setSuccess] = useState('')
   const [returnUrl, setReturnUrl] = useState<string | null>(null)
 
@@ -81,7 +86,8 @@ export default function UserPage() {
 
   const toggleForm = () => {
     setIsLogin(!isLogin)
-    setError('')
+    setLoginError('')
+    setRegisterError('')
     setSuccess('')
     setEmailValidation({ isValid: true, errors: [], showTooltip: false })
   }
@@ -116,7 +122,7 @@ export default function UserPage() {
     e.preventDefault()
     
     setIsLoading(true)
-    setError('')
+    setLoginError('')
     setSuccess('')
 
     try {
@@ -131,14 +137,22 @@ export default function UserPage() {
       if (response.status === 429) {
         const retryAfter = response.headers.get('Retry-After')
         const retryMinutes = retryAfter ? Math.ceil(parseInt(retryAfter) / 60) : 15
-        setError(language === 'bg' 
+        setLoginError(language === 'bg' 
           ? `Твърде много опити. Моля, изчакайте ${retryMinutes} минути.`
           : `Too many attempts. Please wait ${retryMinutes} minutes.`)
         return
       }
 
       if (!response.ok) {
-        throw new Error(data.error || t.invalidCredentials)
+        // Translate common error messages
+        let errorMessage = data.error || t.invalidCredentials
+        if (errorMessage === 'Invalid email or password' || errorMessage === 'Invalid email or password format') {
+          errorMessage = t.invalidCredentials
+        } else if (errorMessage === 'Internal server error') {
+          errorMessage = language === 'bg' ? 'Вътрешна грешка на сървъра. Моля, опитайте отново.' : 'Internal server error. Please try again.'
+        }
+        setLoginError(errorMessage)
+        return
       }
 
       // Login user with context
@@ -150,7 +164,15 @@ export default function UserPage() {
         locationText: data.user.locationText || '',
         locationCoordinates: data.user.locationCoordinates || '',
         addressInstructions: data.user.addressInstructions || '',
-        created_at: data.user.created_at
+        created_at: data.user.created_at,
+        preferredDeliveryType: data.user.preferredDeliveryType || undefined,
+        preferredEcontOfficeId: data.user.preferredEcontOfficeId || undefined,
+        preferredCity: data.user.preferredCity || undefined,
+        preferredStreet: data.user.preferredStreet || undefined,
+        preferredStreetNumber: data.user.preferredStreetNumber || undefined,
+        preferredEntrance: data.user.preferredEntrance || undefined,
+        preferredFloor: data.user.preferredFloor || undefined,
+        preferredApartment: data.user.preferredApartment || undefined
       })
 
       // Redirect
@@ -161,7 +183,14 @@ export default function UserPage() {
       }
       
     } catch (err: any) {
-      setError(err.message || t.invalidCredentials)
+      // Translate error messages
+      let errorMessage = err.message || t.invalidCredentials
+      if (errorMessage === 'Invalid email or password' || errorMessage === 'Invalid email or password format') {
+        errorMessage = t.invalidCredentials
+      } else if (errorMessage === 'Internal server error' || errorMessage.includes('fetch')) {
+        errorMessage = language === 'bg' ? 'Възникна грешка. Моля, опитайте отново.' : 'An error occurred. Please try again.'
+      }
+      setLoginError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -174,21 +203,21 @@ export default function UserPage() {
     if (registerData.email) {
       const emailValidation = validateEmail(registerData.email)
       if (!emailValidation.isValid) {
-        setError(language === 'bg' ? 'Моля, въведете валиден имейл адрес' : 'Please enter a valid email address')
+        setRegisterError(language === 'bg' ? 'Моля, въведете валиден имейл адрес' : 'Please enter a valid email address')
         return
       }
     }
     
     // Validate phone
     if (!registerData.phone) {
-      setError(language === 'bg' ? 'Телефонът е задължителен' : 'Phone number is required')
+      setRegisterError(language === 'bg' ? 'Телефонът е задължителен' : 'Phone number is required')
       return
     }
     
     const cleanedPhone = registerData.phone.replace(/\s/g, '')
     const phoneRegex = /^(\+359|0)[0-9]{9}$/
     if (!phoneRegex.test(cleanedPhone)) {
-      setError(language === 'bg' 
+      setRegisterError(language === 'bg' 
         ? 'Невалиден формат на телефонния номер. Използвайте формат: +359XXXXXXXXX или 089XXXXXXX'
         : 'Invalid phone format. Use: +359XXXXXXXXX or 089XXXXXXX')
       return
@@ -196,22 +225,22 @@ export default function UserPage() {
     
     // Validate password
     if (!registerData.password) {
-      setError(language === 'bg' ? 'Паролата е задължителна' : 'Password is required')
+      setRegisterError(language === 'bg' ? 'Паролата е задължителна' : 'Password is required')
       return
     }
     
     if (registerData.password.length < 8) {
-      setError(t.passwordTooShort)
+      setRegisterError(t.passwordTooShort)
       return
     }
     
     if (!/(?=.*[a-zA-Z])(?=.*\d)/.test(registerData.password)) {
-      setError(t.passwordMustContain)
+      setRegisterError(t.passwordMustContain)
       return
     }
     
     setIsLoading(true)
-    setError('')
+    setRegisterError('')
     setSuccess('')
 
     try {
@@ -230,22 +259,37 @@ export default function UserPage() {
       const data = await response.json()
 
       if (!response.ok) {
+        // Translate error messages
+        let errorMessage = ''
+        
         if (data && typeof data === 'object' && data.details) {
-          const errorMessages = Object.keys(data.details)
+          // Get first error message from details
+          const errorKeys = Object.keys(data.details)
             .filter(key => key.startsWith('error_') || ['name', 'email', 'phone', 'password'].includes(key))
-            .map(key => data.details[key])
-            .filter(Boolean)
           
-          if (errorMessages.length > 0) {
-            setError(errorMessages)
-          } else {
-            setError(data.error || (language === 'bg' ? 'Грешка при регистрация' : 'Registration failed'))
+          if (errorKeys.length > 0) {
+            errorMessage = data.details[errorKeys[0]]
           }
-        } else if (data && data.error) {
-          setError(data.error)
-        } else {
-          throw new Error(data.error || 'Registration failed')
         }
+        
+        if (!errorMessage && data.error) {
+          errorMessage = data.error
+        }
+        
+        if (!errorMessage) {
+          errorMessage = language === 'bg' ? 'Грешка при регистрация' : 'Registration failed'
+        }
+        
+        // Translate common error messages
+        if (errorMessage === 'Email is already taken' || errorMessage === 'Email already exists') {
+          errorMessage = language === 'bg' ? 'Този имейл адрес вече е регистриран' : 'This email address is already registered'
+        } else if (errorMessage === 'Invalid email or password format' || errorMessage.includes('Invalid')) {
+          errorMessage = language === 'bg' ? 'Невалиден формат на данните' : 'Invalid data format'
+        } else if (errorMessage === 'Internal server error') {
+          errorMessage = language === 'bg' ? 'Вътрешна грешка на сървъра. Моля, опитайте отново.' : 'Internal server error. Please try again.'
+        }
+        
+        setRegisterError(errorMessage)
         return
       }
 
@@ -263,15 +307,22 @@ export default function UserPage() {
       setTimeout(() => setIsLogin(true), 2000)
       
     } catch (err: any) {
-      setError(err.message || (language === 'bg' ? 'Грешка при регистрация' : 'Registration failed'))
+      // Translate error messages
+      let errorMessage = err.message || (language === 'bg' ? 'Грешка при регистрация' : 'Registration failed')
+      if (errorMessage === 'Internal server error' || errorMessage.includes('fetch')) {
+        errorMessage = language === 'bg' ? 'Възникна грешка. Моля, опитайте отново.' : 'An error occurred. Please try again.'
+      }
+      setRegisterError(errorMessage)
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <main className={styles.userPage}>
-      <div className={`${styles.wrapper} ${!isLogin ? styles.active : ''} ${(error || success) ? styles.hasMessage : ''}`}>
+    <>
+      <Header isAdmin={isAdmin} setIsAdmin={setIsAdmin} />
+      <main className={styles.userPage}>
+        <div className={`${styles.wrapper} ${!isLogin ? styles.active : ''} ${(loginError || registerError || success) ? styles.hasMessage : ''}`}>
         <span className={styles.rotateBg}></span>
         <span className={styles.rotateBg2}></span>
 
@@ -281,7 +332,7 @@ export default function UserPage() {
             {t.login}
           </h2>
 
-          {error && <div className={styles.errorMessage}>{Array.isArray(error) ? error.join(', ') : error}</div>}
+          {loginError && isLogin && <div className={styles.errorMessage}>{loginError}</div>}
           
           <form onSubmit={handleLogin}>
             <div className={`${styles.inputBox} ${styles.animation}`} style={{ '--i': 1, '--j': 22 } as React.CSSProperties}>
@@ -477,19 +528,7 @@ export default function UserPage() {
               {isLoading ? (language === 'bg' ? 'Регистрация...' : 'Registering...') : t.registerButton}
             </button>
 
-            {error && (
-              <div className={styles.errorMessage}>
-                {Array.isArray(error) ? (
-                  <ul className={styles.errorList}>
-                    {error.map((err, index) => (
-                      <li key={index}>{err}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  error
-                )}
-              </div>
-            )}
+            {registerError && !isLogin && <div className={styles.errorMessage}>{registerError}</div>}
             {success && !isLogin && <div className={styles.successMessage}>{success}</div>}
 
             <div className={`${styles.linkTxt} ${styles.animation}`} style={{ '--i': 23, '--j': 6 } as React.CSSProperties}>
@@ -509,6 +548,9 @@ export default function UserPage() {
         </div>
 
       </div>
-    </main>
+      </main>
+      <Footer />
+      <CartDrawer />
+    </>
   )
 }

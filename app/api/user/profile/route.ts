@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     // Fetch user profile information
     const { data: user, error: userError } = await supabaseAdmin
       .from('users')
-      .select('userid, name, email, phone, locationtext, locationcoordinates, addressinstructions, created_at')
+      .select('userid, name, email, phone, locationtext, locationcoordinates, addressinstructions, created_at, preferred_delivery_type, preferred_econt_office_id, preferred_city, preferred_street, preferred_street_number, preferred_entrance, preferred_floor, preferred_apartment')
       .eq('userid', userId)
       .single()
 
@@ -52,7 +52,15 @@ export async function GET(request: NextRequest) {
         locationText: user.locationtext || '',
         locationCoordinates: user.locationcoordinates || '',
         addressInstructions: user.addressinstructions || '',
-        created_at: user.created_at
+        created_at: user.created_at,
+        preferredDeliveryType: user.preferred_delivery_type || null,
+        preferredEcontOfficeId: user.preferred_econt_office_id || null,
+        preferredCity: user.preferred_city || null,
+        preferredStreet: user.preferred_street || null,
+        preferredStreetNumber: user.preferred_street_number || null,
+        preferredEntrance: user.preferred_entrance || null,
+        preferredFloor: user.preferred_floor || null,
+        preferredApartment: user.preferred_apartment || null
       }
     })
 
@@ -68,7 +76,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userId, name, email, phone, locationText, locationCoordinates, addressInstructions } = body
+    const { userId, name, email, phone, locationText, locationCoordinates, addressInstructions, preferredDeliveryType, preferredEcontOfficeId, preferredCity, preferredStreet, preferredStreetNumber, preferredEntrance, preferredFloor, preferredApartment } = body
 
     if (!userId) {
       return NextResponse.json(
@@ -156,13 +164,22 @@ export async function PUT(request: NextRequest) {
     if (locationText !== undefined) updateData.locationtext = locationText || null
     if (locationCoordinates !== undefined) updateData.locationcoordinates = locationCoordinates || null
     if (addressInstructions !== undefined) updateData.addressinstructions = addressInstructions || null
+    // Delivery preferences
+    if (preferredDeliveryType !== undefined) updateData.preferred_delivery_type = preferredDeliveryType || null
+    if (preferredEcontOfficeId !== undefined) updateData.preferred_econt_office_id = preferredEcontOfficeId || null
+    if (preferredCity !== undefined) updateData.preferred_city = preferredCity || null
+    if (preferredStreet !== undefined) updateData.preferred_street = preferredStreet || null
+    if (preferredStreetNumber !== undefined) updateData.preferred_street_number = preferredStreetNumber || null
+    if (preferredEntrance !== undefined) updateData.preferred_entrance = preferredEntrance || null
+    if (preferredFloor !== undefined) updateData.preferred_floor = preferredFloor || null
+    if (preferredApartment !== undefined) updateData.preferred_apartment = preferredApartment || null
 
     // Update user profile
     const { data: updatedUser, error: updateError } = await supabaseAdmin
       .from('users')
       .update(updateData)
       .eq('userid', userId)
-      .select('userid, name, email, phone, locationtext, locationcoordinates, addressinstructions, created_at')
+      .select('userid, name, email, phone, locationtext, locationcoordinates, addressinstructions, created_at, preferred_delivery_type, preferred_econt_office_id, preferred_city, preferred_street, preferred_street_number, preferred_entrance, preferred_floor, preferred_apartment')
       .single()
 
     if (updateError) {
@@ -190,7 +207,15 @@ export async function PUT(request: NextRequest) {
         locationText: updatedUser.locationtext || '',
         locationCoordinates: updatedUser.locationcoordinates || '',
         addressInstructions: updatedUser.addressinstructions || '',
-        created_at: updatedUser.created_at
+        created_at: updatedUser.created_at,
+        preferredDeliveryType: updatedUser.preferred_delivery_type || null,
+        preferredEcontOfficeId: updatedUser.preferred_econt_office_id || null,
+        preferredCity: updatedUser.preferred_city || null,
+        preferredStreet: updatedUser.preferred_street || null,
+        preferredStreetNumber: updatedUser.preferred_street_number || null,
+        preferredEntrance: updatedUser.preferred_entrance || null,
+        preferredFloor: updatedUser.preferred_floor || null,
+        preferredApartment: updatedUser.preferred_apartment || null
       },
       message: 'Profile updated successfully'
     })

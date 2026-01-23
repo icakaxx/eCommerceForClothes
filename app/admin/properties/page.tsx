@@ -839,12 +839,11 @@ export default function PropertiesPage() {
                           <h3 className="text-sm sm:text-base font-medium text-gray-900 truncate">{prop.name}</h3>
                         </div>
                         <p className="text-xs sm:text-sm text-gray-500 mt-1 line-clamp-2">{prop.description || (language === 'bg' ? 'Без описание' : 'No description')}</p>
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs text-gray-500">
-                          <span className="px-2 py-0.5 bg-gray-100 rounded">{prop.datatype}</span>
-                          {prop.datatype === 'select' && (
+                        {prop.datatype === 'select' && (
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs text-gray-500">
                             <span>{prop.values?.length || 0} {language === 'bg' ? 'стойности' : 'values'}</span>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                         {prop.datatype === 'select' && (

@@ -8,6 +8,7 @@ import { useCart } from '@/context/CartContext';
 import { translations } from '@/lib/translations';
 import { useRouter } from 'next/navigation';
 import { ShoppingCart, Heart, Share2 } from 'lucide-react';
+import Image from 'next/image';
 
 interface ProductDetailsProps {
   product: Product;
@@ -272,12 +273,19 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
     // TODO: Implement actual wishlist functionality when accounts are added
   };
 
+  // Get product image for mobile display
+  const productImage = selectedVariant?.imageurl || 
+    (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : 
+    (Array.isArray(product.Images) && product.Images.length > 0 ? 
+      (typeof product.Images[0] === 'string' ? product.Images[0] : product.Images[0].imageurl || product.Images[0].url) : 
+    '/image.png'));
+
   return (
-    <div className="product-details">
-      {/* Back button */}
+    <div className="product-details flex flex-col">
+      {/* Back button - order 1 */}
       <button
         onClick={handleBackToStore}
-        className="mb-4 flex items-center gap-2 text-sm transition-colors duration-300 hover:underline"
+        className="mb-4 flex items-center gap-2 text-sm transition-colors duration-300 hover:underline order-1"
         style={{ color: theme.colors.textSecondary }}
       >
         <svg
@@ -296,8 +304,8 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         {t.backTo} {getCategoryLabel()}
       </button>
 
-      {/* Product Name and Actions */}
-      <div className="flex items-start justify-between gap-4 mb-2">
+      {/* Product Name and Actions - order 2 */}
+      <div className="flex items-start justify-between gap-4 mb-2 order-2">
         <h1 
           className="product__single__name text-3xl md:text-4xl font-bold capitalize transition-colors duration-300 flex-1"
           style={{ color: theme.colors.text }}
@@ -336,10 +344,24 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         </div>
       </div>
 
+      {/* Mobile Image - order 3 (only visible on mobile) */}
+      <div className="mb-6 order-3 md:hidden">
+        <div className="relative w-full aspect-square rounded-lg overflow-hidden" style={{ backgroundColor: theme.colors.cardBg }}>
+          <Image
+            src={productImage}
+            alt={`${product.brand} ${product.model}`}
+            fill
+            className="object-cover"
+            sizes="100vw"
+            priority
+          />
+        </div>
+      </div>
+
       {/* Share Message */}
       {shareMessage && (
         <div 
-          className="mb-2 px-3 py-1.5 text-sm rounded-md"
+          className="mb-2 px-3 py-1.5 text-sm rounded-md order-2"
           style={{
             backgroundColor: theme.colors.surface,
             color: theme.colors.text
@@ -352,27 +374,16 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
       {/* Product Subtitle (if available) */}
       {product.subtitle && (
         <p 
-          className="text-lg mb-2 transition-colors duration-300"
+          className="text-lg mb-2 transition-colors duration-300 order-2"
           style={{ color: theme.colors.textSecondary }}
         >
           {product.subtitle}
         </p>
       )}
 
-      {/* Category Badge */}
-      <span 
-        className="inline-block px-3 py-1.5 text-sm rounded-full mb-6 transition-colors duration-300"
-        style={{
-          backgroundColor: theme.colors.secondary,
-          color: theme.colors.primary
-        }}
-      >
-        {getCategoryLabel()}
-      </span>
-
-      {/* Price */}
+      {/* Price - order 4 */}
       <div 
-        className="mb-8 pb-6 border-b"
+        className="mb-8 pb-6 border-b order-4"
         style={{ borderColor: theme.colors.border }}
       >
         <div 
@@ -389,9 +400,9 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         </div>
       </div>
 
-      {/* Variant Options */}
+      {/* Variant Options - order 5 */}
       {Object.keys(availableOptions).length > 0 && (
-        <div className="mb-8">
+        <div className="mb-8 order-5">
           <h3
             className="text-lg font-semibold mb-4 transition-colors duration-300"
             style={{ color: theme.colors.text }}
@@ -430,8 +441,8 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         </div>
       )}
 
-      {/* Product Attributes */}
-      <div className="product__single__attributes mb-8">
+      {/* Product Attributes - order 6 */}
+      <div className="product__single__attributes mb-8 order-6">
         <h3
           className="text-lg font-semibold mb-4 transition-colors duration-300"
           style={{ color: theme.colors.text }}
@@ -482,7 +493,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
 
       {/* Stock Availability */}
       <div 
-        className="p-4 rounded-lg mb-6"
+        className="p-4 rounded-lg mb-6 order-6"
         style={{ 
           backgroundColor: theme.colors.surface,
           border: `1px solid ${theme.colors.border}`
@@ -550,9 +561,9 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         </p>
       </div>
 
-      {/* Add to Cart Button */}
+      {/* Add to Cart Button - order 7 */}
       {product.visible && currentQuantity > 0 && (
-        <div className="mb-6">
+        <div className="mb-6 order-7">
           <button
             onClick={handleAddToCart}
             className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center justify-center gap-2 font-medium"

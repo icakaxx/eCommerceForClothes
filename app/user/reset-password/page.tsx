@@ -7,6 +7,9 @@ import styles from './reset-password.module.css'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { translations } from '@/lib/translations'
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
+import CartDrawer from '@/components/CartDrawer'
 
 function ResetPasswordContent() {
   const router = useRouter()
@@ -14,6 +17,7 @@ function ResetPasswordContent() {
   const { user, isAuthenticated } = useAuth()
   const { language } = useLanguage()
   const t = translations[language]
+  const [isAdmin, setIsAdmin] = useState(false)
   
   const token = searchParams.get('token')
   
@@ -94,7 +98,16 @@ function ResetPasswordContent() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || (language === 'bg' ? 'Грешка при възстановяването' : 'Error resetting password'))
+        // Translate error messages
+        let errorMessage = data.error || (language === 'bg' ? 'Грешка при възстановяването' : 'Error resetting password')
+        if (errorMessage === 'Invalid or expired token' || errorMessage === 'Token not found' || errorMessage === 'Token expired') {
+          errorMessage = language === 'bg' ? 'Невалиден или изтекъл токен. Моля, заявете нова заявка за възстановяване на парола.' : 'Invalid or expired token. Please request a new password reset.'
+        } else if (errorMessage === 'Internal server error') {
+          errorMessage = language === 'bg' ? 'Вътрешна грешка на сървъра. Моля, опитайте отново.' : 'Internal server error. Please try again.'
+        } else if (errorMessage.includes('Invalid') || errorMessage.includes('invalid')) {
+          errorMessage = language === 'bg' ? 'Невалидни данни' : 'Invalid data'
+        }
+        throw new Error(errorMessage)
       }
 
       setSuccess(t.passwordResetSuccess)
@@ -104,15 +117,22 @@ function ResetPasswordContent() {
       }, 2000)
 
     } catch (err: any) {
-      setError(err.message || (language === 'bg' ? 'Грешка при възстановяването' : 'Error resetting password'))
+      // Translate error messages
+      let errorMessage = err.message || (language === 'bg' ? 'Грешка при възстановяването' : 'Error resetting password')
+      if (errorMessage === 'Internal server error' || errorMessage.includes('fetch')) {
+        errorMessage = language === 'bg' ? 'Възникна грешка. Моля, опитайте отново.' : 'An error occurred. Please try again.'
+      }
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <main className={styles.resetPasswordPage}>
-      <div className={styles.wrapper}>
+    <>
+      <Header isAdmin={isAdmin} setIsAdmin={setIsAdmin} />
+      <main className={styles.resetPasswordPage}>
+        <div className={styles.wrapper}>
         <span className={styles.rotateBg}></span>
         <span className={styles.rotateBg2}></span>
 
@@ -186,7 +206,10 @@ function ResetPasswordContent() {
           </p>
         </div>
       </div>
-    </main>
+      </main>
+      <Footer />
+      <CartDrawer />
+    </>
   )
 }
 

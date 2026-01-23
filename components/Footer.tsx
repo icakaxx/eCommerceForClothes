@@ -156,11 +156,11 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
           
           {/* Column 1: Brand */}
-          <div className="space-y-4">
+          <div className="space-y-4 text-center md:text-left">
             <h3 className="sr-only">Brand</h3>
             {/* Logo */}
             {settings?.logourl ? (
-              <Link href="/" className="inline-block">
+              <Link href="/" className="inline-block mx-auto md:mx-0">
                 <Image
                   src={settings.logourl}
                   alt={settings?.storename || 'Store Logo'}
@@ -189,7 +189,7 @@ export default function Footer() {
             
             {/* Social Icons - Outline Style */}
             {socialLinks.length > 0 && (
-              <div className="flex items-center gap-3 sm:gap-4 pt-2 flex-wrap">
+              <div className="flex items-center justify-center md:justify-start gap-3 sm:gap-4 pt-2 flex-wrap">
                 {socialLinks.map(link => {
                   const Icon = link.icon;
                   return (
@@ -211,14 +211,14 @@ export default function Footer() {
           </div>
 
           {/* Column 2: Categories */}
-          <div>
+          <div className="text-center md:text-left">
             <h3 
               className="text-sm font-semibold mb-4 tracking-wide uppercase"
               style={{ color: theme.colors.text }}
             >
               {language === 'bg' ? 'Категории' : 'Categories'}
             </h3>
-            <nav className="flex flex-col space-y-3">
+            <nav className="flex flex-col items-center md:items-start space-y-3">
               {secondaryLinks.map(item => (
                 <Link
                   key={item.id}
@@ -237,14 +237,14 @@ export default function Footer() {
           </div>
 
           {/* Column 3: Contacts */}
-          <div>
+          <div className="text-center md:text-left">
             <h3 
               className="text-sm font-semibold mb-4 tracking-wide uppercase"
               style={{ color: theme.colors.text }}
             >
               {language === 'bg' ? 'Свържете се с нас' : 'Contact Us'}
             </h3>
-            <div className="flex flex-col space-y-3">
+            <div className="flex flex-col items-center md:items-start space-y-3">
               {contactInfo.phone && (
                 <a
                   href={`tel:${contactInfo.phone}`}

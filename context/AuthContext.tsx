@@ -11,6 +11,15 @@ interface User {
   addressInstructions?: string
   locationCoordinates?: string
   created_at?: string
+  // Delivery preferences
+  preferredDeliveryType?: 'office' | 'address' | 'econtomat'
+  preferredEcontOfficeId?: string
+  preferredCity?: string
+  preferredStreet?: string
+  preferredStreetNumber?: string
+  preferredEntrance?: string
+  preferredFloor?: string
+  preferredApartment?: string
 }
 
 interface AuthContextType {

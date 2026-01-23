@@ -186,8 +186,9 @@ export default function AdminSidebar({ currentPath, collapsed: externalCollapsed
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg transition-colors duration-200 shadow-lg"
+        className="lg:hidden fixed top-2 z-50 p-2 rounded-lg transition-all duration-300 ease-in-out shadow-lg"
         style={{
+          left: isMobileMenuOpen ? 'calc(256px - 5px - 2.5rem)' : '16px', // 256px is sidebar width (w-64), 5px gap, 2.5rem (40px) is button width (p-2 + icon)
           backgroundColor: theme.colors.surface,
           color: theme.colors.text,
           border: `1px solid ${theme.colors.border}`
@@ -236,23 +237,6 @@ export default function AdminSidebar({ currentPath, collapsed: externalCollapsed
                 {language === 'bg' ? 'Админ панел' : 'Admin Panel'}
               </h2>
             )}
-            {/* Close button for mobile */}
-            <button
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="lg:hidden p-1 rounded transition-colors duration-200"
-              style={{ color: theme.colors.textSecondary }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = theme.colors.text;
-                e.currentTarget.style.backgroundColor = theme.colors.secondary;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = theme.colors.textSecondary;
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-              aria-label="Close menu"
-            >
-              <X size={20} />
-            </button>
           </div>
 
         {/* Navigation */}
@@ -338,12 +322,16 @@ export default function AdminSidebar({ currentPath, collapsed: externalCollapsed
           className="p-3 sm:p-4 border-t flex-shrink-0 space-y-2"
           style={{ borderColor: theme.colors.border }}
         >
-          {/* Collapse Toggle Button */}
+          {/* Collapse Toggle Button - Hidden on mobile */}
           <button
             onClick={(e) => {
+              // Prevent toggle on mobile
+              if (window.innerWidth < 1024) {
+                return;
+              }
               handleToggle();
             }}
-            className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2 sm:gap-3'} px-2 sm:px-3 py-2.5 sm:py-3 rounded-lg transition-colors duration-200 w-full touch-manipulation min-h-[44px]`}
+            className={`hidden lg:flex items-center ${isCollapsed ? 'justify-center' : 'gap-2 sm:gap-3'} px-2 sm:px-3 py-2.5 sm:py-3 rounded-lg transition-colors duration-200 w-full touch-manipulation min-h-[44px]`}
             style={{
               backgroundColor: theme.colors.secondary,
               color: theme.colors.text

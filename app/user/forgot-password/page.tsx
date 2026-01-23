@@ -7,12 +7,16 @@ import styles from './forgot-password.module.css'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { translations } from '@/lib/translations'
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
+import CartDrawer from '@/components/CartDrawer'
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
   const { user, isAuthenticated } = useAuth()
   const { language } = useLanguage()
   const t = translations[language]
+  const [isAdmin, setIsAdmin] = useState(false)
   
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -89,22 +93,38 @@ export default function ForgotPasswordPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || (language === 'bg' ? 'Грешка при изпращането на заявката' : 'Error sending request'))
+        // Translate error messages
+        let errorMessage = data.error || (language === 'bg' ? 'Грешка при изпращането на заявката' : 'Error sending request')
+        if (errorMessage === 'User not found' || errorMessage === 'Email not found') {
+          errorMessage = language === 'bg' ? 'Потребител с този имейл адрес не е намерен' : 'User with this email address not found'
+        } else if (errorMessage === 'Internal server error') {
+          errorMessage = language === 'bg' ? 'Вътрешна грешка на сървъра. Моля, опитайте отново.' : 'Internal server error. Please try again.'
+        } else if (errorMessage.includes('Invalid') || errorMessage.includes('invalid')) {
+          errorMessage = language === 'bg' ? 'Невалиден имейл адрес' : 'Invalid email address'
+        }
+        throw new Error(errorMessage)
       }
 
       setSuccess(data.message || t.passwordResetSent)
       setResetData({ email: '' })
 
     } catch (err: any) {
-      setError(err.message || (language === 'bg' ? 'Грешка при изпращането на заявката' : 'Error sending request'))
+      // Translate error messages
+      let errorMessage = err.message || (language === 'bg' ? 'Грешка при изпращането на заявката' : 'Error sending request')
+      if (errorMessage === 'Internal server error' || errorMessage.includes('fetch')) {
+        errorMessage = language === 'bg' ? 'Възникна грешка. Моля, опитайте отново.' : 'An error occurred. Please try again.'
+      }
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <main className={styles.forgotPasswordPage}>
-      <div className={styles.wrapper}>
+    <>
+      <Header isAdmin={isAdmin} setIsAdmin={setIsAdmin} />
+      <main className={styles.forgotPasswordPage}>
+        <div className={styles.wrapper}>
         <span className={styles.rotateBg}></span>
         <span className={styles.rotateBg2}></span>
 
@@ -175,6 +195,9 @@ export default function ForgotPasswordPage() {
           </p>
         </div>
       </div>
-    </main>
+      </main>
+      <Footer />
+      <CartDrawer />
+    </>
   )
 }

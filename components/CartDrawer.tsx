@@ -1,7 +1,7 @@
 // components/CartDrawer.tsx
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, Plus, Minus, ShoppingCart, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
@@ -27,6 +27,27 @@ const CartDrawer: React.FC = () => {
   const formatPrice = (price: number) => {
     return `€${price.toFixed(2)}`;
   };
+
+  // Prevent body scrolling when cart drawer is open
+  useEffect(() => {
+    if (isCartOpen) {
+      // Save current scroll position
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        // Restore scroll position when cart closes
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [isCartOpen]);
 
   if (!isCartOpen) return null;
 

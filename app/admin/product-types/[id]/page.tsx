@@ -166,53 +166,64 @@ export default function ProductTypeDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
+        {/* Header */}
+        <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
           <button
             onClick={() => router.push('/admin/product-types')}
-            className="p-2 hover:bg-gray-200 rounded"
+            className="p-2 hover:bg-gray-200 active:bg-gray-300 rounded-lg transition-colors touch-manipulation"
+            aria-label={language === 'bg' ? 'Назад' : 'Back'}
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
-          <div>
-            <h1 className="text-3xl font-bold">{productType.name}</h1>
-          </div>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold truncate">{productType.name}</h1>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">{language === 'bg' ? 'Присвоени характеристики' : 'Assigned Properties'}</h2>
+        {/* Main Content Card */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+          {/* Section Header */}
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+              {language === 'bg' ? 'Присвоени характеристики' : 'Assigned Properties'}
+            </h2>
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation text-sm sm:text-base font-medium w-full sm:w-auto"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               {t.addProperty}
             </button>
           </div>
 
+          {/* Properties List */}
           {assignedProperties.length === 0 ? (
-            <p className="text-gray-500">{language === 'bg' ? 'Няма присвоени характеристики все още.' : 'No properties assigned yet.'}</p>
+            <div className="text-center py-8 sm:py-12">
+              <p className="text-gray-500 text-sm sm:text-base">
+                {language === 'bg' ? 'Няма присвоени характеристики все още.' : 'No properties assigned yet.'}
+              </p>
+            </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3 sm:space-y-2">
               {assignedProperties.map((ap) => (
                 <div
                   key={ap.ProductTypePropertyID}
-                  className="flex justify-between items-center p-3 border border-gray-200 rounded"
+                  className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 sm:p-3 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors"
                 >
-                  <div>
-                    <div className="font-medium">{ap.properties?.name}</div>
-                    {ap.properties?.description && (
-                      <div className="text-sm text-gray-500">{ap.properties.description}</div>
-                    )}
-                    <div className="text-xs text-gray-400">Type: {ap.properties?.datatype}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-base sm:text-sm text-gray-900">
+                      {ap.properties?.name}
+                    </div>
                   </div>
                   <button
                     onClick={() => handleRemoveProperty(ap.propertyid)}
-                    className="text-red-600 hover:text-red-900"
+                    className="flex items-center justify-center sm:justify-end gap-2 px-4 py-2.5 sm:px-3 sm:py-2 text-red-600 hover:text-red-700 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors touch-manipulation border border-red-200 sm:border-0 w-full sm:w-auto min-h-[44px] sm:min-h-0"
+                    aria-label={language === 'bg' ? 'Премахни характеристика' : 'Remove property'}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-5 h-5 sm:w-4 sm:h-4" />
+                    <span className="sm:hidden text-sm font-medium">
+                      {language === 'bg' ? 'Премахни' : 'Remove'}
+                    </span>
                   </button>
                 </div>
               ))}
@@ -232,7 +243,7 @@ export default function ProductTypeDetailsPage() {
           title={t.addProperty}
           subheader={language === 'bg' ? 'Изберете характеристики за добавяне към тази категория' : 'Select properties to add to this category'}
           maxWidth="max-w-md"
-          minWidth={400}
+          minWidth={320}
           minHeight={300}
         >
           <div className="relative">
@@ -260,25 +271,21 @@ export default function ProductTypeDetailsPage() {
                   {unassignedProperties.map((prop) => (
                     <label
                       key={prop.propertyid}
-                      className="flex items-start gap-3 w-full text-left p-3 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer"
+                      className="flex items-start gap-3 w-full text-left p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 active:bg-gray-100 cursor-pointer transition-colors touch-manipulation min-h-[60px]"
                     >
                       <input
                         type="checkbox"
                         checked={selectedPropertyIds.has(prop.propertyid)}
                         onChange={() => handleToggleProperty(prop.propertyid)}
-                        className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="mt-1 w-5 h-5 sm:w-4 sm:h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 flex-shrink-0"
                       />
-                      <div className="flex-1">
-                        <div className="font-medium">{prop.name}</div>
-                        {prop.description && (
-                          <div className="text-sm text-gray-500">{prop.description}</div>
-                        )}
-                        <div className="text-xs text-gray-400">Type: {prop.datatype}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm sm:text-base text-gray-900">{prop.name}</div>
                       </div>
                     </label>
                   ))}
                 </div>
-                <div className="flex justify-end gap-2 pt-2 border-t">
+                <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t">
                   <button
                     onClick={() => {
                       if (!showCompleteAnimation) {
@@ -288,14 +295,14 @@ export default function ProductTypeDetailsPage() {
                       }
                     }}
                     disabled={showCompleteAnimation}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
+                    className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 active:bg-gray-300 disabled:opacity-50 transition-colors touch-manipulation"
                   >
                     {language === 'bg' ? 'Отказ' : 'Cancel'}
                   </button>
                   <button
                     onClick={() => handleAddProperty()}
                     disabled={selectedPropertyIds.size === 0 || addingProperties || showCompleteAnimation}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors touch-manipulation font-medium"
                   >
                     {addingProperties ? (
                       <>

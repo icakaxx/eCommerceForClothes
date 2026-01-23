@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, X, Settings, LogOut, ShoppingCart, User as UserIcon } from 'lucide-react';
+import { Menu, Settings, LogOut, ShoppingCart, User as UserIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -87,10 +87,10 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
             ))}
           </nav>
           
-          {/* Logo in the center */}
+          {/* Logo - centered on desktop, left on mobile */}
           <Link
             href="/"
-            className="flex items-center gap-2 sm:gap-3 cursor-pointer absolute left-1/2 transform -translate-x-1/2"
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer md:absolute md:left-1/2 md:transform md:-translate-x-1/2"
             onClick={() => setIsAdmin(false)}
           >
             {settings?.logourl ? (
@@ -139,43 +139,30 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                     </span>
                   )}
                 </button>
-                {isAuthenticated && user ? (
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href="/user/dashboard"
-                      className="p-2 transition-colors duration-300"
-                      style={{ color: theme.colors.textSecondary }}
-                      onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}
-                      onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textSecondary}
-                      aria-label="User Dashboard"
-                    >
-                      <UserIcon size={20} />
-                    </Link>
-                    <button
-                      onClick={() => {
-                        logout();
-                        router.push('/');
-                      }}
-                      className="p-2 transition-colors duration-300"
-                      style={{ color: theme.colors.textSecondary }}
-                      onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}
-                      onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textSecondary}
-                      aria-label="Logout"
-                    >
-                      <LogOut size={20} />
-                    </button>
-                  </div>
-                ) : (
-                  <Link
-                    href="/user"
+                <Link
+                  href={isAuthenticated && user ? "/user/dashboard" : "/user"}
+                  className="p-2 transition-colors duration-300"
+                  style={{ color: theme.colors.textSecondary }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}
+                  onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textSecondary}
+                  aria-label={isAuthenticated && user ? "User Dashboard" : "Login"}
+                >
+                  <UserIcon size={20} />
+                </Link>
+                {isAuthenticated && user && (
+                  <button
+                    onClick={() => {
+                      logout();
+                      router.push('/');
+                    }}
                     className="p-2 transition-colors duration-300"
                     style={{ color: theme.colors.textSecondary }}
                     onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}
                     onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textSecondary}
-                    aria-label="Login"
+                    aria-label="Logout"
                   >
-                    <UserIcon size={20} />
-                  </Link>
+                    <LogOut size={20} />
+                  </button>
                 )}
               </>
             )}
@@ -255,23 +242,23 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
     {/* Mobile Menu - Sliding from Right */}
     {mobileMenuOpen && (
       <div
-        className="fixed top-0 right-0 h-full w-[280px] sm:w-[320px] z-50 md:hidden shadow-2xl"
-        style={{ backgroundColor: theme.colors.surface }}
+        className="fixed top-0 right-0 h-full w-[280px] z-50 md:hidden shadow-2xl"
+        style={{ 
+          backgroundColor: theme.colors.surface,
+          width: '280px',
+          minWidth: '280px',
+          maxWidth: '280px'
+        }}
+        onTouchStart={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
-        <div className="flex items-center justify-between p-6 border-b"
+        {/* Header - No Close Button */}
+        <div className="flex items-center p-6 border-b"
              style={{ borderColor: theme.colors.border }}>
           <h2 className="font-semibold text-lg"
               style={{ color: theme.colors.text }}>
             МЕНЮ
           </h2>
-          <button
-            onClick={() => setMobileMenuOpen(false)}
-            className="p-2 rounded-lg transition-colors duration-300 hover:opacity-70"
-            style={{ color: theme.colors.textSecondary }}
-          >
-            <X size={24} />
-          </button>
         </div>
 
         {/* Menu Items */}

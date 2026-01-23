@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     // Find user by email
     const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
-      .select('userid, name, email, phone, password, locationtext, locationcoordinates, addressinstructions, created_at')
+      .select('userid, name, email, phone, password, locationtext, locationcoordinates, addressinstructions, created_at, preferred_delivery_type, preferred_econt_office_id, preferred_city, preferred_street, preferred_street_number, preferred_entrance, preferred_floor, preferred_apartment')
       .eq('email', normalizedEmail)
       .single()
       
@@ -88,7 +88,15 @@ export async function POST(request: NextRequest) {
         locationText: user.locationtext || '',
         locationCoordinates: user.locationcoordinates || '',
         addressInstructions: user.addressinstructions || '',
-        created_at: user.created_at
+        created_at: user.created_at,
+        preferredDeliveryType: user.preferred_delivery_type || null,
+        preferredEcontOfficeId: user.preferred_econt_office_id || null,
+        preferredCity: user.preferred_city || null,
+        preferredStreet: user.preferred_street || null,
+        preferredStreetNumber: user.preferred_street_number || null,
+        preferredEntrance: user.preferred_entrance || null,
+        preferredFloor: user.preferred_floor || null,
+        preferredApartment: user.preferred_apartment || null
       }
     }, {
       headers: rateLimit.headers

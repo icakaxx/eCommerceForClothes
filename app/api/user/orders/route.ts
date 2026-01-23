@@ -21,26 +21,61 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (userError || !user) {
+      console.error('User not found:', { userId, error: userError })
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       )
     }
 
-    // Find customer by email
-    const { data: customer, error: customerError } = await supabaseAdmin
-      .from('customers')
-      .select('customerid')
-      .eq('email', user.email.toLowerCase().trim())
-      .single()
+    // Normalize email for matching (lowercase and trim)
+    const normalizedEmail = (user.email || '').toLowerCase().trim()
 
-    if (customerError || !customer) {
-      // User exists but has no orders yet
+    if (!normalizedEmail) {
+      // User has no email
+      console.log('User has no email:', { userId })
       return NextResponse.json({
         orders: [],
         count: 0
       })
     }
+
+    // Find customer by email (case-insensitive match)
+    // Try exact match first
+    let { data: customer, error: customerError } = await supabaseAdmin
+      .from('customers')
+      .select('customerid, email')
+      .eq('email', normalizedEmail)
+      .single()
+
+    // If not found, try case-insensitive search
+    if (customerError || !customer) {
+      const { data: customers, error: searchError } = await supabaseAdmin
+        .from('customers')
+        .select('customerid, email')
+      
+      if (!searchError && customers && customers.length > 0) {
+        // Find customer with matching email (case-insensitive)
+        customer = customers.find(c => 
+          c.email && c.email.toLowerCase().trim() === normalizedEmail
+        ) || null
+        // Reset customerError if we found a customer, otherwise keep the original error
+        if (customer) {
+          customerError = null
+        }
+      }
+    }
+
+    if (customerError || !customer) {
+      // User exists but has no customer record (no orders yet)
+      console.log('No customer found for user:', { userId, email: normalizedEmail })
+      return NextResponse.json({
+        orders: [],
+        count: 0
+      })
+    }
+
+    console.log('Found customer:', { customerId: customer.customerid, email: customer.email })
 
     // Fetch orders for this customer
     const { data: orders, error: ordersError } = await supabaseAdmin
@@ -57,21 +92,26 @@ export async function GET(request: NextRequest) {
         status,
         createdat,
         updatedat,
-        orderitems (
+        order_items (
           orderitemid,
           productid,
-          variantid,
+          productvariantid,
           quantity,
           price,
           products (
             productid,
-            brand,
-            model,
+            name,
             sku
           ),
-          productvariants (
-            variantid,
-            sku
+          product_variants (
+            productvariantid,
+            sku,
+            product_variant_property_values (
+              value,
+              properties!inner (
+                name
+              )
+            )
           )
         )
       `)
@@ -88,15 +128,31 @@ export async function GET(request: NextRequest) {
 
     // Transform orders to match expected format
     const transformedOrders = (orders || []).map((order: any) => {
-      const items = (order.orderitems || []).map((item: any) => {
+      const items = (order.order_items || []).map((item: any) => {
         const product = item.products || {}
-        const variant = item.productvariants || {}
+        const variant = item.product_variants || {}
+        
+        // Use product name, fallback to SKU or 'Product'
+        const productName = product.name || variant.sku || product.sku || 'Product'
+        
+        // Extract property values from variant
+        const properties: Record<string, string> = {}
+        if (variant.product_variant_property_values && Array.isArray(variant.product_variant_property_values)) {
+          variant.product_variant_property_values.forEach((pvv: any) => {
+            const propName = pvv.properties?.name
+            const value = pvv.value
+            if (propName && value) {
+              properties[propName] = value
+            }
+          })
+        }
         
         return {
           productId: item.productid,
-          variantId: item.variantid,
-          name: `${product.brand || ''} ${product.model || ''}`.trim() || 'Product',
+          variantId: item.productvariantid,
+          name: productName,
           sku: variant.sku || product.sku || '',
+          properties: properties,
           quantity: item.quantity,
           price: item.price,
           totalPrice: item.price * item.quantity
