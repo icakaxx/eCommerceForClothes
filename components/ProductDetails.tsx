@@ -5,10 +5,12 @@ import { Product } from '@/lib/data';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import { translations } from '@/lib/translations';
 import { useRouter } from 'next/navigation';
 import { ShoppingCart, Heart, Share2 } from 'lucide-react';
 import Image from 'next/image';
+import QuickLoginModal from './QuickLoginModal';
 
 interface ProductDetailsProps {
   product: Product;
@@ -47,6 +49,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   const { theme } = useTheme();
   const { language } = useLanguage();
   const { addItem, openCart } = useCart();
+  const { user, isAuthenticated } = useAuth();
   const router = useRouter();
   const t = translations[language];
 
@@ -56,9 +59,54 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [availableOptions, setAvailableOptions] = useState<Record<string, Set<string>>>({});
 
-  // State for wishlist and share
-  const [isWishlisted, setIsWishlisted] = useState(false);
+  // State for favorites and share
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
+  const [favoriteCount, setFavoriteCount] = useState(0);
+
+  // Check if product is favorited and get favorite count on mount
+  useEffect(() => {
+    const productId = product.id || product.productid
+    
+    // Check favorite status if authenticated
+    if (isAuthenticated && user && productId) {
+      const checkFavorite = async () => {
+        try {
+          const response = await fetch('/api/favorites/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: user.id,
+              productId: productId
+            })
+          })
+          const data = await response.json()
+          if (data.success) {
+            setIsFavorited(data.isFavorited)
+          }
+        } catch (error) {
+          console.error('Error checking favorite:', error)
+        }
+      }
+      checkFavorite()
+    }
+
+    // Get favorite count (public, no auth required)
+    const fetchFavoriteCount = async () => {
+      try {
+        const response = await fetch(`/api/products/${productId}/favorite-count`)
+        const data = await response.json()
+        if (data.success) {
+          setFavoriteCount(data.count)
+        }
+      } catch (error) {
+        console.error('Error fetching favorite count:', error)
+      }
+    }
+    fetchFavoriteCount()
+  }, [isAuthenticated, user, product.id, product.productid])
 
   useEffect(() => {
     // Extract variants from product - handle both Variants and variants
@@ -268,9 +316,40 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
     }
   };
 
-  const handleWishlist = () => {
-    setIsWishlisted(!isWishlisted);
-    // TODO: Implement actual wishlist functionality when accounts are added
+  const handleFavorite = async () => {
+    if (!isAuthenticated || !user) {
+      setShowLoginModal(true)
+      return
+    }
+
+    setIsTogglingFavorite(true)
+    const productId = product.id || product.productid
+
+    try {
+      const response = await fetch('/api/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          productId: String(productId || '')
+        })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        setIsFavorited(data.isFavorited)
+        // Update favorite count
+        const countResponse = await fetch(`/api/products/${productId}/favorite-count`)
+        const countData = await countResponse.json()
+        if (countData.success) {
+          setFavoriteCount(countData.count)
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+    } finally {
+      setIsTogglingFavorite(false)
+    }
   };
 
   // Get product image for mobile display
@@ -327,18 +406,19 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
             <Share2 size={20} style={{ color: theme.colors.text }} />
           </button>
           <button
-            onClick={handleWishlist}
-            className="p-2 rounded-full hover:opacity-80 transition-all duration-200"
+            onClick={handleFavorite}
+            disabled={isTogglingFavorite}
+            className="p-2 rounded-full hover:opacity-80 transition-all duration-200 disabled:opacity-50"
             style={{ 
               backgroundColor: theme.colors.surface,
               border: `1px solid ${theme.colors.border}`
             }}
-            title={t.addToWishlist}
+            title={isFavorited ? t.removeFromFavorites : t.addToFavorites}
           >
             <Heart 
               size={20} 
-              style={{ color: isWishlisted ? '#ef4444' : theme.colors.text }}
-              fill={isWishlisted ? '#ef4444' : 'none'}
+              style={{ color: isFavorited ? '#ef4444' : theme.colors.text }}
+              fill={isFavorited ? '#ef4444' : 'none'}
             />
           </button>
         </div>
@@ -441,8 +521,23 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         </div>
       )}
 
-      {/* Product Attributes - order 6 */}
-      <div className="product__single__attributes mb-8 order-6">
+      {/* Favorite Count - order 6 */}
+      {favoriteCount > 0 && (
+        <div 
+          className="mb-6 order-6"
+          style={{ color: theme.colors.textSecondary }}
+        >
+          <div className="flex items-center gap-2 text-sm">
+            <Heart size={16} style={{ color: '#ef4444' }} fill="#ef4444" />
+            <span>
+              {favoriteCount} {t.peopleFavorited}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Product Attributes - order 7 */}
+      <div className="product__single__attributes mb-8 order-7">
         <h3
           className="text-lg font-semibold mb-4 transition-colors duration-300"
           style={{ color: theme.colors.text }}
@@ -561,9 +656,9 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         </p>
       </div>
 
-      {/* Add to Cart Button - order 7 */}
+      {/* Add to Cart Button - order 8 */}
       {product.visible && currentQuantity > 0 && (
-        <div className="mb-6 order-7">
+        <div className="mb-6 order-8">
           <button
             onClick={handleAddToCart}
             className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center justify-center gap-2 font-medium"
@@ -574,6 +669,37 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         </div>
       )}
 
+      {/* Quick Login Modal */}
+      <QuickLoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        productId={String(product.id || product.productid || '')}
+        onLoginSuccess={() => {
+          setShowLoginModal(false)
+          // Refresh favorite status after login
+          if (isAuthenticated && user) {
+            const checkFavorite = async () => {
+              try {
+                const response = await fetch('/api/favorites/check', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: user.id,
+              productId: String(product.id || product.productid || '')
+            })
+                })
+                const data = await response.json()
+                if (data.success) {
+                  setIsFavorited(data.isFavorited)
+                }
+              } catch (error) {
+                console.error('Error checking favorite:', error)
+              }
+            }
+            checkFavorite()
+          }
+        }}
+      />
      
     </div>
   );

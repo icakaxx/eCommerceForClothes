@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { User, Package, Lock, Edit3, LogOut, RefreshCw, Truck, MapPin, X } from 'lucide-react'
+import { User, Package, Lock, Edit3, LogOut, RefreshCw, Truck, MapPin, X, Heart } from 'lucide-react'
 import styles from './dashboard.module.css'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
@@ -10,8 +10,88 @@ import { translations } from '@/lib/translations'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import CartDrawer from '@/components/CartDrawer'
+import ProductCard from '@/components/ProductCard'
 import type { CityOption } from '@/store/checkoutStore'
 import type { EcontOfficesData, EcontOffice } from '@/types/econt'
+import { Product } from '@/lib/data'
+
+// Favorites List Component
+function FavoritesList({ userId, language }: { userId: string; language: string }) {
+  const [favorites, setFavorites] = useState<Product[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const t = translations[language as 'en' | 'bg']
+
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch(`/api/favorites?userId=${userId}`)
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch favorites')
+        }
+
+        if (data.success && data.productIds) {
+          // Fetch full product details for each favorite
+          const productsResponse = await fetch('/api/products')
+          const productsData = await productsResponse.json()
+
+          if (productsData.success && productsData.products) {
+            const favoriteProducts = productsData.products.filter((p: Product) =>
+              data.productIds.includes(p.id || p.productid)
+            )
+            setFavorites(favoriteProducts)
+          }
+        }
+      } catch (err: any) {
+        console.error('Error fetching favorites:', err)
+        setError(err.message || (language === 'bg' ? 'Грешка при зареждане на любимите' : 'Error loading favorites'))
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (userId) {
+      fetchFavorites()
+    }
+  }, [userId, language])
+
+  if (isLoading) {
+    return (
+      <div className={styles.emptyState}>
+        <p>{language === 'bg' ? 'Зареждане...' : 'Loading...'}</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className={styles.emptyState}>
+        <p style={{ color: '#ef4444' }}>{error}</p>
+      </div>
+    )
+  }
+
+  if (favorites.length === 0) {
+    return (
+      <div className={styles.emptyState}>
+        <Heart size={48} className={styles.emptyIcon} />
+        <h3>{t.favoritesEmpty || (language === 'bg' ? 'Все още няма любими' : 'No favorites yet')}</h3>
+        <p>{t.noFavoritesYet || (language === 'bg' ? 'Все още не сте добавили продукти в любими' : "You haven't favorited any products yet")}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {favorites.map((product) => (
+        <ProductCard key={product.id || product.productid} product={product} />
+      ))}
+    </div>
+  )
+}
 
 interface Order {
   orderId: string
@@ -41,7 +121,7 @@ export default function DashboardPage() {
   const t = translations[language]
   const [isAdmin, setIsAdmin] = useState(false)
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'orders'>('orders')
+  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'favorites'>('orders')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [orders, setOrders] = useState<Order[]>([])
@@ -89,6 +169,17 @@ export default function DashboardPage() {
       router.push('/user')
     }
   }, [isAuthenticated, authLoading, router])
+
+  // Check for tab query parameter
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const tab = urlParams.get('tab')
+      if (tab === 'favorites') {
+        setActiveTab('favorites')
+      }
+    }
+  }, [])
 
   // Initialize profile data when user changes
   useEffect(() => {
@@ -540,6 +631,13 @@ export default function DashboardPage() {
           >
             <User size={20} />
             {language === 'bg' ? 'Профил' : 'Profile'}
+          </button>
+          <button
+            className={`${styles.tab} ${activeTab === 'favorites' ? styles.active : ''}`}
+            onClick={() => setActiveTab('favorites')}
+          >
+            <Heart size={20} />
+            {t.myFavorites || (language === 'bg' ? 'Любими' : 'Favorites')}
           </button>
         </nav>
 
@@ -1085,6 +1183,19 @@ export default function DashboardPage() {
                     : (language === 'bg' ? 'Промени парола' : 'Change Password')}
                 </button>
               </form>
+            </section>
+          </div>
+        )}
+
+        {/* Favorites Tab */}
+        {activeTab === 'favorites' && (
+          <div className={styles.tabContent}>
+            <section className={styles.ordersSection}>
+              <div className={styles.sectionHeader}>
+                <Heart className={styles.sectionIcon} size={24} />
+                <h2>{t.myFavorites || (language === 'bg' ? 'Моите любими' : 'My Favorites')}</h2>
+              </div>
+              <FavoritesList userId={user.id} language={language} />
             </section>
           </div>
         )}

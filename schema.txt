@@ -211,6 +211,29 @@ CREATE TABLE public.store_settings (
   aboutustext text,
   CONSTRAINT store_settings_pkey PRIMARY KEY (storesettingsid)
 );
+CREATE TABLE public.users (
+  userid uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  email text NOT NULL UNIQUE,
+  phone text NOT NULL,
+  password text NOT NULL,
+  locationtext text,
+  locationcoordinates text,
+  addressinstructions text,
+  reset_token text,
+  reset_token_expiry timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  preferred_delivery_type text,
+  preferred_econt_office_id text,
+  preferred_city text,
+  preferred_street text,
+  preferred_street_number text,
+  preferred_entrance text,
+  preferred_floor text,
+  preferred_apartment text,
+  CONSTRAINT users_pkey PRIMARY KEY (userid)
+);
 CREATE TABLE public.visitor_sessions (
   sessionid uuid NOT NULL DEFAULT gen_random_uuid(),
   visitorid text NOT NULL,

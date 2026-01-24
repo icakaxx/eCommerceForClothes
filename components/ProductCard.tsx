@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ImageSlider from './ImageSlider';
 import AddToCartModal from './AddToCartModal';
+import QuickLoginModal from './QuickLoginModal';
 import { Product } from '@/lib/data';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 import { translations } from '@/lib/translations';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Heart } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -18,8 +20,12 @@ export default function ProductCard({ product }: ProductCardProps) {
   const router = useRouter();
   const { language } = useLanguage();
   const { theme } = useTheme();
+  const { user, isAuthenticated } = useAuth();
   const t = translations[language];
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const bgnPrice = product.price * 1.95;
 
   // Deduplicate images - only show unique/distinct images
@@ -50,6 +56,64 @@ export default function ProductCard({ product }: ProductCardProps) {
     if (product.category === 'accessories') return t.accessories;
     return '';
   };
+
+  // Check if product is favorited on mount
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const checkFavorite = async () => {
+        try {
+          const response = await fetch('/api/favorites/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: user.id,
+              productId: String(product.id || product.productid || '')
+            })
+          })
+          const data = await response.json()
+          if (data.success) {
+            setIsFavorited(data.isFavorited)
+          }
+        } catch (error) {
+          console.error('Error checking favorite:', error)
+        }
+      }
+      checkFavorite()
+    }
+  }, [isAuthenticated, user, product.id, product.productid])
+
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!isAuthenticated || !user) {
+      setShowLoginModal(true)
+      return
+    }
+
+    setIsTogglingFavorite(true)
+    const productId = product.id || product.productid
+
+    try {
+      const response = await fetch('/api/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          productId: String(productId || '')
+        })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        setIsFavorited(data.isFavorited)
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+    } finally {
+      setIsTogglingFavorite(false)
+    }
+  }
 
   const handleClick = (e: React.MouseEvent) => {
     // Don't navigate if modal is open
@@ -85,7 +149,25 @@ export default function ProductCard({ product }: ProductCardProps) {
         e.currentTarget.style.boxShadow = theme.effects.shadow;
       }}
     >
-      <ImageSlider images={uniqueImages} />
+      <div className="relative">
+        <ImageSlider images={uniqueImages} />
+        {/* Heart button overlay */}
+        <button
+          onClick={handleFavoriteClick}
+          disabled={isTogglingFavorite}
+          className="absolute top-2 right-2 z-10 p-2 rounded-full backdrop-blur-sm transition-all duration-200 hover:scale-110 disabled:opacity-50"
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            color: isFavorited ? '#ef4444' : theme.colors.text
+          }}
+          title={isFavorited ? t.removeFromFavorites : t.addToFavorites}
+        >
+          <Heart 
+            size={20} 
+            fill={isFavorited ? '#ef4444' : 'none'}
+          />
+        </button>
+      </div>
       
       <div className="p-4 sm:p-5">
         <h3 
@@ -167,6 +249,36 @@ export default function ProductCard({ product }: ProductCardProps) {
       isOpen={showAddToCartModal}
       onClose={() => setShowAddToCartModal(false)}
       product={product}
+    />
+    <QuickLoginModal
+      isOpen={showLoginModal}
+      onClose={() => setShowLoginModal(false)}
+      productId={String(product.id || product.productid || '')}
+      onLoginSuccess={() => {
+        setShowLoginModal(false)
+        // Refresh favorite status after login
+        if (isAuthenticated && user) {
+          const checkFavorite = async () => {
+            try {
+              const response = await fetch('/api/favorites/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: user.id,
+                  productId: String(product.id || product.productid || '')
+                })
+              })
+              const data = await response.json()
+              if (data.success) {
+                setIsFavorited(data.isFavorited)
+              }
+            } catch (error) {
+              console.error('Error checking favorite:', error)
+            }
+          }
+          checkFavorite()
+        }
+      }}
     />
     </>
   );

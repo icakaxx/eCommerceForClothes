@@ -15,14 +15,18 @@ import { translations } from '@/lib/translations';
 import { ShoppingBag, Sparkles, Heart } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
 import { Product } from '@/lib/data';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([]);
+  const [loadingFavorites, setLoadingFavorites] = useState(true);
   const { settings, isLoading: settingsLoading } = useStoreSettings();
   const { language } = useLanguage();
   const { theme } = useTheme();
+  const { user, isAuthenticated } = useAuth();
   const t = translations[language];
 
   useEffect(() => {
@@ -60,6 +64,42 @@ export default function Home() {
 
     loadFeaturedProducts();
   }, []);
+
+  // Load favorite products if user is authenticated
+  useEffect(() => {
+    const loadFavoriteProducts = async () => {
+      if (!isAuthenticated || !user) {
+        setLoadingFavorites(false);
+        return;
+      }
+
+      try {
+        setLoadingFavorites(true);
+        const response = await fetch(`/api/favorites?userId=${user.id}`);
+        const data = await response.json();
+
+        if (data.success && data.productIds && data.productIds.length > 0) {
+          // Fetch full product details
+          const productsResponse = await fetch('/api/products');
+          const productsData = await productsResponse.json();
+
+          if (productsData.success && productsData.products) {
+            const favorites = productsData.products
+              .filter((p: Product) => data.productIds.includes(p.id || p.productid))
+              .filter((p: Product) => p.visible && (p.quantity > 0 || !p.variants || p.variants.length === 0))
+              .slice(0, 6); // Limit to 6 products
+            setFavoriteProducts(favorites);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load favorite products:', error);
+      } finally {
+        setLoadingFavorites(false);
+      }
+    };
+
+    loadFavoriteProducts();
+  }, [isAuthenticated, user]);
 
   // Show loading screen while StoreSettings is loading (prevents showing backup content)
   if (settingsLoading) {
@@ -241,6 +281,32 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* Favorites Section */}
+        {isAuthenticated && user && favoriteProducts.length > 0 && (
+          <section className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-12 sm:py-16">
+            <div className="flex items-center justify-between mb-6 sm:mb-8">
+              <h2 
+                className="text-2xl sm:text-3xl font-bold transition-colors duration-300"
+                style={{ color: theme.colors.text }}
+              >
+                {t.myFavorites || (language === 'bg' ? 'Моите любими' : 'My Favorites')}
+              </h2>
+              <Link
+                href="/user/dashboard?tab=favorites"
+                className="text-sm font-medium underline hover:opacity-80 transition-opacity"
+                style={{ color: theme.colors.primary }}
+              >
+                {language === 'bg' ? 'Виж всички' : 'View all'}
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {favoriteProducts.map((product) => (
+                <ProductCard key={product.id || product.productid} product={product} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Featured Products Section */}
         {featuredProducts.length > 0 && (

@@ -633,6 +633,16 @@ export interface Translations {
   // Product Detail Page
   share: string;
   addToWishlist: string;
+  addToFavorites: string;
+  removeFromFavorites: string;
+  favorites: string;
+  myFavorites: string;
+  favoriteCount: string;
+  peopleFavorited: string;
+  loginToFavorite: string;
+  pleaseLoginToFavorite: string;
+  favoritesEmpty: string;
+  noFavoritesYet: string;
   productSubtitle: string;
   sizeGuide: string;
   deliveryInfo: string;
@@ -1335,6 +1345,16 @@ export const translations: Record<Language, Translations> = {
     // Product Detail Page
     share: 'Share',
     addToWishlist: 'Add to Wishlist',
+    addToFavorites: 'Add to Favorites',
+    removeFromFavorites: 'Remove from Favorites',
+    favorites: 'Favorites',
+    myFavorites: 'My Favorites',
+    favoriteCount: 'Favorite Count',
+    peopleFavorited: 'people favorited this product',
+    loginToFavorite: 'Login to Favorite',
+    pleaseLoginToFavorite: 'Please login to add this product to your favorites',
+    favoritesEmpty: 'No favorites yet',
+    noFavoritesYet: 'You haven\'t favorited any products yet',
     productSubtitle: 'Product Subtitle',
     sizeGuide: 'Size Guide',
     deliveryInfo: 'Delivery Information',
@@ -2032,6 +2052,16 @@ export const translations: Record<Language, Translations> = {
     // Product Detail Page
     share: 'Споделяне',
     addToWishlist: 'Добави в любими',
+    addToFavorites: 'Добави в любими',
+    removeFromFavorites: 'Премахни от любими',
+    favorites: 'Любими',
+    myFavorites: 'Моите любими',
+    favoriteCount: 'Брой любими',
+    peopleFavorited: 'души са добавили този продукт в любими',
+    loginToFavorite: 'Влезте, за да добавите в любими',
+    pleaseLoginToFavorite: 'Моля, влезте в профила си, за да добавите този продукт в любими',
+    favoritesEmpty: 'Все още няма любими',
+    noFavoritesYet: 'Все още не сте добавили продукти в любими',
     productSubtitle: 'Подзаглавие на продукта',
     sizeGuide: 'Ръководство за размери',
     deliveryInfo: 'Информация за доставка',

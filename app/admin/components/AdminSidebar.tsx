@@ -19,7 +19,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  TrendingUp
+  TrendingUp,
+  Boxes
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -123,6 +124,12 @@ export default function AdminSidebar({ currentPath, collapsed: externalCollapsed
       label: language === 'bg' ? 'Артикули' : 'Items',
       path: '/admin/products',
       icon: Package
+    },
+    {
+      id: 'stock',
+      label: language === 'bg' ? 'Наличности' : 'Stock',
+      path: '/admin/stock',
+      icon: Boxes
     },
     {
       id: 'sales',
