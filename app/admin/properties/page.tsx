@@ -629,7 +629,7 @@ export default function PropertiesPage() {
               ) : (
                 <SectionSurface tone="soft" padding="md">
                   {/* Desktop Table View */}
-                  <div className="hidden md:block overflow-hidden">
+                  <div className="hidden lg:block overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -795,7 +795,7 @@ export default function PropertiesPage() {
             {properties.length > 0 && (
               <Section
                 title={language === 'bg' ? 'Списък с характеристики' : 'Characteristics List'}
-                className="md:hidden"
+                className="lg:hidden"
               >
                 <div className="flex items-center justify-between mb-2">
                   <label className="flex items-center gap-2 text-xs text-gray-600">
@@ -931,7 +931,7 @@ export default function PropertiesPage() {
         {!loading && totalPages > 1 && (
           <div className="bg-white px-3 sm:px-4 lg:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-200">
             {/* Mobile: Simple Prev/Next */}
-            <div className="flex-1 flex justify-between sm:hidden w-full">
+            <div className="flex-1 flex justify-between lg:hidden w-full">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
@@ -953,8 +953,8 @@ export default function PropertiesPage() {
               </button>
             </div>
 
-            {/* Tablet/Desktop: Full Pagination */}
-            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between w-full">
+            {/* Desktop: Full Pagination */}
+            <div className="hidden lg:flex lg:flex-1 lg:items-center lg:justify-between w-full">
               <div>
                 <p className="text-xs sm:text-sm text-gray-700">
                   {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, properties.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{properties.length}</span> {language === 'bg' ? 'характеристики' : 'properties'}

@@ -554,7 +554,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
         onClick={(e) => e.stopPropagation()}
       >
         <div 
-          className="sticky top-0 border-b px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 flex justify-between items-center transition-colors duration-300 z-10"
+              className="sticky top-0 border-b px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 lg:py-4 flex justify-between items-center transition-colors duration-300 z-10"
           style={{
             backgroundColor: theme.colors.surface,
             borderColor: theme.colors.border
@@ -590,7 +590,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6">
+        <form onSubmit={handleSubmit} className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6">
           <div className="space-y-3 sm:space-y-4">
             <h3 
               className="font-medium text-sm sm:text-base transition-colors duration-300"
@@ -599,7 +599,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
               {t.basicInfo}
             </h3>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 md:gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 sm:gap-3 lg:gap-4">
               <div>
                 <label 
                   className="block text-xs sm:text-sm font-medium mb-1.5 transition-colors duration-300"
@@ -748,7 +748,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
               {t.attributes}
             </h3>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 md:gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 sm:gap-3 lg:gap-4">
               <div>
                 <label 
                   className="block text-xs sm:text-sm font-medium mb-1.5 transition-colors duration-300"
@@ -813,7 +813,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
 
           <div>
             <h3 
-              className="font-medium mb-2.5 sm:mb-3 md:mb-4 text-sm sm:text-base transition-colors duration-300"
+              className="font-medium mb-2.5 sm:mb-3 lg:mb-4 text-sm sm:text-base transition-colors duration-300"
               style={{ color: theme.colors.text }}
             >
               {t.pricing}
@@ -874,7 +874,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                       </label>
 
                       {property.datatype === 'select' && property.values ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                           {property.values
                             .filter(value => value.isactive)
                             .sort((a, b) => a.displayorder - b.displayorder)
@@ -1009,7 +1009,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-lg p-3 sm:p-4 md:p-6 transition-all duration-300 ${
+              className={`border-2 border-dashed rounded-lg p-3 sm:p-4 lg:p-6 transition-all duration-300 ${
                 dragActive ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : ''
               }`}
               style={{
@@ -1085,7 +1085,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                     ? `Качени снимки: ${formData.images.length}` 
                     : `Uploaded images: ${formData.images.length}`}
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
                   {formData.images.map((image, index) => {
                     const isUploading = uploadingImages.some(id => 
                       formData.images.indexOf(image) === formData.images.length - 1
@@ -1322,7 +1322,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
           >
             <button
               type="submit"
-              className="flex-1 text-white px-4 sm:px-5 md:px-6 py-2.5 sm:py-2 md:py-2.5 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 touch-manipulation"
+              className="flex-1 text-white px-4 sm:px-5 lg:px-6 py-2.5 sm:py-2 lg:py-2.5 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 touch-manipulation"
               style={{
                 backgroundColor: typeof theme.colors.buttonPrimary === 'string' && !theme.colors.buttonPrimary.includes('gradient')
                   ? theme.colors.buttonPrimary
@@ -1358,7 +1358,7 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
             <button
               type="button"
               onClick={onClose}
-              className="px-4 sm:px-5 md:px-6 py-2.5 sm:py-2 md:py-2.5 rounded-lg text-sm sm:text-base transition-colors duration-300 touch-manipulation"
+              className="px-4 sm:px-5 lg:px-6 py-2.5 sm:py-2 lg:py-2.5 rounded-lg text-sm sm:text-base transition-colors duration-300 touch-manipulation"
               style={{ 
                 color: theme.colors.text,
                 backgroundColor: 'transparent'
