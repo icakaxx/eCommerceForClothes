@@ -18,7 +18,7 @@ interface StorePageProps {
 export default function StorePage({ products, currentPage }: StorePageProps) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedFilters, setSelectedFilters] = useState<Record<string, any>>({});
-  const [showFilters, setShowFilters] = useState(currentPage !== 'home'); // Show filters by default on category pages
+  const [showFilters, setShowFilters] = useState(false); // Always collapsed on page refresh
   const { language } = useLanguage();
   const { theme } = useTheme();
   const { productTypes } = useProductTypes();
