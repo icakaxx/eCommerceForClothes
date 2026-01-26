@@ -164,9 +164,9 @@ export default function Footer() {
                 <Image
                   src={settings.logourl}
                   alt={settings?.storename || 'Store Logo'}
-                  width={120}
-                  height={40}
-                  className="h-8 w-auto object-contain"
+                  width={360}
+                  height={120}
+                  className="h-20 w-auto object-contain"
                 />
               </Link>
             ) : (

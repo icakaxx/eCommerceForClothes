@@ -556,10 +556,6 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
             <span className="font-medium w-32" style={{ color: theme.colors.text }}>{t.model}:</span>
             <span>{product.model}</span>
           </li>
-          <li className="flex">
-            <span className="font-medium w-32" style={{ color: theme.colors.text }}>{t.color}:</span>
-            <span>{product.color}</span>
-          </li>
           {product.size && (
             <li className="flex">
               <span className="font-medium w-32" style={{ color: theme.colors.text }}>{t.size}:</span>

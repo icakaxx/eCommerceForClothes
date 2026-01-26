@@ -598,9 +598,6 @@ export default function DashboardPage() {
         {/* Header */}
         <header className={styles.header}>
           <div className={styles.userInfo}>
-            <div className={styles.avatar}>
-              <User size={24} />
-            </div>
             <div>
               <h1>
                 {language === 'bg' 

@@ -2057,7 +2057,7 @@ export const translations: Record<Language, Translations> = {
     favorites: 'Любими',
     myFavorites: 'Моите любими',
     favoriteCount: 'Брой любими',
-    peopleFavorited: 'души са добавили този продукт в любими',
+    peopleFavorited: 'са добавили този продукт в любими',
     loginToFavorite: 'Влезте, за да добавите в любими',
     pleaseLoginToFavorite: 'Моля, влезте в профила си, за да добавите този продукт в любими',
     favoritesEmpty: 'Все още няма любими',

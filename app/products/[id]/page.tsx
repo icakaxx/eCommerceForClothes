@@ -16,18 +16,11 @@ export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { language } = useLanguage();
-  const { isLoading: settingsLoading, settings } = useStoreSettings();
+  const { isLoading: settingsLoading } = useStoreSettings();
   const t = translations[language];
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const productName = product ? `${product.brand} ${product.model}` : '';
-    const pageTitle = productName || (t.productDetails || (language === 'bg' ? 'Детайли на продукта' : 'Product Details'));
-    const storeName = settings?.storename || '';
-    document.title = storeName ? `${pageTitle} - ${storeName}` : pageTitle;
-  }, [product, language, t, settings?.storename]);
 
   useEffect(() => {
     const adminState = localStorage.getItem('isAdmin');
