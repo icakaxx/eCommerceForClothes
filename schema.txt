@@ -25,6 +25,15 @@ CREATE TABLE public.discounts (
   updatedat timestamp with time zone DEFAULT now(),
   CONSTRAINT discounts_pkey PRIMARY KEY (discountid)
 );
+CREATE TABLE public.favorite_products (
+  favoriteid uuid NOT NULL DEFAULT gen_random_uuid(),
+  userid uuid NOT NULL,
+  productid uuid NOT NULL,
+  createdat timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT favorite_products_pkey PRIMARY KEY (favoriteid),
+  CONSTRAINT favorite_products_userid_fkey FOREIGN KEY (userid) REFERENCES public.users(userid),
+  CONSTRAINT favorite_products_productid_fkey FOREIGN KEY (productid) REFERENCES public.products(productid)
+);
 CREATE TABLE public.order_items (
   orderitemid uuid NOT NULL DEFAULT gen_random_uuid(),
   orderid text NOT NULL,

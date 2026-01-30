@@ -140,6 +140,20 @@ export async function DELETE(
     const productIds = (productsForType || []).map((product) => product.productid);
 
     if (productIds.length > 0) {
+      // Delete favorite_products first to avoid foreign key constraint violation
+      const { error: favoriteProductsError } = await supabase
+        .from('favorite_products')
+        .delete()
+        .in('productid', productIds);
+
+      if (favoriteProductsError) {
+        console.error('Error deleting favorite products:', favoriteProductsError);
+        return NextResponse.json(
+          { error: favoriteProductsError.message },
+          { status: 500 }
+        );
+      }
+
       const { data: variants, error: variantsError } = await supabase
         .from('product_variants')
         .select('productvariantid')

@@ -88,24 +88,32 @@ export default function ProductsPage() {
   const [showDeleteCompleteAnimation, setShowDeleteCompleteAnimation] = useState(false);
   const [showBulkDeleteCompleteAnimation, setShowBulkDeleteCompleteAnimation] = useState(false);
 
+  // Filter state
+  const [selectedProductTypeFilter, setSelectedProductTypeFilter] = useState<string>('all');
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Pagination calculations
-  const totalPages = Math.ceil(products.length / itemsPerPage);
+  // Filter products by type
+  const filteredProducts = selectedProductTypeFilter === 'all' 
+    ? products 
+    : products.filter(product => product.producttypeid === selectedProductTypeFilter);
+
+  // Pagination calculations (using filtered products)
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentProducts = products.slice(startIndex, endIndex);
+  const currentProducts = filteredProducts.slice(startIndex, endIndex);
   const currentProductIds = currentProducts.map((product) => product.productid);
   const allSelectedOnPage =
     currentProductIds.length > 0 &&
     currentProductIds.every((id) => selectedProductIds.includes(id));
 
-  // Reset to first page when products change
+  // Reset to first page when products or filter change
   useEffect(() => {
     setCurrentPage(1);
-  }, [products.length]);
+  }, [products.length, selectedProductTypeFilter]);
 
   useEffect(() => {
     setSelectedProductIds((prev) =>
@@ -941,10 +949,37 @@ export default function ProductsPage() {
             title={language === 'bg' ? 'Списък с артикули' : 'Items List'}
             description={language === 'bg' ? 'Управлявайте артикулите и техните варианти' : 'Manage items and their variants'}
           >
-            {products.length === 0 ? (
+            {/* Filter by Product Type */}
+            {products.length > 0 && (
+              <div className="mb-4 flex items-center gap-3">
+                <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                  {language === 'bg' ? 'Филтър по тип:' : 'Filter by type:'}
+                </label>
+                <select
+                  value={selectedProductTypeFilter}
+                  onChange={(e) => setSelectedProductTypeFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+                >
+                  <option value="all">
+                    {language === 'bg' ? 'Всички типове' : 'All types'}
+                  </option>
+                  {productTypes.map((type) => (
+                    <option key={type.producttypeid} value={type.producttypeid}>
+                      {type.name}
+                    </option>
+                  ))}
+                </select>
+                {selectedProductTypeFilter !== 'all' && (
+                  <span className="text-sm text-gray-500">
+                    ({filteredProducts.length} {language === 'bg' ? 'артикула' : 'items'})
+                  </span>
+                )}
+              </div>
+            )}
+            {filteredProducts.length === 0 ? (
               <EmptyState
-                title={language === 'bg' ? 'Няма артикули' : 'No Items'}
-                description={language === 'bg' ? 'Създайте първия продукт, за да започнете да продавате.' : 'Create your first product to start selling.'}
+                title={language === 'bg' ? selectedProductTypeFilter === 'all' ? 'Няма артикули' : 'Няма артикули от този тип' : selectedProductTypeFilter === 'all' ? 'No Items' : 'No items of this type'}
+                description={language === 'bg' ? selectedProductTypeFilter === 'all' ? 'Създайте първия продукт, за да започнете да продавате.' : 'Няма артикули, отговарящи на избрания филтър.' : selectedProductTypeFilter === 'all' ? 'Create your first product to start selling.' : 'No items match the selected filter.'}
                 action={
                   <button
                     onClick={() => {
@@ -1040,7 +1075,7 @@ export default function ProductsPage() {
           </Section>
 
           {/* Mobile/Tablet Card Layout */}
-          {products.length > 0 && (
+          {filteredProducts.length > 0 && (
             <Section className="md:hidden">
               <div className="flex items-center justify-between mb-2">
                 <label className="flex items-center gap-2 text-xs text-gray-600">
@@ -1134,7 +1169,7 @@ export default function ProductsPage() {
                 <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between w-full">
                   <div>
                     <p className="text-xs sm:text-sm text-gray-700">
-                      {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, products.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{products.length}</span> {language === 'bg' ? 'артикули' : 'items'}
+                      {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, filteredProducts.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{filteredProducts.length}</span> {language === 'bg' ? 'артикули' : 'items'}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
