@@ -125,50 +125,84 @@ export default function Home() {
       >
         {/* Hero Section */}
         <section className="relative w-full">
-          {settings?.heroimageurl ? (
-            <div className="relative w-full h-[400px] sm:h-[500px] lg:h-[600px] overflow-hidden">
-              {settings.heroimageurl.toLowerCase().endsWith('.gif') ? (
-                <img
-                  src={settings.heroimageurl}
-                  alt="Hero"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <Image
-                  src={settings.heroimageurl}
-                  alt="Hero"
-                  fill
-                  className="object-cover animate-zoom-in"
-                  priority
-                />
-              )}
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                <div className="text-center px-3 sm:px-4 lg:px-8 max-w-4xl mx-auto">
-                  <h1 
-                    className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 text-white drop-shadow-lg transition-colors duration-300"
-                  >
-                    {t.welcomeToStore || `Welcome to ${settings?.storename || 'Our Store'}`}
-                  </h1>
-                  <p 
-                    className="text-lg sm:text-xl lg:text-2xl mb-8 sm:mb-12 text-white drop-shadow-md transition-colors duration-300"
-                  >
-                    {t.homeDescription || 'Discover our latest collection of fashion and style'}
-                  </p>
-                  <Link
-                    href="/products"
-                    className="inline-block px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-105"
-                    style={{
-                      backgroundColor: theme.colors.primary,
-                      color: '#ffffff',
-                      boxShadow: theme.effects.shadowHover
-                    }}
-                  >
-                    {t.shopNow || 'Shop Now'}
-                  </Link>
+          {settings?.heroimageurl ? (() => {
+            const focusX = settings?.heroimagefocusx ?? 50;
+            const focusY = settings?.heroimagefocusy ?? 50;
+            
+            // Mobile: prioritize vertical positioning (center horizontally, position vertically based on focus Y)
+            const mobilePosition = `center ${focusY}%`;
+            // Desktop: prioritize horizontal positioning (center vertically, position horizontally based on focus X)
+            const desktopPosition = `${focusX}% center`;
+            
+            return (
+              <div className="relative w-full h-[400px] sm:h-[500px] lg:h-[600px] overflow-hidden">
+                {settings.heroimageurl.toLowerCase().endsWith('.gif') ? (
+                  <>
+                    <img
+                      src={settings.heroimageurl}
+                      alt="Hero"
+                      className="w-full h-full object-cover hero-image-mobile"
+                      style={{
+                        objectPosition: mobilePosition
+                      }}
+                    />
+                    <style jsx>{`
+                      @media (min-width: 768px) {
+                        .hero-image-mobile {
+                          object-position: ${desktopPosition} !important;
+                        }
+                      }
+                    `}</style>
+                  </>
+                ) : (
+                  <>
+                    <Image
+                      src={settings.heroimageurl}
+                      alt="Hero"
+                      fill
+                      className="object-cover animate-zoom-in hero-image-mobile"
+                      style={{
+                        objectPosition: mobilePosition
+                      }}
+                      priority
+                    />
+                    <style jsx>{`
+                      @media (min-width: 768px) {
+                        .hero-image-mobile {
+                          object-position: ${desktopPosition} !important;
+                        }
+                      }
+                    `}</style>
+                  </>
+                )}
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <div className="text-center px-3 sm:px-4 lg:px-8 max-w-4xl mx-auto">
+                    <h1 
+                      className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 text-white drop-shadow-lg transition-colors duration-300"
+                    >
+                      {t.welcomeToStore || `Welcome to ${settings?.storename || 'Our Store'}`}
+                    </h1>
+                    <p 
+                      className="text-lg sm:text-xl lg:text-2xl mb-8 sm:mb-12 text-white drop-shadow-md transition-colors duration-300"
+                    >
+                      {t.homeDescription || 'Discover our latest collection of fashion and style'}
+                    </p>
+                    <Link
+                      href="/products"
+                      className="inline-block px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-105"
+                      style={{
+                        backgroundColor: theme.colors.primary,
+                        color: '#ffffff',
+                        boxShadow: theme.effects.shadowHover
+                      }}
+                    >
+                      {t.shopNow || 'Shop Now'}
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
+            );
+          })() : (
             <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-12 sm:py-16 lg:py-24">
               <div className="text-center">
                 <h1 

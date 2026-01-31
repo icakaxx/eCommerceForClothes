@@ -58,6 +58,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [availableOptions, setAvailableOptions] = useState<Record<string, Set<string>>>({});
+  const [propertyNameMap, setPropertyNameMap] = useState<Record<string, string>>({}); // Maps lowercase keys to original property names
 
   // State for favorites and share
   const [isFavorited, setIsFavorited] = useState(false);
@@ -120,26 +121,34 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
 
       // Build available options map
       const optionsMap: Record<string, Set<string>> = {};
+      const nameMap: Record<string, string> = {}; // Maps lowercase keys to original property names
       visibleVariants.forEach((variant: any) => {
         // Handle both naming conventions
         const propertyValues = variant.ProductVariantPropertyvalues || variant.ProductVariantPropertyValues || [];
         console.log(`🔍 ProductDetails: Variant ${variant.productvariantid} property values:`, propertyValues);
 
         propertyValues.forEach((pv: any) => {
-          // Handle both lowercase and uppercase property name
-          const propertyName = (pv.Property?.name || pv.Property?.Name || pv.propertyid || '').toLowerCase();
+          // Get original property name with proper capitalization
+          const originalPropertyName = pv.Property?.name || pv.Property?.Name || pv.propertyid || '';
+          // Use lowercase for key matching
+          const propertyNameKey = originalPropertyName.toLowerCase();
           const propertyValue = pv.value || pv.Value || '';
 
-          if (propertyName && propertyValue) {
-            if (!optionsMap[propertyName]) {
-              optionsMap[propertyName] = new Set();
+          if (propertyNameKey && propertyValue) {
+            // Store original property name mapping
+            if (!nameMap[propertyNameKey]) {
+              nameMap[propertyNameKey] = originalPropertyName;
             }
-            optionsMap[propertyName].add(propertyValue);
+            if (!optionsMap[propertyNameKey]) {
+              optionsMap[propertyNameKey] = new Set();
+            }
+            optionsMap[propertyNameKey].add(propertyValue);
           }
         });
       });
       console.log('🔍 ProductDetails: Available options map:', optionsMap);
       setAvailableOptions(optionsMap);
+      setPropertyNameMap(nameMap);
 
       // Select first variant by default (or primary variant if available)
       if (visibleVariants.length > 0) {
@@ -151,12 +160,14 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         const initialOptions: Record<string, string> = {};
         const primaryPropertyValues = primaryVariant.ProductVariantPropertyvalues || primaryVariant.ProductVariantPropertyValues || [];
         primaryPropertyValues.forEach((pv: any) => {
-          // Handle both lowercase and uppercase property name
-          const propertyName = (pv.Property?.name || pv.Property?.Name || pv.propertyid || '').toLowerCase();
+          // Get original property name with proper capitalization
+          const originalPropertyName = pv.Property?.name || pv.Property?.Name || pv.propertyid || '';
+          // Use lowercase for key matching
+          const propertyNameKey = originalPropertyName.toLowerCase();
           const propertyValue = pv.value || pv.Value || '';
 
-          if (propertyName && propertyValue) {
-            initialOptions[propertyName] = propertyValue;
+          if (propertyNameKey && propertyValue) {
+            initialOptions[propertyNameKey] = propertyValue;
           }
         });
         console.log('🔍 ProductDetails: Initial selected options:', initialOptions);
@@ -191,12 +202,14 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
 
       const variantOptions: Record<string, string> = {};
       propertyValues.forEach((pv: any) => {
-        // Handle both lowercase and uppercase property name
-        const propName = (pv.Property?.name || pv.Property?.Name || pv.propertyid || '').toLowerCase();
+        // Get original property name with proper capitalization
+        const originalPropertyName = pv.Property?.name || pv.Property?.Name || pv.propertyid || '';
+        // Use lowercase for key matching
+        const propNameKey = originalPropertyName.toLowerCase();
         const propValue = pv.value || pv.Value || '';
 
-        if (propName && propValue) {
-          variantOptions[propName] = propValue;
+        if (propNameKey && propValue) {
+          variantOptions[propNameKey] = propValue;
         }
       });
 
@@ -489,21 +502,24 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
           >
             {t.selectOptions}
           </h3>
-          {Object.entries(availableOptions).map(([propertyName, values]) => (
-            <div key={propertyName} className="mb-4">
+          {Object.entries(availableOptions).map(([propertyNameKey, values]) => {
+            // Get original property name with proper capitalization
+            const displayName = propertyNameMap[propertyNameKey] || propertyNameKey;
+            return (
+            <div key={propertyNameKey} className="mb-4">
               <label
                 className="block text-sm font-medium mb-2 transition-colors duration-300"
                 style={{ color: theme.colors.text }}
               >
-                {propertyName}
+                {displayName}
               </label>
               <div className="flex flex-wrap gap-2">
                 {Array.from(values).map((value) => {
-                  const isSelected = selectedOptions[propertyName] === value;
+                  const isSelected = selectedOptions[propertyNameKey] === value;
                   return (
                     <button
                       key={value}
-                      onClick={() => handleOptionChange(propertyName, value)}
+                      onClick={() => handleOptionChange(propertyNameKey, value)}
                       className="px-4 py-2 rounded-lg border-2 transition-all duration-200 hover:scale-105"
                       style={{
                         borderColor: isSelected ? theme.colors.primary : theme.colors.border,
@@ -517,7 +533,8 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
                 })}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -556,29 +573,10 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
             <span className="font-medium w-32" style={{ color: theme.colors.text }}>{t.model}:</span>
             <span>{product.model}</span>
           </li>
-          {product.size && (
-            <li className="flex">
-              <span className="font-medium w-32" style={{ color: theme.colors.text }}>{t.size}:</span>
-              <span>{product.size}</span>
-            </li>
-          )}
           <li className="flex">
             <span className="font-medium w-32" style={{ color: theme.colors.text }}>{t.category}:</span>
             <span className="capitalize">{getCategoryLabel()}</span>
           </li>
-          {/* Display property values from new schema */}
-          {product.propertyValues && Object.keys(product.propertyValues).length > 0 && (
-            <>
-              {Object.entries(product.propertyValues).map(([propertyName, values]) => (
-                <li key={propertyName} className="flex">
-                  <span className="font-medium w-32" style={{ color: theme.colors.text }}>
-                    {propertyName}:
-                  </span>
-                  <span>{Array.isArray(values) ? values.join(', ') : values}</span>
-                </li>
-              ))}
-            </>
-          )}
         </ul>
       </div>
 

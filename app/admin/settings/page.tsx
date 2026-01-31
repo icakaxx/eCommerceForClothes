@@ -14,6 +14,7 @@ import { uploadFile, getStorageUrl } from '@/lib/supabaseStorage';
 import { getAdminSession } from '@/lib/auth';
 import { supabase } from '@/lib/supabase-browser';
 import { useStoreSettings } from '@/context/StoreSettingsContext';
+import HeroImageFocusEditor from '@/components/HeroImageFocusEditor';
 
 interface StoreSettings {
   storesettingsid: string;
@@ -24,6 +25,8 @@ interface StoreSettings {
   bannertext: string | null;
   bannerduration: number | null;
   heroimageurl: string | null;
+  heroimagefocusx: number | null;
+  heroimagefocusy: number | null;
   discordurl: string | null;
   facebookurl: string | null;
   pinteresturl: string | null;
@@ -146,6 +149,8 @@ export default function AdminSettingsPage() {
             bannertext: null,
             bannerduration: 5,
             heroimageurl: null,
+            heroimagefocusx: 50,
+            heroimagefocusy: 50,
             discordurl: null,
             facebookurl: null,
             pinteresturl: null,
@@ -218,6 +223,8 @@ export default function AdminSettingsPage() {
           bannertext: settings.bannertext,
           bannerduration: settings.bannerduration,
           heroimageurl: settings.heroimageurl,
+          heroimagefocusx: settings.heroimagefocusx ?? 50,
+          heroimagefocusy: settings.heroimagefocusy ?? 50,
           discordurl: settings.discordurl,
           facebookurl: settings.facebookurl,
           pinteresturl: settings.pinteresturl,
@@ -312,7 +319,12 @@ export default function AdminSettingsPage() {
       const result = await uploadFile('hero-images', fileName, file);
 
       if (result.success && result.url) {
-        setSettings(prev => prev ? { ...prev, heroimageurl: result.url } : null);
+        setSettings(prev => prev ? { 
+          ...prev, 
+          heroimageurl: result.url,
+          heroimagefocusx: 50,
+          heroimagefocusy: 50
+        } : null);
         setHasChanges(true);
       } else {
         alert(language === 'bg' ? 'Грешка при качване на hero изображение' : 'Error uploading hero image');
@@ -374,6 +386,16 @@ export default function AdminSettingsPage() {
       setLanguage(value);
     }
 
+    setHasChanges(true);
+  };
+
+  const handleFocusChange = (x: number, y: number) => {
+    if (!settings) return;
+    setSettings(prev => prev ? { 
+      ...prev, 
+      heroimagefocusx: x,
+      heroimagefocusy: y
+    } : null);
     setHasChanges(true);
   };
 
@@ -791,6 +813,32 @@ export default function AdminSettingsPage() {
                     </p>
                   </div>
                 </div>
+                
+                {/* Focus Point Editor */}
+                {settings.heroimageurl && (
+                  <div className="mt-6">
+                    <label
+                      className="block text-sm font-medium mb-2"
+                      style={{ color: theme.colors.text }}
+                    >
+                      {language === 'bg' ? 'Точка на фокус (Focus Point)' : 'Focus Point'}
+                    </label>
+                    <p
+                      className="text-sm mb-4"
+                      style={{ color: theme.colors.textSecondary }}
+                    >
+                      {language === 'bg' 
+                        ? 'Кликнете върху изображението, за да зададете точката на фокус. Важната област ще остане видима на всички размери на екрана.' 
+                        : 'Click on the image to set the focus point. The important area will remain visible on all screen sizes.'}
+                    </p>
+                    <HeroImageFocusEditor
+                      imageUrl={settings.heroimageurl}
+                      focusX={settings.heroimagefocusx ?? 50}
+                      focusY={settings.heroimagefocusy ?? 50}
+                      onFocusChange={handleFocusChange}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>

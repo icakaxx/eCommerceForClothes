@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import ProductCard from './ProductCard';
 import ProductFilters from './ProductFilters';
+import FilterDrawer from './FilterDrawer';
 import { Product } from '@/lib/data';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -277,11 +278,17 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
         </div>
 
         <ProductFilters
+          selectedFilters={selectedFilters}
+          onToggleVisibility={() => setShowFilters(!showFilters)}
+        />
+
+        <FilterDrawer
           products={products}
+          filteredProducts={filteredProducts}
           selectedFilters={selectedFilters}
           onFiltersChange={setSelectedFilters}
-          isVisible={showFilters}
-          onToggleVisibility={() => setShowFilters(!showFilters)}
+          isOpen={showFilters}
+          onClose={() => setShowFilters(false)}
           selectedProductTypeId={
             productTypes.some(type => type.producttypeid === selectedCategory)
               ? selectedCategory

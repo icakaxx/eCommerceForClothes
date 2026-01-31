@@ -1,12 +1,58 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Upload, Image as ImageIcon, Trash2, Loader2, Check } from 'lucide-react';
 import { Product } from '@/lib/data';
 import { Property, PropertyValue } from '@/lib/types/product-types';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { translations } from '@/lib/translations';
+
+// Select All Checkbox Component with proper indeterminate state handling
+function SelectAllCheckbox({ 
+  property, 
+  areAllSelected, 
+  areSomeSelected, 
+  onToggle, 
+  language, 
+  theme 
+}: { 
+  property: Property; 
+  areAllSelected: boolean; 
+  areSomeSelected: boolean; 
+  onToggle: () => void; 
+  language: string;
+  theme: any;
+}) {
+  const checkboxRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = areSomeSelected;
+    }
+  }, [areSomeSelected]);
+
+  return (
+    <label className="flex items-center gap-2 cursor-pointer">
+      <input
+        ref={checkboxRef}
+        type="checkbox"
+        checked={areAllSelected}
+        onChange={onToggle}
+        className="w-4 h-4 rounded focus:ring-2 transition-colors duration-300"
+        style={{
+          accentColor: theme.colors.primary
+        }}
+      />
+      <span
+        className="text-xs sm:text-sm transition-colors duration-300"
+        style={{ color: theme.colors.text }}
+      >
+        {language === 'bg' ? 'Избери всички' : 'Select all'}
+      </span>
+    </label>
+  );
+}
 
 interface EditProductModalProps {
   product: Product | null; // null for new product
@@ -255,6 +301,49 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
         return {
           ...prev,
           [propertyId]: newSelection
+        };
+      }
+    });
+  };
+
+  // Check if all active values for a property are selected
+  const areAllValuesSelected = (property: Property): boolean => {
+    if (property.datatype !== 'select' || !property.values) return false;
+    const activeValues = property.values.filter(v => v.isactive);
+    if (activeValues.length === 0) return false;
+    const selected = selectedPropertyValues[property.propertyid] || [];
+    return activeValues.every(v => selected.includes(v.propertyvalueid));
+  };
+
+  // Check if some (but not all) values are selected
+  const areSomeValuesSelected = (property: Property): boolean => {
+    if (property.datatype !== 'select' || !property.values) return false;
+    const activeValues = property.values.filter(v => v.isactive);
+    if (activeValues.length === 0) return false;
+    const selected = selectedPropertyValues[property.propertyid] || [];
+    const selectedCount = activeValues.filter(v => selected.includes(v.propertyvalueid)).length;
+    return selectedCount > 0 && selectedCount < activeValues.length;
+  };
+
+  // Toggle select all for a property
+  const toggleSelectAll = (property: Property) => {
+    if (property.datatype !== 'select' || !property.values) return;
+    
+    const activeValues = property.values.filter(v => v.isactive);
+    const allSelected = areAllValuesSelected(property);
+    
+    setSelectedPropertyValues(prev => {
+      if (allSelected) {
+        // Deselect all
+        return {
+          ...prev,
+          [property.propertyid]: []
+        };
+      } else {
+        // Select all active values
+        return {
+          ...prev,
+          [property.propertyid]: activeValues.map(v => v.propertyvalueid)
         };
       }
     });
@@ -874,32 +963,45 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                       </label>
 
                       {property.datatype === 'select' && property.values ? (
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                          {property.values
-                            .filter(value => value.isactive)
-                            .sort((a, b) => a.displayorder - b.displayorder)
-                            .map((value) => {
-                              const isSelected = selectedPropertyValues[property.propertyid]?.includes(value.propertyvalueid) || false;
-                              return (
-                                <button
-                                  key={value.propertyvalueid}
-                                  type="button"
-                                  onClick={() => togglePropertyValue(property.propertyid, value.propertyvalueid)}
-                                  className={`px-3 py-2 text-sm border rounded-lg transition-all duration-300 flex items-center justify-center gap-2 touch-manipulation ${
-                                    isSelected
-                                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-                                  }`}
-                                  style={{
-                                    backgroundColor: isSelected ? 'transparent' : theme.colors.cardBg,
-                                    color: theme.colors.text
-                                  }}
-                                >
-                                  {isSelected && <Check size={14} />}
-                                  <span>{value.value}</span>
-                                </button>
-                              );
-                            })}
+                        <div className="space-y-2">
+                          {/* Select All Checkbox */}
+                          <SelectAllCheckbox
+                            property={property}
+                            areAllSelected={areAllValuesSelected(property)}
+                            areSomeSelected={areSomeValuesSelected(property)}
+                            onToggle={() => toggleSelectAll(property)}
+                            language={language}
+                            theme={theme}
+                          />
+                          
+                          {/* Value Buttons Grid */}
+                          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                            {property.values
+                              .filter(value => value.isactive)
+                              .sort((a, b) => a.displayorder - b.displayorder)
+                              .map((value) => {
+                                const isSelected = selectedPropertyValues[property.propertyid]?.includes(value.propertyvalueid) || false;
+                                return (
+                                  <button
+                                    key={value.propertyvalueid}
+                                    type="button"
+                                    onClick={() => togglePropertyValue(property.propertyid, value.propertyvalueid)}
+                                    className={`px-3 py-2 text-sm border rounded-lg transition-all duration-300 flex items-center justify-center gap-2 touch-manipulation ${
+                                      isSelected
+                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                                        : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                                    }`}
+                                    style={{
+                                      backgroundColor: isSelected ? 'transparent' : theme.colors.cardBg,
+                                      color: theme.colors.text
+                                    }}
+                                  >
+                                    {isSelected && <Check size={14} />}
+                                    <span>{value.value}</span>
+                                  </button>
+                                );
+                              })}
+                          </div>
                         </div>
                       ) : (
                         <input

@@ -35,7 +35,7 @@ export default function ProductView({ product }: ProductViewProps) {
           ).filter(Boolean)
         : [];
 
-    const nextGalleryImages = productImageUrls.length > 0 ? productImageUrls : ['/image.png'];
+    const nextGalleryImages = productImageUrls.length > 0 ? productImageUrls : [];
 
     const variants = product.variants || product.Variants || [];
     const primaryVariant = variants.find((v: any) => v.IsPrimaryImage && (v.images || v.imageurl || v.ImageURL));
@@ -314,11 +314,13 @@ export default function ProductView({ product }: ProductViewProps) {
                       className="rounded-lg overflow-hidden mb-3 aspect-square"
                       style={{ backgroundColor: theme.colors.surface }}
                     >
-                      <img
-                        src={relatedProduct.images?.[0] || '/image.png'}
-                        alt={`${relatedProduct.brand} ${relatedProduct.model}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
+                      {relatedProduct.images?.[0] && (
+                        <img
+                          src={relatedProduct.images[0]}
+                          alt={`${relatedProduct.brand} ${relatedProduct.model}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      )}
                     </div>
                     <h3 
                       className="font-semibold mb-1 group-hover:underline"

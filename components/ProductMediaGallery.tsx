@@ -97,6 +97,7 @@ export default function ProductMediaGallery({ images, productName, focusImage }:
   const [activeSlide, setActiveSlide] = useState(0);
   const mainSliderRef = useRef<any>(null);
   const modalSliderRef = useRef<any>(null);
+  const [backgroundColors, setBackgroundColors] = useState<Record<number, string>>({});
 
   // Safety check: ensure images is an array with at least one item
   const safeImages = images && Array.isArray(images) && images.length > 0 
@@ -115,6 +116,9 @@ export default function ProductMediaGallery({ images, productName, focusImage }:
     nextArrow: <NextArrow />,
     beforeChange: (_: number, next: number) => {
       setActiveSlide(next);
+    },
+    afterChange: (current: number) => {
+      setActiveSlide(current);
     },
     customPaging: function (i: number) {
       return (
@@ -146,6 +150,73 @@ export default function ProductMediaGallery({ images, productName, focusImage }:
     swipe: true,
     customPaging: undefined
   };
+
+  // Extract dominant colors from images for blurred background
+  const extractColors = (imageUrl: string, index: number) => {
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Sample a smaller version for performance
+        canvas.width = 50;
+        canvas.height = 50;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // Get image data
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        // Extract dominant colors (simple approach: average colors from corners and center)
+        const samplePoints = [
+          [0, 0], // top-left
+          [canvas.width - 1, 0], // top-right
+          [0, canvas.height - 1], // bottom-left
+          [canvas.width - 1, canvas.height - 1], // bottom-right
+          [Math.floor(canvas.width / 2), Math.floor(canvas.height / 2)] // center
+        ];
+
+        let r = 0, g = 0, b = 0;
+        samplePoints.forEach(([x, y]) => {
+          const idx = (y * canvas.width + x) * 4;
+          r += data[idx];
+          g += data[idx + 1];
+          b += data[idx + 2];
+        });
+
+        r = Math.floor(r / samplePoints.length);
+        g = Math.floor(g / samplePoints.length);
+        b = Math.floor(b / samplePoints.length);
+
+        // Create gradient with the extracted color
+        const color = `rgb(${r}, ${g}, ${b})`;
+        const lighterColor = `rgb(${Math.min(255, r + 30)}, ${Math.min(255, g + 30)}, ${Math.min(255, b + 30)})`;
+        const gradient = `linear-gradient(135deg, ${color} 0%, ${lighterColor} 100%)`;
+        
+        setBackgroundColors(prev => ({ ...prev, [index]: gradient }));
+      } catch (error) {
+        console.error('Error extracting colors:', error);
+      }
+    };
+    img.onerror = () => {
+      // Fallback to theme color if image fails to load
+      setBackgroundColors(prev => ({ 
+        ...prev, 
+        [index]: `linear-gradient(135deg, ${theme.colors.cardBg} 0%, ${theme.colors.surface} 100%)` 
+      }));
+    };
+    img.src = imageUrl;
+  };
+
+  // Extract colors for all images
+  React.useEffect(() => {
+    safeImages.forEach((image, index) => {
+      extractColors(image, index);
+    });
+  }, [safeImages, theme.colors.cardBg, theme.colors.surface]);
 
   React.useEffect(() => {
     if (!focusImage) return;
@@ -182,7 +253,7 @@ export default function ProductMediaGallery({ images, productName, focusImage }:
   return (
     <div className="product-media-container">
       <div 
-        className="main-image-container rounded-lg overflow-hidden"
+        className="main-image-container rounded-lg overflow-hidden relative"
         style={{
           backgroundColor: theme.colors.cardBg,
           boxShadow: theme.effects.shadow
@@ -196,19 +267,33 @@ export default function ProductMediaGallery({ images, productName, focusImage }:
           {safeImages.map((image, index) => (
             <div
               key={index}
-              className="product-image cursor-pointer"
+              className="product-image cursor-pointer relative"
               onClick={() => openModal(index)}
-              style={{ width: '100%', height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ width: '100%', height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
             >
-              <Image
-                src={image}
-                alt={`${productName} - Image ${index + 1}`}
-                width={800}
-                height={600}
-                style={{ objectFit: 'contain', objectPosition: 'center', maxWidth: '100%', maxHeight: '100%' }}
-                priority={index === 0}
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px"
+              {/* Blurred background with extracted colors */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: backgroundColors[index] || theme.colors.cardBg,
+                  filter: 'blur(40px)',
+                  transform: 'scale(1.1)',
+                  opacity: 0.6,
+                  zIndex: 0
+                }}
               />
+              {/* Actual image */}
+              <div className="relative z-10" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Image
+                  src={image}
+                  alt={`${productName} - Image ${index + 1}`}
+                  width={800}
+                  height={600}
+                  style={{ objectFit: 'contain', objectPosition: 'center', maxWidth: '100%', maxHeight: '100%' }}
+                  priority={index === 0}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px"
+                />
+              </div>
             </div>
           ))}
         </Slider>

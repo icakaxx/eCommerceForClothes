@@ -11,6 +11,8 @@ interface StoreSettings {
   bannertext: string | null;
   bannerduration: number | null;
   heroimageurl: string | null;
+  heroimagefocusx: number | null;
+  heroimagefocusy: number | null;
   discordurl: string | null;
   facebookurl: string | null;
   pinteresturl: string | null;

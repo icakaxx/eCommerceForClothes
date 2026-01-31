@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Edit2, Trash2, X, Image as ImageIcon, ChevronDown, Upload, Eye } from 'lucide-react';
 import { ProductType, Property } from '@/lib/types/product-types';
@@ -11,6 +11,45 @@ import { translations } from '@/lib/translations';
 import { AdminPage, PageHeader, Section, SectionSurface, EmptyState, DataTableShell, TableHeader, TableHeaderRow, TableHeaderCell, TableBody, TableRow, TableCell } from '../components/layout';
 import { Package } from 'lucide-react';
 import CompleteAnimation from '@/components/CompleteAnimation';
+
+// Select All Checkbox Component for Variant Characteristics
+function VariantSelectAllCheckbox({
+  property,
+  selectedValues,
+  onToggle,
+  language
+}: {
+  property: Property;
+  selectedValues: string[];
+  onToggle: (allSelected: boolean) => void;
+  language: string;
+}) {
+  const checkboxRef = useRef<HTMLInputElement>(null);
+  const activeValues = property.values?.filter(v => v.isactive).map(v => v.value) || [];
+  const allSelected = activeValues.length > 0 && activeValues.every(v => selectedValues.includes(v));
+  const someSelected = selectedValues.length > 0 && selectedValues.length < activeValues.length;
+
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = someSelected;
+    }
+  }, [someSelected]);
+
+  return (
+    <label className="flex items-center gap-2 cursor-pointer py-1">
+      <input
+        ref={checkboxRef}
+        type="checkbox"
+        checked={allSelected}
+        onChange={() => onToggle(allSelected)}
+        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+      />
+      <span className="text-xs sm:text-sm text-gray-700">
+        {language === 'bg' ? 'Избери всички' : 'Select all'}
+      </span>
+    </label>
+  );
+}
 
 interface Product {
   productid: string;
@@ -1431,24 +1470,29 @@ export default function ProductsPage() {
                                   <span className="text-gray-400 ml-1 text-xs">({property.description})</span>
                                 )}
                               </label>
-                              {property.datatype === 'select' && selectedPropertyValues[property.propertyid]?.length > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedPropertyValues({
-                                      ...selectedPropertyValues,
-                                      [property.propertyid]: []
-                                    });
-                                  }}
-                                  className="text-xs text-gray-500 hover:text-gray-700 underline"
-                                  title={language === 'bg' ? 'Премахни всички' : 'Uncheck all'}
-                                >
-                                  {language === 'bg' ? 'Премахни всички' : 'Uncheck all'}
-                                </button>
-                              )}
                             </div>
                             {property.datatype === 'select' ? (
                               <>
+                                {property.values && property.values.length > 0 ? (
+                                  <div className="mb-2">
+                                    {/* Select All Checkbox */}
+                                    <VariantSelectAllCheckbox
+                                      property={property}
+                                      selectedValues={selectedPropertyValues[property.propertyid] || []}
+                                      onToggle={(allSelected) => {
+                                        const activeValues = property.values
+                                          ?.filter(v => v.isactive)
+                                          .map(v => v.value) || [];
+                                        
+                                        setSelectedPropertyValues({
+                                          ...selectedPropertyValues,
+                                          [property.propertyid]: allSelected ? [] : activeValues
+                                        });
+                                      }}
+                                      language={language}
+                                    />
+                                  </div>
+                                ) : null}
                                 {property.values && property.values.length > 0 ? (
                                   <div className="space-y-1.5 max-h-32 sm:max-h-40 overflow-y-auto">
                                     {property.values
