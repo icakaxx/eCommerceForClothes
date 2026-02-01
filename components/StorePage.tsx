@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import ProductCard from './ProductCard';
 import ProductFilters from './ProductFilters';
 import FilterDrawer from './FilterDrawer';
@@ -17,7 +18,8 @@ interface StorePageProps {
 }
 
 export default function StorePage({ products, currentPage }: StorePageProps) {
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const searchParams = useSearchParams();
+  const selectedCategoryFromUrl = searchParams.get('producttypeid') || 'all';
   const [selectedFilters, setSelectedFilters] = useState<Record<string, any>>({});
   const [showFilters, setShowFilters] = useState(false); // Always collapsed on page refresh
   const { language } = useLanguage();
@@ -48,25 +50,8 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
 
   const currentRfProductTypeId = getRfProductTypeId(currentPage);
 
-  // Filter categories to only show those with available products
-  const availableCategories = productTypes.filter(type => {
-    return products.some(p =>
-      p.visible &&
-      (p.quantity > 0 || p.variants?.length === 0) && // Show products with quantity OR products with no variants (newly created)
-      p.productTypeID === type.producttypeid
-    );
-  });
-
-  const categories = [
-    { id: 'all', label: t.all },
-    ...availableCategories.map(type => ({
-      id: type.producttypeid,
-      label: type.name,
-      code: ((type as any).code || type.name || '').toLowerCase()
-    }))
-  ];
-
-  const activeCategoryFilter = currentPage === 'home' ? selectedCategory : selectedCategory;
+  // Use category from URL, default to 'all' if not specified
+  const activeCategoryFilter = selectedCategoryFromUrl;
 
   const filteredProducts = products.filter(p => {
     if (!p.visible) return false;
@@ -196,18 +181,27 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
   const getPageTitle = () => {
     if (currentPage === 'home') return t.ourCurrentStock;
 
-    // Check if currentPage matches a product type ID
-    const productType = productTypes.find(type => type.producttypeid === currentPage);
-    if (productType) {
-      return language === 'bg'
-        ? `${productType.name} в наличност`
-        : `${productType.name} in Stock`;
+    // Check if a category is selected from URL
+    if (activeCategoryFilter !== 'all') {
+      const productType = productTypes.find(type => type.producttypeid === activeCategoryFilter);
+      if (productType) {
+        return language === 'bg'
+          ? `${productType.name} в наличност`
+          : `${productType.name} in Stock`;
+      }
     }
 
     // Fallback to legacy categories
     if (currentPage === 'clothes') return t.clothesInStock;
     if (currentPage === 'shoes') return t.shoesInStock;
     if (currentPage === 'accessories') return t.accessoriesInStock;
+    
+    // Default titles for main sections
+    if (currentPage === 'for-him') return language === 'bg' ? 'За него' : 'For Him';
+    if (currentPage === 'for-her') return language === 'bg' ? 'За нея' : 'For Her';
+    if (currentPage === 'accessories') return t.accessoriesInStock;
+    
+    return t.ourCurrentStock;
   };
 
   const isGradientTheme = theme.id === 'gradient';
@@ -241,42 +235,6 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
           </p>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-6 sm:mb-10 px-2">
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-300"
-              style={{
-                backgroundColor: selectedCategory === cat.id
-                  ? theme.colors.primary
-                  : theme.colors.cardBg,
-                color: selectedCategory === cat.id
-                  ? '#ffffff'
-                  : theme.colors.text,
-                border: selectedCategory === cat.id
-                  ? 'none'
-                  : `1px solid ${theme.colors.border}`,
-                boxShadow: selectedCategory === cat.id
-                  ? theme.effects.shadowHover
-                  : 'none'
-              }}
-              onMouseEnter={(e) => {
-                if (selectedCategory !== cat.id) {
-                  e.currentTarget.style.backgroundColor = theme.colors.surface;
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (selectedCategory !== cat.id) {
-                  e.currentTarget.style.backgroundColor = theme.colors.cardBg;
-                }
-              }}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-
         <ProductFilters
           selectedFilters={selectedFilters}
           onToggleVisibility={() => setShowFilters(!showFilters)}
@@ -290,8 +248,8 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
           isOpen={showFilters}
           onClose={() => setShowFilters(false)}
           selectedProductTypeId={
-            productTypes.some(type => type.producttypeid === selectedCategory)
-              ? selectedCategory
+            productTypes.some(type => type.producttypeid === activeCategoryFilter)
+              ? activeCategoryFilter
               : null
           }
         />

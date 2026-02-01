@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Product } from '@/lib/data';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { ShoppingCart, Heart, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import QuickLoginModal from './QuickLoginModal';
+import FomoBadge, { type FomoMessage } from './FomoBadge';
 
 interface ProductDetailsProps {
   product: Product;
@@ -261,6 +262,68 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   const currentQuantity = selectedVariant?.quantity || product.quantity || 0;
   const currentPriceBgn = currentPrice * 1.95;
 
+  // Memoize FOMO messages to prevent recreation on every render
+  const fomoMessages = useMemo(() => {
+    const messages: FomoMessage[] = [];
+    
+    // Stock-based messages
+    if (currentQuantity > 0 && currentQuantity <= 5) {
+      messages.push({
+        text: language === 'bg' 
+          ? `Остават само ${currentQuantity} налични` 
+          : `Only ${currentQuantity} left in stock`,
+        tone: 'warning'
+      });
+      messages.push({
+        text: language === 'bg' 
+          ? 'Ниско наличност — продава се бързо' 
+          : 'Low stock — selling fast',
+        tone: 'warning'
+      });
+    }
+    
+    if (currentQuantity > 5 && currentQuantity <= 15) {
+      messages.push({
+        text: language === 'bg' 
+          ? 'Почти изчерпано' 
+          : 'Almost gone',
+        tone: 'neutral'
+      });
+    }
+    
+    // Social proof messages (using safe approximations)
+    messages.push({
+      text: language === 'bg' 
+        ? 'Популярен избор тази седмица' 
+        : 'Popular choice this week',
+      tone: 'success'
+    });
+    
+    messages.push({
+      text: language === 'bg' 
+        ? 'Един от нашите най-продавани' 
+        : 'One of our best sellers',
+      tone: 'success'
+    });
+    
+    messages.push({
+      text: language === 'bg' 
+        ? 'Трендов продукт в момента' 
+        : 'Trending right now',
+      tone: 'neutral'
+    });
+    
+    // Time-based urgency
+    messages.push({
+      text: language === 'bg' 
+        ? 'Високо търсене днес' 
+        : 'High demand today',
+      tone: 'neutral'
+    });
+    
+    return messages;
+  }, [currentQuantity, language]);
+
   const getCategoryLabel = () => {
     if (product.category === 'clothes') return product.type || t.clothes;
     if (product.category === 'shoes') return t.shoes;
@@ -275,15 +338,15 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   const handleAddToCart = () => {
     if (currentQuantity <= 0) return;
 
-    // Convert property values to cart-compatible format (arrays become comma-separated strings)
+    // Use selectedOptions to get only the selected property values (not all available options)
     const cartCompatiblePropertyValues: Record<string, string> = {};
-    if (product.propertyValues) {
-      Object.entries(product.propertyValues).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          cartCompatiblePropertyValues[key] = value.join(', ');
-        } else {
-          cartCompatiblePropertyValues[key] = value;
-        }
+    
+    // Build property values from selectedOptions (user's actual selections)
+    if (selectedOptions && Object.keys(selectedOptions).length > 0) {
+      Object.entries(selectedOptions).forEach(([key, value]) => {
+        // Use the property name mapping to get the correct display name
+        const displayName = propertyNameMap[key.toLowerCase()] || key;
+        cartCompatiblePropertyValues[displayName] = String(value);
       });
     }
 
@@ -491,6 +554,17 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         >
           {t.inclVAT}
         </div>
+        
+        {/* FOMO Badge - Product Page */}
+        {fomoMessages.length > 0 && (
+          <div className="mt-4">
+            <FomoBadge 
+              messages={fomoMessages} 
+              rotationInterval={8000}
+              enabled={true}
+            />
+          </div>
+        )}
       </div>
 
       {/* Variant Options - order 5 */}

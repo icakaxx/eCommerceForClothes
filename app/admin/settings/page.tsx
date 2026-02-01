@@ -483,15 +483,40 @@ export default function AdminSettingsPage() {
                   id="settings-store-name"
                   type="text"
                   value={settings.storename}
-                  onChange={(e) => handleSettingChange('storename', e.target.value)}
+                  maxLength={25}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.length <= 25) {
+                      handleSettingChange('storename', value);
+                    }
+                  }}
                   className="w-full px-3 py-2 rounded-md border transition-colors duration-300"
                   style={{
                     backgroundColor: theme.colors.background,
-                    borderColor: theme.colors.border,
+                    borderColor: settings.storename.length > 25 ? '#ef4444' : theme.colors.border,
                     color: theme.colors.text
                   }}
                   placeholder={language === 'bg' ? 'Въведете име на магазина' : 'Enter store name'}
                 />
+                <div className="mt-1 flex justify-between items-center">
+                  <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                    {language === 'bg' 
+                      ? 'Ограничение: максимум 25 символа (за да се побере на 2 реда на мобилни устройства)'
+                      : 'Limit: 25 characters (to fit on 2 lines on mobile devices)'}
+                  </p>
+                  <span 
+                    className="text-xs font-medium"
+                    style={{ 
+                      color: settings.storename.length > 35 
+                        ? '#ef4444' 
+                        : settings.storename.length > 30 
+                        ? '#f59e0b'
+                        : theme.colors.textSecondary 
+                    }}
+                  >
+                    {settings.storename.length}/35
+                  </span>
+                </div>
               </div>
 
               {/* Email */}

@@ -22,6 +22,8 @@ export async function GET(request: NextRequest) {
         const productTypesWithCounts = rpcData.map((item: any) => ({
           producttypeid: item.producttypeid,
           name: item.name,
+          code: item.code || '',
+          rfproducttypeid: item.rfproducttypeid,
           createdat: item.createdat,
           updatedat: item.updatedat,
           propertiesCount: item.propertiescount || 0,

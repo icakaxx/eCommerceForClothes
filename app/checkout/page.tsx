@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -14,6 +14,7 @@ import { useCheckoutStore, type DeliveryType, type CityOption } from '@/store/ch
 import { translations } from '@/lib/translations';
 import { ShoppingBag, Truck, MapPin, Package } from 'lucide-react';
 import type { EcontOfficesData, EcontOffice } from '@/types/econt';
+import FomoBadge, { type FomoMessage } from '@/components/FomoBadge';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -644,6 +645,49 @@ export default function CheckoutPage() {
     econtomat: t.deliveryEcontomat,
   };
 
+  // Memoize FOMO messages to prevent recreation on every render
+  const checkoutFomoMessages = useMemo(() => {
+    const messages: FomoMessage[] = [
+      {
+        text: language === 'bg'
+          ? 'Вашите артикули не са резервирани до завършване на поръчката'
+          : 'Your items are not reserved until checkout is completed',
+        tone: 'warning'
+      },
+      {
+        text: language === 'bg'
+          ? 'Наличността е ограничена — завършете поръчката скоро'
+          : 'Stock is limited — complete your order soon',
+        tone: 'warning'
+      },
+      {
+        text: language === 'bg'
+          ? 'Клиенти завършиха поръчка в последните 10 минути'
+          : 'Customers completed checkout in the last 10 minutes',
+        tone: 'success'
+      },
+      {
+        text: language === 'bg'
+          ? 'Бърза поръчка — повечето поръчки се завършват за под 1 минута'
+          : 'Fast checkout — most orders complete in under 1 minute',
+        tone: 'success'
+      },
+      {
+        text: language === 'bg'
+          ? 'Поръчайте сега за изпращане днес'
+          : 'Order now to ship today',
+        tone: 'neutral'
+      },
+      {
+        text: language === 'bg'
+          ? 'Поръчайте сега за по-бърза доставка'
+          : 'Checkout now for faster delivery',
+        tone: 'neutral'
+      }
+    ];
+    return messages;
+  }, [language]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin} />
@@ -1235,6 +1279,15 @@ export default function CheckoutPage() {
                     t.placeOrder
                   )}
                 </button>
+
+                {/* FOMO Badge - Checkout Page */}
+                <div className="mt-4 flex justify-center">
+                  <FomoBadge
+                    messages={checkoutFomoMessages}
+                    rotationInterval={12000}
+                    enabled={true}
+                  />
+                </div>
 
                 {!isFormValid() && (
                   <p className="text-sm text-red-600 mt-2 text-center">
