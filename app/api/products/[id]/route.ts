@@ -368,6 +368,30 @@ export async function PUT(
     // Ensure SKUs are unique before creating variants
     const uniqueVariants = await ensureUniqueSKUs(Variants, supabase);
 
+    // Validate that producttypeid is a leaf category (has no children) if producttypeid is being updated
+    if (producttypeid) {
+      const { data: categoryChildren, error: childrenError } = await supabase
+        .from('product_types')
+        .select('producttypeid')
+        .eq('parent_producttypeid', producttypeid)
+        .limit(1);
+
+      if (childrenError) {
+        console.error('Error checking category children:', childrenError);
+        return NextResponse.json(
+          { error: 'Failed to validate category' },
+          { status: 500 }
+        );
+      }
+
+      if (categoryChildren && categoryChildren.length > 0) {
+        return NextResponse.json(
+          { error: 'Products can only be assigned to leaf categories (categories with no subcategories). This category has child categories.' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Update product
     const { data: product, error: productError } = await supabase
       .from('products')

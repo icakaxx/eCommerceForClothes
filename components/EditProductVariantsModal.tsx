@@ -445,11 +445,38 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
                     <option value="">
                       {language === 'bg' ? 'Изберете тип' : 'Select Type'}
                     </option>
-                    {productTypes.map(type => (
-                      <option key={type.producttypeid} value={type.producttypeid}>
-                        {type.name}
-                      </option>
-                    ))}
+                    {productTypes
+                      .filter(type => {
+                        // Only show leaf categories (categories with no children)
+                        return type.isLeaf !== false && (!type.children || type.children.length === 0);
+                      })
+                      .map(type => {
+                        // Build category path
+                        const getCategoryPath = (categoryId: string): string[] => {
+                          const path: string[] = [];
+                          let current: typeof type | undefined = productTypes.find(pt => pt.producttypeid === categoryId);
+                          
+                          while (current) {
+                            path.unshift(current.name);
+                            if (current.parent_producttypeid) {
+                              current = productTypes.find(pt => pt.producttypeid === current!.parent_producttypeid);
+                            } else {
+                              break;
+                            }
+                          }
+                          
+                          return path;
+                        };
+                        
+                        const path = getCategoryPath(type.producttypeid);
+                        const displayName = path.length > 1 ? path.join(' > ') : type.name;
+                        
+                        return (
+                          <option key={type.producttypeid} value={type.producttypeid}>
+                            {displayName}
+                          </option>
+                        );
+                      })}
                   </select>
                 </div>
 

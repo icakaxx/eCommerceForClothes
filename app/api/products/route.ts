@@ -300,6 +300,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate that producttypeid is a leaf category (has no children)
+    const { data: categoryChildren, error: childrenError } = await supabase
+      .from('product_types')
+      .select('producttypeid')
+      .eq('parent_producttypeid', producttypeid)
+      .limit(1);
+
+    if (childrenError) {
+      console.error('Error checking category children:', childrenError);
+      return NextResponse.json(
+        { error: 'Failed to validate category' },
+        { status: 500 }
+      );
+    }
+
+    if (categoryChildren && categoryChildren.length > 0) {
+      return NextResponse.json(
+        { error: 'Products can only be assigned to leaf categories (categories with no subcategories). This category has child categories.' },
+        { status: 400 }
+      );
+    }
+
     Variants.forEach((v: any, i: number) => {
       console.log(`  Variant ${i}:`, {
         sku: v.sku,

@@ -30,7 +30,7 @@ export default function ProductTypesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProductType, setEditingProductType] = useState<ProductType | null>(null);
-  const [formData, setFormData] = useState({ name: '' });
+  const [formData, setFormData] = useState({ name: '', parent_producttypeid: '' });
   const [showCompleteAnimation, setShowCompleteAnimation] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productTypeToDelete, setProductTypeToDelete] = useState<ProductType | null>(null);
@@ -151,10 +151,16 @@ export default function ProductTypesPage() {
         : '/api/product-types';
       const method = editingProductType ? 'PUT' : 'POST';
 
+      // Prepare data: convert empty string to null for parent_producttypeid
+      const submitData = {
+        ...formData,
+        parent_producttypeid: formData.parent_producttypeid || null
+      };
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(submitData)
       });
 
       const result = await response.json();
@@ -180,8 +186,9 @@ export default function ProductTypesPage() {
         setTimeout(() => {
           setShowModal(false);
           setShowCompleteAnimation(false);
-          setFormData({ name: '' });
+          setFormData({ name: '', parent_producttypeid: '' });
           setEditingProductType(null);
+          setSelectedPropertyIds([]);
           loadProductTypes();
         }, 1200); // Wait for animation to complete (0.6s dash + 0.5s grow + buffer)
       } else {
@@ -195,7 +202,10 @@ export default function ProductTypesPage() {
 
   const handleEdit = (productType: ProductType) => {
     setEditingProductType(productType);
-    setFormData({ name: productType.name });
+    setFormData({ 
+      name: productType.name,
+      parent_producttypeid: productType.parent_producttypeid || ''
+    });
     setShowModal(true);
   };
 
@@ -336,11 +346,12 @@ export default function ProductTypesPage() {
                 </button>
               )}
               <button
-                onClick={() => {
-                  setEditingProductType(null);
-                  setFormData({ name: '' });
-                  setShowModal(true);
-                }}
+                  onClick={() => {
+                    setEditingProductType(null);
+                    setFormData({ name: '', parent_producttypeid: '' });
+                    setSelectedPropertyIds([]);
+                    setShowModal(true);
+                  }}
                 className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation text-sm sm:text-base"
               >
                 <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -367,11 +378,12 @@ export default function ProductTypesPage() {
                 description={language === 'bg' ? 'Създайте първата категория, за да започнете да организирате артикулите си.' : 'Create your first category to start organizing your items.'}
                 action={
                   <button
-                    onClick={() => {
-                      setEditingProductType(null);
-                      setFormData({ name: '' });
-                      setShowModal(true);
-                    }}
+                  onClick={() => {
+                    setEditingProductType(null);
+                    setFormData({ name: '', parent_producttypeid: '' });
+                    setSelectedPropertyIds([]);
+                    setShowModal(true);
+                  }}
                     className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                   >
                     <Plus className="w-4 h-4" />
@@ -424,7 +436,16 @@ export default function ProductTypesPage() {
                               />
                             </TableCell>
                             <TableCell>
-                              <div className="truncate max-w-xs font-medium">{pt.name}</div>
+                              <div className="truncate max-w-xs">
+                                {pt.parent_producttypeid ? (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-xs text-gray-400">└─</span>
+                                    <span className="font-medium">{pt.name}</span>
+                                  </div>
+                                ) : (
+                                  <span className="font-medium">{pt.name}</span>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell>
                               {characteristics.length === 0 ? (
@@ -518,7 +539,16 @@ export default function ProductTypesPage() {
                             className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 flex-shrink-0"
                             aria-label={language === 'bg' ? 'Избери категория' : 'Select category'}
                           />
-                          <h3 className="text-base font-semibold text-gray-900 flex-1 min-w-0">{pt.name}</h3>
+                          <h3 className="text-base font-semibold text-gray-900 flex-1 min-w-0">
+                            {pt.parent_producttypeid ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs text-gray-400">└─</span>
+                                <span>{pt.name}</span>
+                              </div>
+                            ) : (
+                              <span>{pt.name}</span>
+                            )}
+                          </h3>
                         </div>
                       </div>
 
@@ -715,6 +745,38 @@ export default function ProductTypesPage() {
                   className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  {language === 'bg' ? 'Родителска категория (опционално)' : 'Parent Category (optional)'}
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  {language === 'bg'
+                    ? 'Изберете родителска категория, за да създадете подкатегория. Оставете празно за категория от второ ниво.'
+                    : 'Select a parent category to create a subcategory. Leave empty for a level 2 category.'}
+                </p>
+                <select
+                  value={formData.parent_producttypeid}
+                  onChange={(e) => setFormData({ ...formData, parent_producttypeid: e.target.value })}
+                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">{language === 'bg' ? '-- Без родител --' : '-- No Parent --'}</option>
+                  {productTypes
+                    .filter(pt => {
+                      // Only show categories that don't have a parent (level 2 categories)
+                      // and don't have products (can have children)
+                      const hasNoParent = !pt.parent_producttypeid;
+                      const hasNoProducts = (pt as any).productsCount === 0;
+                      // Don't show the category being edited as a parent option
+                      const isNotSelf = editingProductType ? pt.producttypeid !== editingProductType.producttypeid : true;
+                      return hasNoParent && hasNoProducts && isNotSelf;
+                    })
+                    .map((pt) => (
+                      <option key={pt.producttypeid} value={pt.producttypeid}>
+                        {pt.name}
+                      </option>
+                    ))}
+                </select>
               </div>
               {!editingProductType && (
                 <div>

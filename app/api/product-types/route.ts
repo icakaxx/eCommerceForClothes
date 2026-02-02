@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
           name: item.name,
           code: item.code || '',
           rfproducttypeid: item.rfproducttypeid,
+          parent_producttypeid: item.parent_producttypeid || null,
           createdat: item.createdat,
           updatedat: item.updatedat,
           propertiesCount: item.propertiescount || 0,
@@ -55,12 +56,58 @@ export async function GET(request: NextRequest) {
           }
         });
 
+        // Build hierarchical structure for RPC path too
+        const productTypesWithProperties = productTypesWithCounts.map((pt: any) => ({
+          ...pt,
+          properties: propertiesMap[pt.producttypeid] || []
+        }));
+
+        // Build parent-child relationships
+        const productTypesMap = new Map<string, any>();
+        productTypesWithProperties.forEach((pt: any) => {
+          productTypesMap.set(pt.producttypeid, { ...pt, children: [] });
+        });
+
+        const rootProductTypes: any[] = [];
+        productTypesWithProperties.forEach((pt: any) => {
+          const productType = productTypesMap.get(pt.producttypeid);
+          if (pt.parent_producttypeid) {
+            const parent = productTypesMap.get(pt.parent_producttypeid);
+            if (parent) {
+              parent.children = parent.children || [];
+              parent.children.push(productType);
+            } else {
+              rootProductTypes.push(productType);
+            }
+          } else {
+            rootProductTypes.push(productType);
+          }
+        });
+
+        // Mark leaf categories
+        const markLeaves = (types: any[]) => {
+          types.forEach((pt: any) => {
+            pt.isLeaf = !pt.children || pt.children.length === 0;
+            if (pt.children && pt.children.length > 0) {
+              markLeaves(pt.children);
+            }
+          });
+        };
+        markLeaves(rootProductTypes);
+
+        const flattened = productTypesWithProperties.map((pt: any) => {
+          const withChildren = productTypesMap.get(pt.producttypeid);
+          return {
+            ...pt,
+            children: withChildren?.children || [],
+            isLeaf: withChildren?.isLeaf ?? (!withChildren?.children || withChildren.children.length === 0)
+          };
+        });
+
         return NextResponse.json({
           success: true,
-          productTypes: productTypesWithCounts.map((pt: any) => ({
-            ...pt,
-            properties: propertiesMap[pt.producttypeid] || []
-          }))
+          productTypes: flattened,
+          hierarchy: rootProductTypes
         });
       }
     } catch (rpcErr) {
@@ -172,12 +219,61 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // Build hierarchical structure
+    const productTypesWithProperties = productTypesWithCounts.map((pt: any) => ({
+      ...pt,
+      properties: propertiesMap[pt.producttypeid] || []
+    }));
+
+    // Build parent-child relationships
+    const productTypesMap = new Map<string, any>();
+    productTypesWithProperties.forEach((pt: any) => {
+      productTypesMap.set(pt.producttypeid, { ...pt, children: [] });
+    });
+
+    // Build tree structure
+    const rootProductTypes: any[] = [];
+    productTypesWithProperties.forEach((pt: any) => {
+      const productType = productTypesMap.get(pt.producttypeid);
+      if (pt.parent_producttypeid) {
+        const parent = productTypesMap.get(pt.parent_producttypeid);
+        if (parent) {
+          parent.children = parent.children || [];
+          parent.children.push(productType);
+        } else {
+          // Parent not found, treat as root
+          rootProductTypes.push(productType);
+        }
+      } else {
+        rootProductTypes.push(productType);
+      }
+    });
+
+    // Mark leaf categories (categories with no children)
+    const markLeaves = (types: any[]) => {
+      types.forEach((pt: any) => {
+        pt.isLeaf = !pt.children || pt.children.length === 0;
+        if (pt.children && pt.children.length > 0) {
+          markLeaves(pt.children);
+        }
+      });
+    };
+    markLeaves(rootProductTypes);
+
+    // Flatten for backward compatibility (but include hierarchy info)
+    const flattened = productTypesWithProperties.map((pt: any) => {
+      const withChildren = productTypesMap.get(pt.producttypeid);
+      return {
+        ...pt,
+        children: withChildren?.children || [],
+        isLeaf: withChildren?.isLeaf ?? (!withChildren?.children || withChildren.children.length === 0)
+      };
+    });
+
     return NextResponse.json({
       success: true,
-      productTypes: productTypesWithCounts.map((pt: any) => ({
-        ...pt,
-        properties: propertiesMap[pt.producttypeid] || []
-      }))
+      productTypes: flattened,
+      hierarchy: rootProductTypes // Also return tree structure
     });
 
   } catch (error) {
@@ -195,8 +291,7 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient();
     const body = await request.json();
 
-    const { name, rfproducttypeid } = body;
-
+    const { name, rfproducttypeid, parent_producttypeid } = body;
 
     if (!name) {
       return NextResponse.json(
@@ -205,12 +300,60 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate parent_producttypeid if provided
+    if (parent_producttypeid) {
+      // Check if parent exists
+      const { data: parent, error: parentError } = await supabase
+        .from('product_types')
+        .select('producttypeid, parent_producttypeid')
+        .eq('producttypeid', parent_producttypeid)
+        .single();
+
+      if (parentError || !parent) {
+        return NextResponse.json(
+          { error: 'Parent category not found' },
+          { status: 400 }
+        );
+      }
+
+      // Check depth: if parent has a parent, we're at max depth (3 levels)
+      if (parent.parent_producttypeid) {
+        return NextResponse.json(
+          { error: 'Maximum hierarchy depth of 3 levels reached. Cannot add subcategory to a subcategory.' },
+          { status: 400 }
+        );
+      }
+
+      // Check if parent has products - if so, it cannot have children
+      const { data: parentProducts, error: productsError } = await supabase
+        .from('products')
+        .select('productid')
+        .eq('producttypeid', parent_producttypeid)
+        .eq('isdeleted', false)
+        .limit(1);
+
+      if (productsError) {
+        console.error('Error checking parent products:', productsError);
+      } else if (parentProducts && parentProducts.length > 0) {
+        return NextResponse.json(
+          { error: 'Parent category has products. Categories with products cannot have child categories.' },
+          { status: 400 }
+        );
+      }
+    }
+
+    const insertData: any = {
+      name,
+      updatedat: new Date().toISOString()
+    };
+
+    if (parent_producttypeid) {
+      insertData.parent_producttypeid = parent_producttypeid;
+    }
+
     const { data: productType, error } = await supabase
       .from('product_types')
-      .insert({
-        name,
-        updatedat: new Date().toISOString()
-      })
+      .insert(insertData)
       .select()
       .single();
 

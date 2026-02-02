@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, Upload, Settings as SettingsIcon, Image as ImageIcon } from 'lucide-react';
+import { Save, Upload, Settings as SettingsIcon, Image as ImageIcon, Trash2, ArrowUp, ArrowDown, Plus } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import RichTextEditor from '@/components/RichTextEditor';
 import { useTheme } from '@/context/ThemeContext';
@@ -61,6 +61,14 @@ export default function AdminSettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [testimonials, setTestimonials] = useState<Array<{
+    testimonialid: string;
+    imageurl: string;
+    sortorder: number;
+    isactive: boolean;
+  }>>([]);
+  const [isLoadingTestimonials, setIsLoadingTestimonials] = useState(true);
+  const [isUploadingTestimonial, setIsUploadingTestimonial] = useState(false);
 
   // Check authentication
   useEffect(() => {
@@ -190,6 +198,27 @@ export default function AdminSettingsPage() {
 
     loadSettings();
   }, [setLanguage, setTheme, isAuthenticated]);
+
+  // Load testimonials
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const loadTestimonials = async () => {
+      try {
+        setIsLoadingTestimonials(true);
+        const response = await fetch('/api/testimonials');
+        const result = await response.json();
+        if (result.success) {
+          setTestimonials(result.testimonials || []);
+        }
+      } catch (error) {
+        console.error('Error loading testimonials:', error);
+      } finally {
+        setIsLoadingTestimonials(false);
+      }
+    };
+
+    loadTestimonials();
+  }, [isAuthenticated]);
 
   // Sync local settings with global theme changes
   useEffect(() => {
@@ -372,6 +401,150 @@ export default function AdminSettingsPage() {
 
     // Clear input
     event.target.value = '';
+  };
+
+  const handleTestimonialUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    // Validate all files
+    const validFiles: File[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert(`${file.name}: ${t.pleaseSelectImage || 'Please select an image file'}`);
+        continue;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`${file.name}: ${t.fileTooLarge || 'File is too large (max 5MB)'}`);
+        continue;
+      }
+
+      validFiles.push(file);
+    }
+
+    if (validFiles.length === 0) {
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      setIsUploadingTestimonial(true);
+      const uploadedTestimonials: Array<{
+        testimonialid: string;
+        imageurl: string;
+        sortorder: number;
+        isactive: boolean;
+      }> = [];
+
+      // Upload files sequentially to avoid overwhelming the server
+      for (const file of validFiles) {
+        try {
+          // Upload to Supabase Storage
+          const fileName = `testimonial-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
+          const result = await uploadFile('testimonials', fileName, file);
+
+          if (result.success && result.url) {
+            // Create testimonial via API
+            const createResponse = await fetch('/api/testimonials', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ imageurl: result.url })
+            });
+
+            const createResult = await createResponse.json();
+            if (createResult.success) {
+              uploadedTestimonials.push(createResult.testimonial);
+            } else {
+              console.error(`Error creating testimonial for ${file.name}:`, createResult.error);
+            }
+          } else {
+            console.error(`Error uploading ${file.name}`);
+          }
+        } catch (error) {
+          console.error(`Error processing ${file.name}:`, error);
+        }
+      }
+
+      if (uploadedTestimonials.length > 0) {
+        setTestimonials(prev => [...prev, ...uploadedTestimonials].sort((a, b) => a.sortorder - b.sortorder));
+        if (uploadedTestimonials.length < validFiles.length) {
+          alert(language === 'bg' 
+            ? `Качени са ${uploadedTestimonials.length} от ${validFiles.length} изображения` 
+            : `Uploaded ${uploadedTestimonials.length} of ${validFiles.length} images`);
+        }
+      } else {
+        alert(language === 'bg' ? 'Грешка при качване на изображения' : 'Error uploading images');
+      }
+    } catch (error) {
+      console.error('Testimonial upload error:', error);
+      alert(language === 'bg' ? 'Грешка при качване на отзиви' : 'Error uploading testimonials');
+    } finally {
+      setIsUploadingTestimonial(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleTestimonialDelete = async (testimonialId: string) => {
+    if (!confirm(language === 'bg' ? 'Сигурни ли сте, че искате да изтриете този отзив?' : 'Are you sure you want to delete this testimonial?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/testimonials/${testimonialId}`, {
+        method: 'DELETE'
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setTestimonials(prev => prev.filter(t => t.testimonialid !== testimonialId));
+      } else {
+        alert(language === 'bg' ? 'Грешка при изтриване на отзив' : 'Error deleting testimonial');
+      }
+    } catch (error) {
+      console.error('Error deleting testimonial:', error);
+      alert(language === 'bg' ? 'Грешка при изтриване на отзив' : 'Error deleting testimonial');
+    }
+  };
+
+  const handleTestimonialReorder = async (testimonialId: string, direction: 'up' | 'down') => {
+    const currentIndex = testimonials.findIndex(t => t.testimonialid === testimonialId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= testimonials.length) return;
+
+    const updatedTestimonials = [...testimonials];
+    const [moved] = updatedTestimonials.splice(currentIndex, 1);
+    updatedTestimonials.splice(newIndex, 0, moved);
+
+    // Update sortorder for all affected testimonials
+    const updates = updatedTestimonials.map((t, index) => ({
+      ...t,
+      sortorder: index
+    }));
+
+    try {
+      // Update all affected testimonials
+      await Promise.all(
+        updates.map(t => 
+          fetch(`/api/testimonials/${t.testimonialid}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sortorder: t.sortorder })
+          })
+        )
+      );
+
+      setTestimonials(updates);
+    } catch (error) {
+      console.error('Error reordering testimonials:', error);
+      alert(language === 'bg' ? 'Грешка при пренареждане на отзиви' : 'Error reordering testimonials');
+    }
   };
 
   const handleSettingChange = (field: keyof StoreSettings, value: any) => {
@@ -1162,6 +1335,155 @@ export default function AdminSettingsPage() {
                   placeholder="https://tiktok.com/@..."
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Testimonials Settings */}
+          <div
+            id="settings-testimonials"
+            className="p-6 rounded-lg"
+            style={{
+              backgroundColor: theme.colors.cardBg,
+              border: `1px solid ${theme.colors.border}`
+            }}
+          >
+            <h2
+              className="text-xl font-semibold mb-6"
+              style={{ color: theme.colors.text }}
+            >
+              {language === 'bg' ? 'Отзиви от клиенти' : 'Customer Testimonials'}
+            </h2>
+
+            <div className="space-y-6">
+              {/* Upload New Testimonial */}
+              <div>
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: theme.colors.text }}
+                >
+                  {language === 'bg' ? 'Добави нов отзив' : 'Add New Testimonial'}
+                </label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleTestimonialUpload}
+                    className="hidden"
+                    id="testimonial-upload"
+                    disabled={isUploadingTestimonial}
+                    multiple
+                  />
+                  <label
+                    htmlFor="testimonial-upload"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-md cursor-pointer transition-colors duration-300 disabled:opacity-50"
+                    style={{
+                      backgroundColor: isUploadingTestimonial ? theme.colors.secondary : theme.colors.primary,
+                      color: '#ffffff'
+                    }}
+                  >
+                    {isUploadingTestimonial ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        {language === 'bg' ? 'Качване...' : 'Uploading...'}
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={16} />
+                        {language === 'bg' ? 'Качи изображение' : 'Upload Image'}
+                      </>
+                    )}
+                  </label>
+                  <p
+                    className="text-sm"
+                    style={{ color: theme.colors.textSecondary }}
+                  >
+                    {language === 'bg' ? 'Можете да качите множество изображения. Максимален размер: 5MB на файл' : 'You can upload multiple images. Max size: 5MB per file'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Testimonials List */}
+              {isLoadingTestimonials ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: theme.colors.primary }}></div>
+                </div>
+              ) : testimonials.length === 0 ? (
+                <div
+                  className="text-center py-8 rounded-lg"
+                  style={{
+                    backgroundColor: theme.colors.secondary,
+                    border: `1px dashed ${theme.colors.border}`
+                  }}
+                >
+                  <p style={{ color: theme.colors.textSecondary }}>
+                    {language === 'bg' ? 'Няма добавени отзиви' : 'No testimonials added yet'}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {testimonials.map((testimonial, index) => (
+                    <div
+                      key={testimonial.testimonialid}
+                      className="relative rounded-lg overflow-hidden"
+                      style={{
+                        backgroundColor: theme.colors.background,
+                        border: `1px solid ${theme.colors.border}`,
+                        boxShadow: theme.effects.shadow
+                      }}
+                    >
+                      {/* Testimonial Image */}
+                      <div className="relative aspect-[4/5] bg-gray-100">
+                        <img
+                          src={testimonial.imageurl}
+                          alt={`Testimonial ${index + 1}`}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+
+                      {/* Controls */}
+                      <div className="p-3 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleTestimonialReorder(testimonial.testimonialid, 'up')}
+                            disabled={index === 0}
+                            className="p-1.5 rounded transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                            style={{
+                              backgroundColor: index === 0 ? 'transparent' : theme.colors.secondary,
+                              color: theme.colors.text
+                            }}
+                            title={language === 'bg' ? 'Нагоре' : 'Move up'}
+                          >
+                            <ArrowUp size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleTestimonialReorder(testimonial.testimonialid, 'down')}
+                            disabled={index === testimonials.length - 1}
+                            className="p-1.5 rounded transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                            style={{
+                              backgroundColor: index === testimonials.length - 1 ? 'transparent' : theme.colors.secondary,
+                              color: theme.colors.text
+                            }}
+                            title={language === 'bg' ? 'Надолу' : 'Move down'}
+                          >
+                            <ArrowDown size={16} />
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => handleTestimonialDelete(testimonial.testimonialid)}
+                          className="p-1.5 rounded transition-colors duration-300"
+                          style={{
+                            backgroundColor: '#ef4444',
+                            color: '#ffffff'
+                          }}
+                          title={language === 'bg' ? 'Изтрий' : 'Delete'}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

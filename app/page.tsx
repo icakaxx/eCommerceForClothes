@@ -16,6 +16,7 @@ import { ShoppingBag, Sparkles, Heart } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
 import { Product } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
+import TestimonialsCarousel from '@/components/TestimonialsCarousel';
 
 export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -23,6 +24,14 @@ export default function Home() {
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([]);
   const [loadingFavorites, setLoadingFavorites] = useState(true);
+  const [featuredFavorites, setFeaturedFavorites] = useState<Record<string, boolean>>({});
+  const [testimonials, setTestimonials] = useState<Array<{
+    testimonialid: string;
+    imageurl: string;
+    sortorder: number;
+    isactive: boolean;
+  }>>([]);
+  const [loadingTestimonials, setLoadingTestimonials] = useState(true);
   const { settings, isLoading: settingsLoading } = useStoreSettings();
   const { language } = useLanguage();
   const { theme } = useTheme();
@@ -100,6 +109,61 @@ export default function Home() {
 
     loadFavoriteProducts();
   }, [isAuthenticated, user]);
+
+  // Batch check favorites for featured products
+  useEffect(() => {
+    if (isAuthenticated && user && featuredProducts.length > 0) {
+      const checkFeaturedFavorites = async () => {
+        try {
+          const productIds = featuredProducts
+            .map(p => String(p.id || p.productid || ''))
+            .filter(id => id !== '');
+          
+          if (productIds.length === 0) return;
+
+          const response = await fetch('/api/favorites/check-batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: user.id,
+              productIds: productIds
+            })
+          });
+
+          const data = await response.json();
+          if (data.success && data.favorites) {
+            setFeaturedFavorites(data.favorites);
+          }
+        } catch (error) {
+          console.error('Error checking featured favorites:', error);
+        }
+      };
+
+      checkFeaturedFavorites();
+    } else {
+      setFeaturedFavorites({});
+    }
+  }, [isAuthenticated, user, featuredProducts.map(p => p.id || p.productid).join(',')]);
+
+  // Load testimonials
+  useEffect(() => {
+    const loadTestimonials = async () => {
+      try {
+        setLoadingTestimonials(true);
+        const response = await fetch('/api/testimonials');
+        const result = await response.json();
+        if (result.success) {
+          setTestimonials(result.testimonials || []);
+        }
+      } catch (error) {
+        console.error('Failed to load testimonials:', error);
+      } finally {
+        setLoadingTestimonials(false);
+      }
+    };
+
+    loadTestimonials();
+  }, []);
 
   // Show loading screen while StoreSettings is loading (prevents showing backup content)
   if (settingsLoading) {
@@ -336,7 +400,11 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {favoriteProducts.map((product) => (
-                <ProductCard key={product.id || product.productid} product={product} />
+                <ProductCard 
+                  key={product.id || product.productid} 
+                  product={product}
+                  isFavorited={true}
+                />
               ))}
             </div>
           </section>
@@ -352,9 +420,16 @@ export default function Home() {
               {language === 'bg' ? 'Избрани артикули' : 'Featured Items'}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {featuredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+              {featuredProducts.map((product) => {
+                const productId = String(product.id || product.productid || '');
+                return (
+                  <ProductCard 
+                    key={product.id} 
+                    product={product}
+                    isFavorited={featuredFavorites[productId] || false}
+                  />
+                );
+              })}
             </div>
           </section>
         )}
@@ -411,6 +486,19 @@ export default function Home() {
                 {settings.closingremarks}
               </div>
             </div>
+          </section>
+        )}
+
+        {/* Testimonials Section */}
+        {!loadingTestimonials && testimonials.length > 0 && (
+          <section className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-12 sm:py-16">
+            <h2 
+              className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center transition-colors duration-300"
+              style={{ color: theme.colors.text }}
+            >
+              {language === 'bg' ? 'Отзиви от клиенти' : 'Customer Testimonials'}
+            </h2>
+            <TestimonialsCarousel testimonials={testimonials} />
           </section>
         )}
       </div>

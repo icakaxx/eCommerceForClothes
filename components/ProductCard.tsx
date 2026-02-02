@@ -14,9 +14,10 @@ import { ShoppingCart, Heart } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
+  isFavorited?: boolean; // Optional prop to pass favorite status from parent
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, isFavorited: initialIsFavorited }: ProductCardProps) {
   const router = useRouter();
   const { language } = useLanguage();
   const { theme } = useTheme();
@@ -24,7 +25,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const t = translations[language];
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(initialIsFavorited || false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const bgnPrice = product.price * 1.95;
 
@@ -57,8 +58,13 @@ export default function ProductCard({ product }: ProductCardProps) {
     return '';
   };
 
-  // Check if product is favorited on mount
+  // Check if product is favorited on mount (only if not passed as prop)
   useEffect(() => {
+    if (initialIsFavorited !== undefined) {
+      setIsFavorited(initialIsFavorited);
+      return; // Skip API call if status was passed as prop
+    }
+    
     if (isAuthenticated && user) {
       const checkFavorite = async () => {
         try {
@@ -80,7 +86,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       }
       checkFavorite()
     }
-  }, [isAuthenticated, user, product.id, product.productid])
+  }, [isAuthenticated, user, product.id, product.productid, initialIsFavorited])
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault()

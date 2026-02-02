@@ -6,8 +6,14 @@ export interface ProductType {
   name: string;
   code: string;
   rfproducttypeid?: number | null;
+  parent_producttypeid?: string | null;
   createdat: string;
   updatedat: string;
+  // Extended data for hierarchical queries
+  children?: ProductType[];
+  parent?: ProductType;
+  // Helper flag to identify leaf categories (no children)
+  isLeaf?: boolean;
 }
 
 export interface Property {

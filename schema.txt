@@ -109,7 +109,9 @@ CREATE TABLE public.product_types (
   name text NOT NULL,
   createdat timestamp with time zone NOT NULL DEFAULT now(),
   updatedat timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT product_types_pkey PRIMARY KEY (producttypeid)
+  parent_producttypeid uuid,
+  CONSTRAINT product_types_pkey PRIMARY KEY (producttypeid),
+  CONSTRAINT product_types_parent_producttypeid_fkey FOREIGN KEY (parent_producttypeid) REFERENCES public.product_types(producttypeid)
 );
 CREATE TABLE public.product_variant_property_values (
   productvariantpropertyvalueid uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -218,6 +220,8 @@ CREATE TABLE public.store_settings (
   closingremarks text,
   aboutusphoto text,
   aboutustext text,
+  heroimagefocusx numeric DEFAULT 50 CHECK (heroimagefocusx >= 0::numeric AND heroimagefocusx <= 100::numeric),
+  heroimagefocusy numeric DEFAULT 50 CHECK (heroimagefocusy >= 0::numeric AND heroimagefocusy <= 100::numeric),
   CONSTRAINT store_settings_pkey PRIMARY KEY (storesettingsid)
 );
 CREATE TABLE public.users (
@@ -281,4 +285,13 @@ CREATE TABLE public.visitor_stats (
   avg_session_duration integer DEFAULT 0,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT visitor_stats_pkey PRIMARY KEY (statid)
+);
+CREATE TABLE public.testimonials (
+  testimonialid uuid NOT NULL DEFAULT gen_random_uuid(),
+  imageurl text NOT NULL,
+  sortorder integer NOT NULL DEFAULT 0,
+  isactive boolean NOT NULL DEFAULT true,
+  createdat timestamp with time zone NOT NULL DEFAULT now(),
+  updatedat timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT testimonials_pkey PRIMARY KEY (testimonialid)
 );

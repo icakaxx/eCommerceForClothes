@@ -8,6 +8,12 @@ interface ProductTypeContextType {
   setProductTypes: React.Dispatch<React.SetStateAction<ProductType[]>>;
   loadProductTypes: () => Promise<void>;
   isLoading: boolean;
+  // Hierarchy helper functions
+  getLeafCategories: () => ProductType[];
+  getChildren: (parentId: string) => ProductType[];
+  getParent: (categoryId: string) => ProductType | undefined;
+  getCategoryPath: (categoryId: string) => ProductType[];
+  isLeafCategory: (categoryId: string) => boolean;
 }
 
 const ProductTypeContext = createContext<ProductTypeContextType | undefined>(undefined);
@@ -40,13 +46,65 @@ export function ProductTypeProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Get leaf categories (categories with no children)
+  const getLeafCategories = (): ProductType[] => {
+    return productTypes.filter(pt => pt.isLeaf !== false && (!pt.children || pt.children.length === 0));
+  };
+
+  // Get children of a parent category
+  const getChildren = (parentId: string): ProductType[] => {
+    return productTypes.filter(pt => pt.parent_producttypeid === parentId);
+  };
+
+  // Get parent of a category
+  const getParent = (categoryId: string): ProductType | undefined => {
+    const category = productTypes.find(pt => pt.producttypeid === categoryId);
+    if (!category || !category.parent_producttypeid) return undefined;
+    return productTypes.find(pt => pt.producttypeid === category.parent_producttypeid);
+  };
+
+  // Get full category path from root to category
+  const getCategoryPath = (categoryId: string): ProductType[] => {
+    const path: ProductType[] = [];
+    let current: ProductType | undefined = productTypes.find(pt => pt.producttypeid === categoryId);
+    
+    while (current) {
+      path.unshift(current);
+      if (current.parent_producttypeid) {
+        current = productTypes.find(pt => pt.producttypeid === current!.parent_producttypeid);
+      } else {
+        break;
+      }
+    }
+    
+    return path;
+  };
+
+  // Check if a category is a leaf (has no children)
+  const isLeafCategory = (categoryId: string): boolean => {
+    const category = productTypes.find(pt => pt.producttypeid === categoryId);
+    if (!category) return false;
+    if (category.isLeaf !== undefined) return category.isLeaf;
+    return !productTypes.some(pt => pt.parent_producttypeid === categoryId);
+  };
+
   // Load product types on mount
   useEffect(() => {
     loadProductTypes();
   }, []);
 
   return (
-    <ProductTypeContext.Provider value={{ productTypes, setProductTypes, loadProductTypes, isLoading }}>
+    <ProductTypeContext.Provider value={{ 
+      productTypes, 
+      setProductTypes, 
+      loadProductTypes, 
+      isLoading,
+      getLeafCategories,
+      getChildren,
+      getParent,
+      getCategoryPath,
+      isLeafCategory
+    }}>
       {children}
     </ProductTypeContext.Provider>
   );

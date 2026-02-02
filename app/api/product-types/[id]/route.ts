@@ -81,14 +81,118 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const { name } = body;
+    const { name, parent_producttypeid } = body;
+
+    // Validate parent_producttypeid if provided
+    if (parent_producttypeid !== undefined) {
+      if (parent_producttypeid === id) {
+        return NextResponse.json(
+          { error: 'Category cannot be its own parent' },
+          { status: 400 }
+        );
+      }
+
+      if (parent_producttypeid) {
+        // Check if parent exists
+        const { data: parent, error: parentError } = await supabase
+          .from('product_types')
+          .select('producttypeid, parent_producttypeid')
+          .eq('producttypeid', parent_producttypeid)
+          .single();
+
+        if (parentError || !parent) {
+          return NextResponse.json(
+            { error: 'Parent category not found' },
+            { status: 400 }
+          );
+        }
+
+        // Check depth: if parent has a parent, we're at max depth
+        if (parent.parent_producttypeid) {
+          return NextResponse.json(
+            { error: 'Maximum hierarchy depth of 3 levels reached. Cannot set parent to a subcategory.' },
+            { status: 400 }
+          );
+        }
+
+        // Check for circular reference: ensure the new parent is not a descendant of this category
+        const checkCircular = async (categoryId: string, targetParentId: string): Promise<boolean> => {
+          const { data: children } = await supabase
+            .from('product_types')
+            .select('producttypeid')
+            .eq('parent_producttypeid', categoryId);
+
+          if (!children || children.length === 0) return false;
+
+          for (const child of children) {
+            if (child.producttypeid === targetParentId) return true;
+            const isCircular = await checkCircular(child.producttypeid, targetParentId);
+            if (isCircular) return true;
+          }
+          return false;
+        };
+
+        const isCircular = await checkCircular(id, parent_producttypeid);
+        if (isCircular) {
+          return NextResponse.json(
+            { error: 'Circular reference detected. Cannot set a descendant as parent.' },
+            { status: 400 }
+          );
+        }
+
+        // Check if parent has products - if so, it cannot have children
+        const { data: parentProducts, error: productsError } = await supabase
+          .from('products')
+          .select('productid')
+          .eq('producttypeid', parent_producttypeid)
+          .eq('isdeleted', false)
+          .limit(1);
+
+        if (productsError) {
+          console.error('Error checking parent products:', productsError);
+        } else if (parentProducts && parentProducts.length > 0) {
+          return NextResponse.json(
+            { error: 'Parent category has products. Categories with products cannot have child categories.' },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    // Check if this category has children - if so, it cannot have a parent (it's already a parent category)
+    // Categories with children are parent categories and cannot have a parent themselves
+    if (parent_producttypeid) {
+      const { data: currentCategoryChildren, error: childrenError } = await supabase
+        .from('product_types')
+        .select('producttypeid')
+        .eq('parent_producttypeid', id)
+        .limit(1);
+
+      if (childrenError) {
+        console.error('Error checking current category children:', childrenError);
+      } else if (currentCategoryChildren && currentCategoryChildren.length > 0) {
+        return NextResponse.json(
+          { error: 'This category has child categories. Parent categories cannot have a parent. Only leaf categories (categories with products) can have a parent.' },
+          { status: 400 }
+        );
+      }
+    }
+
+    const updateData: any = {
+      updatedat: new Date().toISOString()
+    };
+
+    if (name !== undefined) {
+      updateData.name = name;
+    }
+
+    if (parent_producttypeid !== undefined) {
+      updateData.parent_producttypeid = parent_producttypeid;
+    }
 
     const { data: productType, error } = await supabase
       .from('product_types')
-      .update({
-        name,
-        updatedat: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('producttypeid', id)
       .select()
       .single();
