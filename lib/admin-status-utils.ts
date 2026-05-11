@@ -33,6 +33,15 @@ export function getOrderStatusVariant(status: string): BadgeVariant {
   if (normalized === 'cancelled' || normalized === 'rejected' || normalized === 'refunded') {
     return 'danger';
   }
-  
+  if (normalized === 'returned') {
+    return 'danger';
+  }
+  if (normalized === 'new' || normalized === 'waiting_for_stock') {
+    return 'warning';
+  }
+  if (normalized === 'prepared' || normalized === 'sent' || normalized === 'picked_up') {
+    return 'info';
+  }
+
   return 'neutral';
 }

@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Edit2, ChevronDown, ChevronUp, Package, Eye } from 'lucide-react';
+import { Edit2, ChevronDown, ChevronUp, Package, Eye, Save, Trash2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase-browser';
 import AdminModal from '../components/AdminModal';
 import AdminLayout from '../components/AdminLayout';
 import { getAdminSession } from '@/lib/auth';
@@ -55,7 +56,24 @@ interface Order {
   deliveryfloor?: string | null;
   deliveryapartment?: string | null;
   order_items?: OrderItem[];
+  updatedat?: string;
+  internal_note?: string | null;
+  customer_order_note?: string | null;
 }
+
+const ALL_STATUS_KEYS = [
+  'pending',
+  'confirmed',
+  'shipped',
+  'delivered',
+  'cancelled',
+  'new',
+  'prepared',
+  'sent',
+  'picked_up',
+  'returned',
+  'waiting_for_stock',
+] as const;
 
 export default function SalesPage() {
   const router = useRouter();
@@ -72,11 +90,38 @@ export default function SalesPage() {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [econtOffices, setEcontOffices] = useState<EcontOfficesData | null>(null);
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['pending', 'confirmed', 'shipped']);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
+    'pending',
+    'confirmed',
+    'shipped',
+    'delivered',
+    'new',
+    'prepared',
+    'sent',
+    'picked_up',
+    'waiting_for_stock',
+  ]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
+  const [adminUserId, setAdminUserId] = useState<string | null>(null);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [statusTargetOrder, setStatusTargetOrder] = useState<Order | null>(null);
+  const [statusDraft, setStatusDraft] = useState('');
+  const [statusNote, setStatusNote] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [sortKey, setSortKey] = useState<'newest' | 'oldest' | 'total' | 'status' | 'updated'>('newest');
+  const [savedViews, setSavedViews] = useState<Array<{ id: string; name: string; filters: unknown }>>([]);
+  const [viewNameInput, setViewNameInput] = useState('');
+  const [showDeleteOrderModal, setShowDeleteOrderModal] = useState(false);
+  const [orderPendingDelete, setOrderPendingDelete] = useState<Order | null>(null);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
+  const [showClearAllModal, setShowClearAllModal] = useState(false);
+  const [clearAllConfirmInput, setClearAllConfirmInput] = useState('');
+  const [clearingAll, setClearingAll] = useState(false);
 
   const getStatusTranslation = (status: string): string => {
     switch (status) {
@@ -90,6 +135,18 @@ export default function SalesPage() {
         return t.delivered;
       case 'cancelled':
         return t.cancelled;
+      case 'new':
+        return language === 'bg' ? 'Нова' : 'New';
+      case 'prepared':
+        return language === 'bg' ? 'Подготвена' : 'Prepared';
+      case 'sent':
+        return language === 'bg' ? 'Изпратена' : 'Sent';
+      case 'picked_up':
+        return language === 'bg' ? 'Взета' : 'Picked up';
+      case 'returned':
+        return language === 'bg' ? 'Върната' : 'Returned';
+      case 'waiting_for_stock':
+        return language === 'bg' ? 'Чака стока' : 'Waiting for stock';
       default:
         return status;
     }
@@ -116,11 +173,31 @@ export default function SalesPage() {
   }, [router]);
 
   useEffect(() => {
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      setAdminUserId(data.session?.user?.id ?? null);
+    })();
+  }, []);
+
+  useEffect(() => {
     if (isAuthenticated) {
       loadOrders();
       loadEcontOffices();
     }
   }, [isAuthenticated]);
+
+  const loadSavedViews = async () => {
+    if (!adminUserId) return;
+    const res = await fetch(`/api/admin/order-tracking-views?userId=${encodeURIComponent(adminUserId)}`);
+    const data = await res.json();
+    if (data.success && Array.isArray(data.views)) {
+      setSavedViews(data.views.map((v: { id: string; name: string; filters: unknown }) => ({ id: v.id, name: v.name, filters: v.filters })));
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && adminUserId) loadSavedViews();
+  }, [isAuthenticated, adminUserId]);
 
   const loadEcontOffices = async () => {
     try {
@@ -159,23 +236,24 @@ export default function SalesPage() {
     });
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+  const updateOrderStatus = async (orderId: string, newStatus: string, note?: string | null) => {
     try {
       setUpdatingStatus(orderId);
       const response = await fetch(`/api/admin/orders/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({
+          status: newStatus,
+          note: note?.trim() || undefined,
+          changedBy: adminUserId || undefined,
+        }),
       });
 
       const result = await response.json();
       if (result.success) {
-        // Update the order status in the local state
-        setOrders(prevOrders =>
-          prevOrders.map(order =>
-            order.orderid === orderId
-              ? { ...order, status: newStatus }
-              : order
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.orderid === orderId ? { ...order, status: newStatus, updatedat: new Date().toISOString() } : order
           )
         );
       } else {
@@ -186,6 +264,140 @@ export default function SalesPage() {
       alert('Failed to update order status');
     } finally {
       setUpdatingStatus(null);
+    }
+  };
+
+  const openStatusModal = (order: Order) => {
+    setStatusTargetOrder(order);
+    setStatusDraft(order.status);
+    setStatusNote('');
+    setShowStatusModal(true);
+  };
+
+  const closeStatusModal = () => {
+    setShowStatusModal(false);
+    setStatusTargetOrder(null);
+  };
+
+  const confirmStatusChange = async () => {
+    if (!statusTargetOrder) return;
+    await updateOrderStatus(statusTargetOrder.orderid, statusDraft, statusNote);
+    closeStatusModal();
+  };
+
+  const saveCurrentView = async () => {
+    if (!adminUserId || !viewNameInput.trim()) {
+      alert(language === 'bg' ? 'Въведи име на изглед' : 'Enter a view name');
+      return;
+    }
+    const filters = { selectedStatuses, searchQuery, dateFrom, dateTo, sortKey };
+    const res = await fetch('/api/admin/order-tracking-views', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: adminUserId,
+        name: viewNameInput.trim(),
+        visible_columns: [],
+        filters,
+        sorting: { sortKey },
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      setViewNameInput('');
+      loadSavedViews();
+    } else {
+      alert(data.error || 'Save failed');
+    }
+  };
+
+  const applyView = (raw: unknown) => {
+    const f = raw as {
+      selectedStatuses?: string[];
+      searchQuery?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      sortKey?: typeof sortKey;
+    };
+    if (f.selectedStatuses?.length) setSelectedStatuses(f.selectedStatuses);
+    if (f.searchQuery !== undefined) setSearchQuery(f.searchQuery);
+    if (f.dateFrom !== undefined) setDateFrom(f.dateFrom);
+    if (f.dateTo !== undefined) setDateTo(f.dateTo);
+    if (f.sortKey) setSortKey(f.sortKey);
+  };
+
+  const openDeleteOrderModal = (order: Order) => {
+    setOrderPendingDelete(order);
+    setShowDeleteOrderModal(true);
+  };
+
+  const closeDeleteOrderModal = () => {
+    setOrderPendingDelete(null);
+    setShowDeleteOrderModal(false);
+  };
+
+  const confirmDeleteOrder = async () => {
+    if (!orderPendingDelete) return;
+    setDeletingOrderId(orderPendingDelete.orderid);
+    try {
+      const res = await fetch(
+        `/api/admin/orders/${encodeURIComponent(orderPendingDelete.orderid)}`,
+        { method: 'DELETE' }
+      );
+      const data = await res.json();
+      if (data.success) {
+        setOrders((prev) => prev.filter((o) => o.orderid !== orderPendingDelete.orderid));
+        closeDeleteOrderModal();
+        if (selectedOrder?.orderid === orderPendingDelete.orderid) {
+          closeOrderModal();
+        }
+      } else {
+        alert(data.error || (language === 'bg' ? 'Грешка при изтриване' : 'Delete failed'));
+      }
+    } catch {
+      alert(language === 'bg' ? 'Мрежова грешка' : 'Network error');
+    } finally {
+      setDeletingOrderId(null);
+    }
+  };
+
+  const confirmClearAllOrders = async () => {
+    if (clearAllConfirmInput !== 'DELETE_ALL_ORDERS') {
+      alert(
+        language === 'bg'
+          ? 'Напиши точно: DELETE_ALL_ORDERS'
+          : 'Type exactly: DELETE_ALL_ORDERS'
+      );
+      return;
+    }
+    setClearingAll(true);
+    try {
+      const res = await fetch('/api/admin/orders/clear-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'DELETE_ALL_ORDERS' }),
+      });
+      const data = await res.json();
+      setShowClearAllModal(false);
+      setClearAllConfirmInput('');
+      await loadOrders();
+      if (!res.ok) {
+        alert(data.error || (language === 'bg' ? 'Грешка' : 'Error'));
+        return;
+      }
+      const msg =
+        language === 'bg'
+          ? `Изтрити: ${data.deleted ?? 0} от ${data.attempted ?? 0}.`
+          : `Deleted: ${data.deleted ?? 0} of ${data.attempted ?? 0}.`;
+      if (data.errors?.length) {
+        alert(`${msg}\n${language === 'bg' ? 'Проблеми:' : 'Issues:'}\n${data.errors.slice(0, 5).join('\n')}`);
+      } else {
+        alert(msg);
+      }
+    } catch {
+      alert(language === 'bg' ? 'Мрежова грешка' : 'Network error');
+    } finally {
+      setClearingAll(false);
     }
   };
 
@@ -224,6 +436,36 @@ export default function SalesPage() {
     }
   };
 
+  const getCustomerFullName = (order: Order) => {
+    const s = `${order.customerfirstname || ''} ${order.customerlastname || ''}`.trim();
+    return s || '—';
+  };
+
+  const getInternalNote = (order: Order) => {
+    const raw = order.internal_note;
+    return typeof raw === 'string' ? raw.trim() : '';
+  };
+
+  const getOrderItemsNamesSummary = (order: Order) => {
+    const chunks = (order.order_items || [])
+      .map((item) => {
+        const base =
+          item.product?.name && item.product.name !== 'Unknown Product' ? item.product.name : '';
+        if (!base) return '';
+        return item.quantity > 1 ? `${base} ×${item.quantity}` : base;
+      })
+      .filter(Boolean);
+    return chunks.length ? chunks.join(', ') : '—';
+  };
+
+  const getEcontOfficeCell = (order: Order) => {
+    if (order.deliverytype === 'office' && order.econtoffice) {
+      return getEcontOfficeName(order.econtoffice);
+    }
+    if (order.econtoffice) return getEcontOfficeName(order.econtoffice);
+    return '—';
+  };
+
   // Handle status filter change
   const handleStatusFilterChange = (status: string, checked: boolean) => {
     if (checked) {
@@ -258,7 +500,65 @@ export default function SalesPage() {
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedStatuses]);
+  }, [selectedStatuses, searchQuery, dateFrom, dateTo, sortKey]);
+
+  const filteredOrders = useMemo(() => {
+    let list = orders.filter((order) => selectedStatuses.includes(order.status));
+
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter((order) => {
+        const name = `${order.customerfirstname || ''} ${order.customerlastname || ''}`.toLowerCase();
+        const mail = (order.customeremail || '').toLowerCase();
+        const phone = (order.customertelephone || '').toLowerCase();
+        const city = (order.customercity || '').toLowerCase();
+        const id = order.orderid.toLowerCase();
+        const internal = getInternalNote(order).toLowerCase();
+        const custNote = (order.customer_order_note || '').toLowerCase();
+        const itemsLine = getOrderItemsNamesSummary(order).toLowerCase();
+        const econt = getEcontOfficeCell(order).toLowerCase();
+        return (
+          name.includes(q) ||
+          mail.includes(q) ||
+          phone.includes(q) ||
+          city.includes(q) ||
+          id.includes(q) ||
+          internal.includes(q) ||
+          custNote.includes(q) ||
+          itemsLine.includes(q) ||
+          econt.includes(q)
+        );
+      });
+    }
+
+    if (dateFrom) {
+      const from = new Date(dateFrom).getTime();
+      list = list.filter((o) => new Date(o.createdat).getTime() >= from);
+    }
+    if (dateTo) {
+      const to = new Date(dateTo);
+      to.setHours(23, 59, 59, 999);
+      list = list.filter((o) => new Date(o.createdat).getTime() <= to.getTime());
+    }
+
+    const sorted = [...list];
+    if (sortKey === 'newest') {
+      sorted.sort((a, b) => new Date(b.createdat).getTime() - new Date(a.createdat).getTime());
+    } else if (sortKey === 'oldest') {
+      sorted.sort((a, b) => new Date(a.createdat).getTime() - new Date(b.createdat).getTime());
+    } else if (sortKey === 'total') {
+      sorted.sort((a, b) => (b.total || 0) - (a.total || 0));
+    } else if (sortKey === 'status') {
+      sorted.sort((a, b) => a.status.localeCompare(b.status));
+    } else if (sortKey === 'updated') {
+      sorted.sort(
+        (a, b) =>
+          new Date(b.updatedat || b.createdat).getTime() - new Date(a.updatedat || a.createdat).getTime()
+      );
+    }
+
+    return sorted;
+  }, [orders, selectedStatuses, searchQuery, dateFrom, dateTo, sortKey]);
 
   if (isLoading) {
     return (
@@ -272,27 +572,207 @@ export default function SalesPage() {
     return null;
   }
 
-  // Filter orders by selected statuses
-  const filteredOrders = orders.filter(order => selectedStatuses.includes(order.status));
-
   // Pagination calculations
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
 
-  // Calculate stats based on filtered orders
+  // Calculate stats based on filtered orders (respect active filters)
   const totalRevenue = filteredOrders.reduce((sum, order) => sum + (order.total || 0), 0);
   const totalOrders = filteredOrders.length;
-  const pendingOrders = filteredOrders.filter(order => order.status === 'pending').length;
+  const pendingOrders = filteredOrders.filter((order) => order.status === 'pending').length;
+  const pickedUpTotal = filteredOrders
+    .filter((o) => o.status === 'picked_up' || o.status === 'delivered')
+    .reduce((s, o) => s + (o.total || 0), 0);
+  const returnedTotal = filteredOrders.filter((o) => o.status === 'returned').reduce((s, o) => s + (o.total || 0), 0);
+  const sentCount = filteredOrders.filter((o) => o.status === 'shipped' || o.status === 'sent').length;
+  const pickedUpCount = filteredOrders.filter((o) => o.status === 'picked_up' || o.status === 'delivered').length;
+  const returnedCount = filteredOrders.filter((o) => o.status === 'returned').length;
+  const waitingStockCount = filteredOrders.filter((o) => o.status === 'waiting_for_stock').length;
+  const soldItemsCount = filteredOrders.reduce((s, o) => s + (o.order_items?.reduce((a, i) => a + (i.quantity || 0), 0) || 0), 0);
 
   return (
     <AdminLayout currentPath="/admin/sales">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-6">
-        <div className="mb-4 sm:mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold">Продажби</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">Управление и преглед на вашите поръчки</p>
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Продажби</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">Управление и преглед на вашите поръчки</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setClearAllConfirmInput('');
+              setShowClearAllModal(true);
+            }}
+            className="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-red-300 bg-red-50 text-red-800 text-sm font-semibold hover:bg-red-100 min-h-[44px] touch-manipulation"
+          >
+            <Trash2 className="w-4 h-4" />
+            {language === 'bg' ? 'Изтрий всички поръчки' : 'Delete all orders'}
+          </button>
         </div>
+
+        <AdminModal
+          isOpen={showDeleteOrderModal}
+          onClose={closeDeleteOrderModal}
+          title={language === 'bg' ? 'Изтриване на поръчка' : 'Delete order'}
+          subheader={orderPendingDelete?.orderid}
+          maxWidth="max-w-md"
+          minWidth={280}
+          minHeight={180}
+        >
+          {orderPendingDelete && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-700">
+                {language === 'bg'
+                  ? 'Поръчката ще бъде премахната завинаги. Наличностите се коригират автоматично (освен при върната поръчка с върната стока).'
+                  : 'This order will be permanently removed. Stock is adjusted automatically (except fully returned orders where stock was already restored).'}
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-lg border text-sm min-h-[44px]"
+                  onClick={closeDeleteOrderModal}
+                >
+                  {language === 'bg' ? 'Отказ' : 'Cancel'}
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm min-h-[44px] disabled:opacity-50"
+                  disabled={deletingOrderId === orderPendingDelete.orderid}
+                  onClick={() => confirmDeleteOrder()}
+                >
+                  {deletingOrderId === orderPendingDelete.orderid
+                    ? language === 'bg'
+                      ? 'Изтриване…'
+                      : 'Deleting…'
+                    : language === 'bg'
+                      ? 'Изтрий'
+                      : 'Delete'}
+                </button>
+              </div>
+            </div>
+          )}
+        </AdminModal>
+
+        <AdminModal
+          isOpen={showClearAllModal}
+          onClose={() => {
+            setShowClearAllModal(false);
+            setClearAllConfirmInput('');
+          }}
+          title={language === 'bg' ? 'Изтриване на всички поръчки' : 'Delete all orders'}
+          subheader={language === 'bg' ? 'Необратимо действие' : 'Irreversible'}
+          maxWidth="max-w-md"
+          minWidth={280}
+          minHeight={220}
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-red-800 font-medium">
+              {language === 'bg'
+                ? 'Всички поръчки в базата ще бъдат изтрити. Клиентските записи остават.'
+                : 'Every order in the database will be removed. Customer records are kept.'}
+            </p>
+            <p className="text-xs text-gray-600">
+              {language === 'bg'
+                ? 'За потвърждение напиши точно: DELETE_ALL_ORDERS'
+                : 'To confirm, type exactly: DELETE_ALL_ORDERS'}
+            </p>
+            <input
+              className="w-full border rounded-lg px-3 py-2.5 text-sm font-mono min-h-[44px]"
+              value={clearAllConfirmInput}
+              onChange={(e) => setClearAllConfirmInput(e.target.value)}
+              placeholder="DELETE_ALL_ORDERS"
+              autoComplete="off"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                className="px-4 py-2 rounded-lg border text-sm min-h-[44px]"
+                onClick={() => {
+                  setShowClearAllModal(false);
+                  setClearAllConfirmInput('');
+                }}
+              >
+                {language === 'bg' ? 'Отказ' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm min-h-[44px] disabled:opacity-50"
+                disabled={clearingAll}
+                onClick={() => confirmClearAllOrders()}
+              >
+                {clearingAll ? (language === 'bg' ? 'Изтриване…' : 'Deleting…') : language === 'bg' ? 'Изтрий всички' : 'Delete all'}
+              </button>
+            </div>
+          </div>
+        </AdminModal>
+
+        <AdminModal
+          isOpen={showStatusModal}
+          onClose={closeStatusModal}
+          title={language === 'bg' ? 'Смяна на статус' : 'Change status'}
+          subheader={statusTargetOrder?.orderid}
+          maxWidth="max-w-md"
+          minWidth={280}
+          minHeight={200}
+        >
+          {statusTargetOrder && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  {language === 'bg' ? 'Статус' : 'Status'}
+                </label>
+                <select
+                  className="w-full border rounded-lg px-3 py-2.5 text-sm min-h-[44px]"
+                  value={statusDraft}
+                  onChange={(e) => setStatusDraft(e.target.value)}
+                >
+                  {ALL_STATUS_KEYS.map((s) => (
+                    <option key={s} value={s}>
+                      {getStatusTranslation(s)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  {language === 'bg' ? 'Бележка (по избор)' : 'Note (optional)'}
+                </label>
+                <textarea
+                  className="w-full border rounded-lg px-3 py-2 text-sm min-h-[80px]"
+                  value={statusNote}
+                  onChange={(e) => setStatusNote(e.target.value)}
+                  placeholder={language === 'bg' ? 'Причина / коментар към смяната…' : 'Reason / comment…'}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-lg border text-sm min-h-[44px]"
+                  onClick={closeStatusModal}
+                >
+                  {language === 'bg' ? 'Отказ' : 'Cancel'}
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm min-h-[44px] disabled:opacity-50"
+                  disabled={updatingStatus === statusTargetOrder.orderid}
+                  onClick={() => confirmStatusChange()}
+                >
+                  {updatingStatus === statusTargetOrder.orderid
+                    ? language === 'bg'
+                      ? 'Запис…'
+                      : 'Saving…'
+                    : language === 'bg'
+                      ? 'Запази'
+                      : 'Save'}
+                </button>
+              </div>
+            </div>
+          )}
+        </AdminModal>
 
         <AdminModal
           isOpen={showOrderModal}
@@ -367,6 +847,26 @@ export default function SalesPage() {
                 )}
               </div>
 
+              {(getInternalNote(selectedOrder) || (selectedOrder.customer_order_note || '').trim()) && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2">
+                  <h4 className="text-sm font-semibold text-amber-950">
+                    {language === 'bg' ? 'Бележки' : 'Notes'}
+                  </h4>
+                  {getInternalNote(selectedOrder) ? (
+                    <p className="text-sm text-amber-950">
+                      <span className="font-medium">{language === 'bg' ? 'Вътрешна:' : 'Internal:'}</span>{' '}
+                      {getInternalNote(selectedOrder)}
+                    </p>
+                  ) : null}
+                  {(selectedOrder.customer_order_note || '').trim() ? (
+                    <p className="text-sm text-amber-950">
+                      <span className="font-medium">{language === 'bg' ? 'Към клиента:' : 'Customer note:'}</span>{' '}
+                      {selectedOrder.customer_order_note}
+                    </p>
+                  ) : null}
+                </div>
+              )}
+
               <div className="bg-white border border-gray-200 rounded-lg p-4">
                 <h4 className="text-sm font-semibold text-gray-900 mb-3">
                   {language === 'bg' ? 'Артикули' : 'Items'}
@@ -416,6 +916,24 @@ export default function SalesPage() {
                   <span>€{selectedOrder.total?.toFixed(2) || '0.00'}</span>
                 </div>
               </div>
+
+              <div className="pt-2 border-t border-red-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const o = selectedOrder;
+                    if (!o) return;
+                    setShowOrderModal(false);
+                    setSelectedOrder(null);
+                    setOrderPendingDelete(o);
+                    setShowDeleteOrderModal(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-3 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 min-h-[44px] touch-manipulation"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {language === 'bg' ? 'Изтрий тази поръчка' : 'Delete this order'}
+                </button>
+              </div>
             </div>
           )}
         </AdminModal>
@@ -436,11 +954,42 @@ export default function SalesPage() {
           </div>
         </div>
 
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-xs font-semibold text-gray-700">Изпратени (бр.)</h3>
+            <p className="text-xl font-bold text-indigo-600 mt-1">{sentCount}</p>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-xs font-semibold text-gray-700">Взети (бр.)</h3>
+            <p className="text-xl font-bold text-green-600 mt-1">{pickedUpCount}</p>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-xs font-semibold text-gray-700">Върнати (бр.)</h3>
+            <p className="text-xl font-bold text-red-600 mt-1">{returnedCount}</p>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-xs font-semibold text-gray-700">Чака стока</h3>
+            <p className="text-xl font-bold text-amber-600 mt-1">{waitingStockCount}</p>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow col-span-2 sm:col-span-1">
+            <h3 className="text-xs font-semibold text-gray-700">Сума взети / доставени</h3>
+            <p className="text-lg font-bold text-gray-900 mt-1">€{pickedUpTotal.toFixed(2)}</p>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow col-span-2 sm:col-span-1">
+            <h3 className="text-xs font-semibold text-gray-700">Сума върнати</h3>
+            <p className="text-lg font-bold text-gray-900 mt-1">€{returnedTotal.toFixed(2)}</p>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow col-span-2 lg:col-span-2">
+            <h3 className="text-xs font-semibold text-gray-700">Общо продадени бройки (артикули)</h3>
+            <p className="text-xl font-bold text-blue-700 mt-1">{soldItemsCount}</p>
+          </div>
+        </div>
+
         {/* Status Filters */}
         <div className="bg-white rounded-lg shadow p-3 sm:p-4 mb-4 sm:mb-6">
           <h3 className="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">{language === 'bg' ? 'Филтрирай по статус' : 'Filter by Status'}</h3>
           <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
-            {['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'].map((status) => (
+            {ALL_STATUS_KEYS.map((status) => (
               <label key={status} className="flex items-center gap-2 cursor-pointer py-1">
                 <input
                   type="checkbox"
@@ -451,6 +1000,79 @@ export default function SalesPage() {
                 <span className="text-xs sm:text-sm text-gray-700">{getStatusTranslation(status)}</span>
               </label>
             ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-3 sm:p-4 mb-4 sm:mb-6 space-y-3">
+          <h3 className="text-xs sm:text-sm font-medium text-gray-700">
+            {language === 'bg' ? 'Търсене и сортиране' : 'Search and sort'}
+          </h3>
+          <div className="flex flex-col lg:flex-row gap-3 flex-wrap">
+            <input
+              className="flex-1 min-w-[200px] border rounded-lg px-3 py-2.5 text-sm min-h-[44px]"
+              placeholder={language === 'bg' ? 'Клиент, имейл, телефон, град, № поръчка…' : 'Customer, email, phone, city, order #…'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <input
+              type="date"
+              className="border rounded-lg px-3 py-2.5 text-sm min-h-[44px]"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              aria-label="from"
+            />
+            <input
+              type="date"
+              className="border rounded-lg px-3 py-2.5 text-sm min-h-[44px]"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              aria-label="to"
+            />
+            <select
+              className="border rounded-lg px-3 py-2.5 text-sm min-h-[44px]"
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as typeof sortKey)}
+            >
+              <option value="newest">{language === 'bg' ? 'Най-нови първо' : 'Newest first'}</option>
+              <option value="oldest">{language === 'bg' ? 'Най-стари първо' : 'Oldest first'}</option>
+              <option value="total">{language === 'bg' ? 'По сума' : 'By total'}</option>
+              <option value="status">{language === 'bg' ? 'По статус' : 'By status'}</option>
+              <option value="updated">{language === 'bg' ? 'Последна промяна' : 'Last updated'}</option>
+            </select>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center flex-wrap">
+            <span className="text-xs text-gray-500">{language === 'bg' ? 'Запазени изгледи:' : 'Saved views:'}</span>
+            <select
+              className="border rounded-lg px-2 py-2 text-sm min-h-[40px] max-w-xs"
+              defaultValue=""
+              onChange={(e) => {
+                const id = e.target.value;
+                const v = savedViews.find((x) => x.id === id);
+                if (v?.filters) applyView(v.filters);
+                e.target.value = '';
+              }}
+            >
+              <option value="">{language === 'bg' ? '— зареди изглед —' : '— load view —'}</option>
+              {savedViews.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
+                </option>
+              ))}
+            </select>
+            <input
+              className="border rounded-lg px-2 py-2 text-sm flex-1 min-w-[120px] max-w-xs min-h-[40px]"
+              placeholder={language === 'bg' ? 'Име на изглед' : 'View name'}
+              value={viewNameInput}
+              onChange={(e) => setViewNameInput(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => saveCurrentView()}
+              className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-gray-900 text-white text-sm min-h-[40px]"
+            >
+              <Save className="w-4 h-4" />
+              {language === 'bg' ? 'Запази изглед' : 'Save view'}
+            </button>
           </div>
         </div>
 
@@ -468,25 +1090,37 @@ export default function SalesPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID на поръчка
+                    <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap min-w-[11rem]">
+                      ID
                     </th>
-                    <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                      Пълно име
+                    </th>
+                    <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      Телефон
+                    </th>
+                    <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      Град
+                    </th>
+                    <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
+                      Офис Еконт
+                    </th>
+                    <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                      Вътрешна бележка
+                    </th>
+                    <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">
                       Артикули
                     </th>
-                    <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Покупател
-                    </th>
-                    <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Сума
                     </th>
-                    <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Статус
                     </th>
-                    <th className="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Дата
                     </th>
-                    <th className="px-4 xl:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 xl:px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Действия
                     </th>
                   </tr>
@@ -494,43 +1128,70 @@ export default function SalesPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {paginatedOrders.map((order) => {
                     const isExpanded = expandedOrders.has(order.orderid);
-                    const itemCount = order.order_items?.length || 0;
+
+                    const namesSummary = getOrderItemsNamesSummary(order);
+                    const internalNote = getInternalNote(order);
 
                     return (
                       <React.Fragment key={order.orderid}>
                         <tr className="hover:bg-gray-50">
-                          <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            <span className="font-mono text-xs">{order.orderid}</span>
+                          <td className="px-3 xl:px-4 py-3 align-top text-xs font-mono text-gray-800 whitespace-nowrap min-w-[11rem]">
+                            <span title={order.orderid}>{order.orderid}</span>
                           </td>
-                          <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <button
-                              onClick={() => toggleOrderExpansion(order.orderid)}
-                              className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
-                            >
-                              <Package className="w-4 h-4" />
-                              <span>{itemCount} {itemCount !== 1 ? t.items : t.item}</span>
-                              {isExpanded ? (
-                                <ChevronUp className="w-4 h-4" />
-                              ) : (
-                                <ChevronDown className="w-4 h-4" />
-                              )}
-                            </button>
+                          <td className="px-3 xl:px-4 py-3 align-top text-sm text-gray-900 max-w-[160px]">
+                            <span className="line-clamp-2" title={getCustomerFullName(order)}>
+                              {getCustomerFullName(order)}
+                            </span>
                           </td>
-                          <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <span className="truncate block max-w-xs">{order.customeremail || 'N/A'}</span>
+                          <td className="px-3 xl:px-4 py-3 align-top text-sm text-gray-700 whitespace-nowrap">
+                            {order.customertelephone || '—'}
                           </td>
-                          <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <td className="px-3 xl:px-4 py-3 align-top text-sm text-gray-700 max-w-[100px]">
+                            <span className="truncate block" title={order.customercity || ''}>
+                              {order.customercity || '—'}
+                            </span>
+                          </td>
+                          <td className="px-3 xl:px-4 py-3 align-top text-sm text-gray-700 max-w-[200px]">
+                            <span className="line-clamp-2" title={getEcontOfficeCell(order)}>
+                              {getEcontOfficeCell(order)}
+                            </span>
+                          </td>
+                          <td className="px-3 xl:px-4 py-3 align-top text-sm text-gray-600 max-w-[200px]">
+                            {internalNote ? (
+                              <span className="line-clamp-2" title={internalNote}>
+                                {internalNote}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-3 xl:px-4 py-3 align-top text-sm text-gray-800 max-w-[260px]">
+                            <div className="flex items-start gap-1">
+                              <button
+                                type="button"
+                                onClick={() => toggleOrderExpansion(order.orderid)}
+                                className="flex-shrink-0 mt-0.5 p-0.5 text-blue-600 hover:text-blue-800"
+                                title={language === 'bg' ? 'Детайли' : 'Details'}
+                              >
+                                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                              </button>
+                              <span className="line-clamp-2 min-w-0" title={namesSummary}>
+                                {namesSummary}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-3 xl:px-4 py-3 align-top whitespace-nowrap text-sm font-medium text-gray-900">
                             €{order.total?.toFixed(2) || '0.00'}
                           </td>
-                          <td className="px-4 xl:px-6 py-4 whitespace-nowrap">
+                          <td className="px-3 xl:px-4 py-3 align-top whitespace-nowrap">
                             <Badge variant={getOrderStatusVariant(order.status)}>
                               {getStatusTranslation(order.status)}
                             </Badge>
                           </td>
-                          <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-3 xl:px-4 py-3 align-top whitespace-nowrap text-sm text-gray-500">
                             {new Date(order.createdat).toLocaleDateString()}
                           </td>
-                          <td className="px-4 xl:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <td className="px-3 xl:px-4 py-3 align-top text-right text-sm font-medium">
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 type="button"
@@ -540,18 +1201,24 @@ export default function SalesPage() {
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
-                              <select
-                                value={order.status}
-                                onChange={(e) => updateOrderStatus(order.orderid, e.target.value)}
+                              <button
+                                type="button"
+                                onClick={() => openStatusModal(order)}
                                 disabled={updatingStatus === order.orderid}
-                                className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1 disabled:opacity-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="inline-flex items-center gap-1 text-xs sm:text-sm border border-gray-300 rounded px-2 py-1.5 min-h-[36px] hover:bg-gray-50 disabled:opacity-50"
                               >
-                                <option value="pending">{t.pending}</option>
-                                <option value="confirmed">{t.confirmed}</option>
-                                <option value="shipped">{t.shipped}</option>
-                                <option value="delivered">{t.delivered}</option>
-                                <option value="cancelled">{t.cancelled}</option>
-                              </select>
+                                <Edit2 className="w-3.5 h-3.5" />
+                                {language === 'bg' ? 'Статус' : 'Status'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openDeleteOrderModal(order)}
+                                disabled={deletingOrderId === order.orderid}
+                                className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                                title={language === 'bg' ? 'Изтрий' : 'Delete'}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                               {updatingStatus === order.orderid && (
                                 <span className="ml-2 text-xs text-gray-500">Обновяване...</span>
                               )}
@@ -562,7 +1229,7 @@ export default function SalesPage() {
                         {/* Expanded order items - Desktop */}
                         {isExpanded && order.order_items && order.order_items.length > 0 && (
                           <tr>
-                            <td colSpan={7} className="px-4 xl:px-6 py-4 bg-gray-50">
+                            <td colSpan={11} className="px-4 xl:px-6 py-4 bg-gray-50">
                               <div className="border rounded-lg bg-white p-3 sm:p-4">
                                 {/* Delivery Information */}
                                 {order.deliverytype === 'address' && (order.deliverystreet || order.deliverystreetnumber) && (
@@ -690,6 +1357,8 @@ export default function SalesPage() {
                 {paginatedOrders.map((order) => {
                   const isExpanded = expandedOrders.has(order.orderid);
                   const itemCount = order.order_items?.length || 0;
+                  const mNames = getOrderItemsNamesSummary(order);
+                  const mNote = getInternalNote(order);
 
                   return (
                     <div key={order.orderid} className="p-3 sm:p-4 hover:bg-gray-50 transition-colors">
@@ -698,7 +1367,30 @@ export default function SalesPage() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-mono text-gray-500 mb-1 truncate">{order.orderid}</p>
-                            <p className="text-sm font-medium text-gray-900 truncate">{order.customeremail || 'N/A'}</p>
+                            <p className="text-sm font-semibold text-gray-900">{getCustomerFullName(order)}</p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              <span className="font-medium">{language === 'bg' ? 'Тел.:' : 'Phone:'}</span>{' '}
+                              {order.customertelephone || '—'}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              <span className="font-medium">{language === 'bg' ? 'Град:' : 'City:'}</span>{' '}
+                              {order.customercity || '—'}
+                            </p>
+                            <p className="text-xs text-gray-600 line-clamp-2 mt-0.5">
+                              <span className="font-medium">{language === 'bg' ? 'Еконт:' : 'Econt:'}</span>{' '}
+                              {getEcontOfficeCell(order)}
+                            </p>
+                            {mNote ? (
+                              <p className="text-xs text-amber-900 bg-amber-50 border border-amber-100 rounded px-2 py-1 mt-2 line-clamp-3">
+                                <span className="font-medium">{language === 'bg' ? 'Вътр. бел.:' : 'Internal:'}</span> {mNote}
+                              </p>
+                            ) : null}
+                            <p className="text-xs text-gray-700 mt-2 line-clamp-3" title={mNames}>
+                              <span className="font-medium">{language === 'bg' ? 'Артикули:' : 'Items:'}</span> {mNames}
+                            </p>
+                            {order.customeremail ? (
+                              <p className="text-xs text-gray-500 mt-1 truncate">{order.customeremail}</p>
+                            ) : null}
                           </div>
                           <Badge variant={getOrderStatusVariant(order.status)} className="flex-shrink-0">
                             {getStatusTranslation(order.status)}
@@ -741,25 +1433,23 @@ export default function SalesPage() {
                           </button>
 
                           <div className="flex items-center gap-2">
-                            <select
-                              value={order.status}
-                              onChange={(e) => updateOrderStatus(order.orderid, e.target.value)}
-                              disabled={updatingStatus === order.orderid}
-                              className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1.5 disabled:opacity-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            >
-                              <option value="pending">{t.pending}</option>
-                              <option value="confirmed">{t.confirmed}</option>
-                              <option value="shipped">{t.shipped}</option>
-                              <option value="delivered">{t.delivered}</option>
-                              <option value="cancelled">{t.cancelled}</option>
-                            </select>
                             <button
                               type="button"
-                              onClick={() => openOrderModal(order)}
-                              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
-                              title={language === 'bg' ? 'Преглед' : 'View'}
+                              onClick={() => openStatusModal(order)}
+                              disabled={updatingStatus === order.orderid}
+                              className="inline-flex items-center gap-1 text-xs border border-gray-300 rounded px-2 py-2 min-h-[44px] min-w-[44px] justify-center hover:bg-gray-50 disabled:opacity-50"
                             >
-                              <Eye className="w-4 h-4" />
+                              <Edit2 className="w-4 h-4" />
+                              <span className="hidden xs:inline">{language === 'bg' ? 'Статус' : 'Status'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openDeleteOrderModal(order)}
+                              disabled={deletingOrderId === order.orderid}
+                              className="p-2 min-h-[44px] min-w-[44px] text-red-600 hover:bg-red-50 rounded border border-red-200 disabled:opacity-50"
+                              title={language === 'bg' ? 'Изтрий' : 'Delete'}
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </div>

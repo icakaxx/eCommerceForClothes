@@ -20,7 +20,9 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
-  Boxes
+  Boxes,
+  ClipboardList,
+  ShoppingCart
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -130,6 +132,18 @@ export default function AdminSidebar({ currentPath, collapsed: externalCollapsed
       label: language === 'bg' ? 'Наличности' : 'Stock',
       path: '/admin/stock',
       icon: Boxes
+    },
+    {
+      id: 'stock-in',
+      label: language === 'bg' ? 'Заприхождаване' : 'Receive stock',
+      path: '/admin/stock-in',
+      icon: ClipboardList
+    },
+    {
+      id: 'order-new',
+      label: language === 'bg' ? 'Нова поръчка' : 'New order',
+      path: '/admin/order-new',
+      icon: ShoppingCart
     },
     {
       id: 'sales',

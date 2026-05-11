@@ -82,16 +82,63 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
+    const variantIds = new Set<string>();
+    const productIds = new Set<string>();
+    for (const order of orders || []) {
+      for (const item of (order as any).order_items || []) {
+        if (item.productvariantid) variantIds.add(String(item.productvariantid));
+        if (item.productid) productIds.add(String(item.productid));
+      }
+    }
+
+    const firstImageByVariant: Record<string, string> = {};
+    const firstImageByProduct: Record<string, string> = {};
+
+    const vids = [...variantIds];
+    if (vids.length > 0) {
+      const { data: variantImages } = await supabaseAdmin
+        .from('product_images')
+        .select('productvariantid, imageurl')
+        .in('productvariantid', vids);
+      (variantImages || []).forEach((row: { productvariantid?: string; imageurl?: string }) => {
+        const vid = row.productvariantid;
+        if (vid && row.imageurl && !firstImageByVariant[vid]) {
+          firstImageByVariant[vid] = row.imageurl;
+        }
+      });
+    }
+
+    const pids = [...productIds];
+    if (pids.length > 0) {
+      const { data: prodImages } = await supabaseAdmin
+        .from('product_images')
+        .select('productid, imageurl')
+        .in('productid', pids)
+        .is('productvariantid', null);
+      (prodImages || []).forEach((row: { productid?: string; imageurl?: string }) => {
+        const pid = row.productid;
+        if (pid && row.imageurl && !firstImageByProduct[pid]) {
+          firstImageByProduct[pid] = row.imageurl;
+        }
+      });
+    }
+
     // Process the orders data to format it nicely
     const processedOrdersPromises = orders.map(async (order) => {
       const orderItems = await Promise.all(order.order_items.map(async (item: any) => {
+        const imgFromVariant = item.productvariantid
+          ? firstImageByVariant[String(item.productvariantid)]
+          : undefined;
+        const imgFromProduct = item.productid ? firstImageByProduct[String(item.productid)] : undefined;
+        const primaryImage = imgFromVariant || imgFromProduct || '/placeholder-image.jpg';
+
         let productInfo = {
           name: 'Unknown Product',
           brand: undefined as string | undefined,
           model: undefined as string | undefined,
           color: undefined as string | undefined,
           size: undefined as string | undefined,
-          images: [],
+          images: [primaryImage],
           allProperties: {} as Record<string, string>
         };
 

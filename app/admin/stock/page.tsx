@@ -17,6 +17,7 @@ interface StockVariant {
   sku: string | null;
   quantity: number;
   trackquantity: boolean;
+  primary_image?: string | null;
   characteristics: Array<{
     property_name: string;
     value: string;
@@ -108,9 +109,11 @@ export default function StockPage() {
 
     // Apply stock filter
     if (stockFilter === 'low') {
-      filtered = filtered.filter(v => v.quantity > 0 && v.quantity < 10);
+      filtered = filtered.filter((v) => v.quantity === 1);
     } else if (stockFilter === 'out') {
-      filtered = filtered.filter(v => v.quantity === 0);
+      filtered = filtered.filter((v) => v.quantity === 0);
+    } else if (stockFilter === 'negative') {
+      filtered = filtered.filter((v) => v.quantity < 0);
     }
 
     setFilteredVariants(filtered);
@@ -126,7 +129,7 @@ export default function StockPage() {
       if (action === 'add') {
         newQuantity = currentQuantity + (amount || 1);
       } else if (action === 'remove') {
-        newQuantity = Math.max(0, currentQuantity - (amount || 1));
+        newQuantity = currentQuantity - (amount || 1);
       } else if (action === 'set' && amount !== undefined) {
         newQuantity = amount;
       }
@@ -179,10 +182,6 @@ export default function StockPage() {
 
   const handleSaveQuantity = (variantId: string) => {
     const newQuantity = tempQuantities[variantId] ?? variants.find(v => v.productvariantid === variantId)?.quantity ?? 0;
-    if (newQuantity < 0) {
-      alert(language === 'bg' ? 'Количеството не може да бъде отрицателно' : 'Quantity cannot be negative');
-      return;
-    }
     updateQuantity(variantId, 'set', newQuantity);
   };
 
@@ -192,9 +191,13 @@ export default function StockPage() {
   };
 
   const getStockStatusColor = (quantity: number) => {
+    if (quantity < 0) {
+      return 'text-purple-700 dark:text-purple-400';
+    }
     if (quantity === 0) {
       return 'text-red-600 dark:text-red-400';
-    } else if (quantity < 10) {
+    }
+    if (quantity === 1) {
       return 'text-yellow-600 dark:text-yellow-400';
     }
     return 'text-green-600 dark:text-green-400';
@@ -213,9 +216,10 @@ export default function StockPage() {
   }
 
   const totalVariants = variants.length;
-  const lowStockCount = variants.filter(v => v.quantity > 0 && v.quantity < 10).length;
-  const outOfStockCount = variants.filter(v => v.quantity === 0).length;
-  const inStockCount = variants.filter(v => v.quantity >= 10).length;
+  const lowStockCount = variants.filter((v) => v.quantity === 1).length;
+  const outOfStockCount = variants.filter((v) => v.quantity === 0).length;
+  const negativeStockCount = variants.filter((v) => v.quantity < 0).length;
+  const inStockCount = variants.filter((v) => v.quantity > 1).length;
 
   return (
     <AdminLayout currentPath="/admin/stock">
@@ -234,10 +238,17 @@ export default function StockPage() {
           >
             {language === 'bg' ? 'Управление на наличностите по варианти' : 'Manage stock quantities for all product variants'}
           </p>
+          <Link
+            href="/admin/stock-in"
+            className="inline-block mt-3 text-sm font-medium underline touch-manipulation min-h-[44px] py-2"
+            style={{ color: theme.colors.primary }}
+          >
+            {language === 'bg' ? '→ Заприхождаване' : '→ Receive stock'}
+          </Link>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
           <div
             className="p-4 sm:p-5 lg:p-6 rounded-lg shadow-sm border"
             style={{
@@ -260,7 +271,7 @@ export default function StockPage() {
             }}
           >
             <p className="text-xs sm:text-sm font-medium opacity-75" style={{ color: theme.colors.textSecondary }}>
-              {language === 'bg' ? 'В наличност' : 'In Stock'}
+              {language === 'bg' ? 'Нормална (>1)' : 'Normal (>1)'}
             </p>
             <p className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2 text-green-600 dark:text-green-400">{inStockCount}</p>
           </div>
@@ -273,7 +284,7 @@ export default function StockPage() {
             }}
           >
             <p className="text-xs sm:text-sm font-medium opacity-75" style={{ color: theme.colors.textSecondary }}>
-              {language === 'bg' ? 'Ниска наличност' : 'Low Stock'}
+              {language === 'bg' ? 'Ниска (1 бр.)' : 'Low (1 pc)'}
             </p>
             <p className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2 text-yellow-600 dark:text-yellow-400">{lowStockCount}</p>
           </div>
@@ -286,9 +297,22 @@ export default function StockPage() {
             }}
           >
             <p className="text-xs sm:text-sm font-medium opacity-75" style={{ color: theme.colors.textSecondary }}>
-              {language === 'bg' ? 'Изчерпани' : 'Out of Stock'}
+              {language === 'bg' ? 'Изчерпани (0)' : 'Out (0)'}
             </p>
             <p className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2 text-red-600 dark:text-red-400">{outOfStockCount}</p>
+          </div>
+          <div
+            className="p-4 sm:p-5 lg:p-6 rounded-lg shadow-sm border"
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+              color: theme.colors.text
+            }}
+          >
+            <p className="text-xs sm:text-sm font-medium opacity-75" style={{ color: theme.colors.textSecondary }}>
+              {language === 'bg' ? 'Отрицателна' : 'Negative'}
+            </p>
+            <p className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2 text-purple-600 dark:text-purple-400">{negativeStockCount}</p>
           </div>
         </div>
 
@@ -317,7 +341,7 @@ export default function StockPage() {
 
           {/* Stock Filter */}
           <div className="flex gap-2">
-            {['all', 'low', 'out'].map((filter) => (
+            {['all', 'low', 'out', 'negative'].map((filter) => (
               <button
                 key={filter}
                 onClick={() => setStockFilter(filter)}
@@ -333,6 +357,7 @@ export default function StockPage() {
                 {filter === 'all' && (language === 'bg' ? 'Всички' : 'All')}
                 {filter === 'low' && (language === 'bg' ? 'Ниска наличност' : 'Low Stock')}
                 {filter === 'out' && (language === 'bg' ? 'Изчерпани' : 'Out of Stock')}
+                {filter === 'negative' && (language === 'bg' ? 'Претоварване' : 'Oversold')}
               </button>
             ))}
           </div>
@@ -348,7 +373,7 @@ export default function StockPage() {
             {language === 'bg' ? 'Няма намерени варианти' : 'No variants found'}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             {filteredVariants.map((variant) => {
               const isUpdating = updatingVariants.has(variant.productvariantid);
               const currentQuantity = tempQuantities[variant.productvariantid] ?? variant.quantity;
@@ -363,6 +388,16 @@ export default function StockPage() {
                     borderColor: theme.colors.border
                   }}
                 >
+                  {variant.primary_image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={variant.primary_image}
+                      alt=""
+                      className="w-full h-40 object-cover rounded-lg mb-3 border"
+                      style={{ borderColor: theme.colors.border }}
+                    />
+                  ) : null}
+
                   {/* Product Name */}
                   <Link
                     href={`/admin/products`}
@@ -405,7 +440,6 @@ export default function StockPage() {
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
-                        min="0"
                         value={currentQuantity}
                         onChange={(e) => handleQuantityChange(variant.productvariantid, e.target.value)}
                         disabled={isUpdating}
@@ -456,14 +490,14 @@ export default function StockPage() {
                       </button>
                       <button
                         onClick={() => updateQuantity(variant.productvariantid, 'remove', 1)}
-                        disabled={isUpdating || currentQuantity === 0}
+                        disabled={isUpdating}
                         className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm rounded-lg transition-colors disabled:opacity-50"
                         style={{
                           backgroundColor: theme.colors.secondary,
                           color: theme.colors.text
                         }}
                         onMouseEnter={(e) => {
-                          if (!isUpdating && currentQuantity > 0) {
+                          if (!isUpdating) {
                             e.currentTarget.style.backgroundColor = theme.colors.primary;
                             e.currentTarget.style.color = '#ffffff';
                           }
