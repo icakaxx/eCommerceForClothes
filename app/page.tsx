@@ -52,26 +52,34 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const loadFeaturedProducts = async () => {
+    const loadHomeProducts = async () => {
       try {
         setLoadingFeatured(true);
-        const response = await fetch('/api/products?isfeatured=true');
-        const result = await response.json();
-        if (result.success) {
-          // Limit to 4 products and filter visible ones
-          const visibleProducts = result.products
+        const filterVisible = (list: Product[]) =>
+          list
             .filter((p: Product) => p.visible && (p.quantity > 0 || !p.variants || p.variants.length === 0))
-            .slice(0, 4);
-          setFeaturedProducts(visibleProducts);
+            .slice(0, 12);
+
+        let res = await fetch('/api/products?isfeatured=true&limit=24');
+        let result = await res.json();
+        let visible: Product[] = result.success ? filterVisible(result.products || []) : [];
+
+        if (visible.length === 0) {
+          res = await fetch('/api/products?limit=24');
+          result = await res.json();
+          if (result.success) {
+            visible = filterVisible(result.products || []);
+          }
         }
+        setFeaturedProducts(visible);
       } catch (error) {
-        console.error('Failed to load featured products:', error);
+        console.error('Failed to load home products:', error);
       } finally {
         setLoadingFeatured(false);
       }
     };
 
-    loadFeaturedProducts();
+    loadHomeProducts();
   }, []);
 
   // Load favorite products if user is authenticated
@@ -187,115 +195,95 @@ export default function Home() {
           background: isGradientTheme ? theme.colors.background : theme.colors.background
         }}
       >
-        {/* Hero Section */}
-        <section className="relative w-full">
-          {settings?.heroimageurl ? (() => {
-            const focusX = settings?.heroimagefocusx ?? 50;
-            const focusY = settings?.heroimagefocusy ?? 50;
-            
-            // Mobile: prioritize vertical positioning (center horizontally, position vertically based on focus Y)
-            const mobilePosition = `center ${focusY}%`;
-            // Desktop: prioritize horizontal positioning (center vertically, position horizontally based on focus X)
-            const desktopPosition = `${focusX}% center`;
-            
-            return (
-              <div className="relative w-full h-[400px] sm:h-[500px] lg:h-[600px] overflow-hidden">
-                {settings.heroimageurl.toLowerCase().endsWith('.gif') ? (
-                  <>
-                    <img
-                      src={settings.heroimageurl}
-                      alt="Hero"
-                      className="w-full h-full object-cover hero-image-mobile"
-                      style={{
-                        objectPosition: mobilePosition
-                      }}
-                    />
-                    <style jsx>{`
-                      @media (min-width: 768px) {
-                        .hero-image-mobile {
-                          object-position: ${desktopPosition} !important;
-                        }
-                      }
-                    `}</style>
-                  </>
-                ) : (
-                  <>
-                    <Image
-                      src={settings.heroimageurl}
-                      alt="Hero"
-                      fill
-                      className="object-cover animate-zoom-in hero-image-mobile"
-                      style={{
-                        objectPosition: mobilePosition
-                      }}
-                      priority
-                    />
-                    <style jsx>{`
-                      @media (min-width: 768px) {
-                        .hero-image-mobile {
-                          object-position: ${desktopPosition} !important;
-                        }
-                      }
-                    `}</style>
-                  </>
-                )}
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <div className="text-center px-3 sm:px-4 lg:px-8 max-w-4xl mx-auto">
-                    <h1 
-                      className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 text-white drop-shadow-lg transition-colors duration-300"
-                    >
-                      {t.welcomeToStore || `Welcome to ${settings?.storename || 'Our Store'}`}
-                    </h1>
-                    <p 
-                      className="text-lg sm:text-xl lg:text-2xl mb-8 sm:mb-12 text-white drop-shadow-md transition-colors duration-300"
-                    >
-                      {t.homeDescription || 'Discover our latest collection of fashion and style'}
-                    </p>
-                    <Link
-                      href="/products"
-                      className="inline-block px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-105"
-                      style={{
-                        backgroundColor: theme.colors.primary,
-                        color: '#ffffff',
-                        boxShadow: theme.effects.shadowHover
-                      }}
-                    >
-                      {t.shopNow || 'Shop Now'}
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            );
-          })() : (
-            <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-12 sm:py-16 lg:py-24">
-              <div className="text-center">
-                <h1 
-                  className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 transition-colors duration-300"
-                  style={{ color: theme.colors.text }}
-                >
-                  {t.welcomeToStore || `Welcome to ${settings?.storename || 'Our Store'}`}
-                </h1>
-                <p 
-                  className="text-lg sm:text-xl lg:text-2xl mb-8 sm:mb-12 max-w-3xl mx-auto transition-colors duration-300"
-                  style={{ color: theme.colors.textSecondary }}
-                >
-                  {t.homeDescription || 'Discover our latest collection of fashion and style'}
-                </p>
-                <Link
-                  href="/products"
-                  className="inline-block px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-105"
-                  style={{
-                    backgroundColor: theme.colors.primary,
-                    color: '#ffffff',
-                    boxShadow: theme.effects.shadowHover
-                  }}
-                >
-                  {t.shopNow || 'Shop Now'}
-                </Link>
-              </div>
+        {/* Product cards first — no hero above */}
+        <section className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pt-6 sm:pt-8 pb-4 sm:pb-6">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 sm:mb-8">
+            <div>
+              <h1
+                className="text-2xl sm:text-3xl lg:text-4xl font-bold transition-colors duration-300"
+                style={{ color: theme.colors.text }}
+              >
+                {t.welcomeToStore || `Welcome to ${settings?.storename || 'Our Store'}`}
+              </h1>
+              <p
+                className="mt-2 text-sm sm:text-base max-w-2xl transition-colors duration-300"
+                style={{ color: theme.colors.textSecondary }}
+              >
+                {t.homeDescription || 'Discover our latest collection of fashion and style'}
+              </p>
             </div>
+            <Link
+              href="/products"
+              className="inline-flex items-center justify-center shrink-0 px-5 py-3 rounded-lg font-semibold text-sm sm:text-base transition-all duration-300 hover:scale-[1.02] min-h-[44px]"
+              style={{
+                backgroundColor: theme.colors.primary,
+                color: '#ffffff',
+                boxShadow: theme.effects.shadowHover,
+              }}
+            >
+              {t.shopNow || 'Shop Now'}
+            </Link>
+          </div>
+
+          {loadingFeatured ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="aspect-[3/4] rounded-xl animate-pulse"
+                  style={{ backgroundColor: theme.colors.border }}
+                />
+              ))}
+            </div>
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+              {featuredProducts.map((product) => {
+                const productId = String(product.id || product.productid || '');
+                return (
+                  <ProductCard
+                    key={product.id || product.productid}
+                    product={product}
+                    isFavorited={featuredFavorites[productId] || false}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-center py-12 text-sm" style={{ color: theme.colors.textSecondary }}>
+              {language === 'bg' ? 'Няма налични артикули за показване.' : 'No products to show yet.'}
+            </p>
           )}
         </section>
+
+        {/* Favorites Section — directly under main grid when present */}
+        {isAuthenticated && user && favoriteProducts.length > 0 && (
+          <section className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-10 sm:py-12">
+            <div className="flex items-center justify-between mb-6 sm:mb-8">
+              <h2 
+                className="text-2xl sm:text-3xl font-bold transition-colors duration-300"
+                style={{ color: theme.colors.text }}
+              >
+                {t.myFavorites || (language === 'bg' ? 'Моите любими' : 'My Favorites')}
+              </h2>
+              <Link
+                href="/user/dashboard?tab=favorites"
+                className="text-sm font-medium underline hover:opacity-80 transition-opacity"
+                style={{ color: theme.colors.primary }}
+              >
+                {language === 'bg' ? 'Виж всички' : 'View all'}
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {favoriteProducts.map((product) => (
+                <ProductCard 
+                  key={product.id || product.productid} 
+                  product={product}
+                  isFavorited={true}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Features Section */}
         <section className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-12 sm:py-16">
@@ -380,59 +368,81 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Favorites Section */}
-        {isAuthenticated && user && favoriteProducts.length > 0 && (
-          <section className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-12 sm:py-16">
-            <div className="flex items-center justify-between mb-6 sm:mb-8">
-              <h2 
-                className="text-2xl sm:text-3xl font-bold transition-colors duration-300"
-                style={{ color: theme.colors.text }}
-              >
-                {t.myFavorites || (language === 'bg' ? 'Моите любими' : 'My Favorites')}
-              </h2>
-              <Link
-                href="/user/dashboard?tab=favorites"
-                className="text-sm font-medium underline hover:opacity-80 transition-opacity"
-                style={{ color: theme.colors.primary }}
-              >
-                {language === 'bg' ? 'Виж всички' : 'View all'}
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {favoriteProducts.map((product) => (
-                <ProductCard 
-                  key={product.id || product.productid} 
-                  product={product}
-                  isFavorited={true}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+        {/* Optional campaign image — below products and features */}
+        {settings?.heroimageurl ? (
+        <section className="relative w-full">
+          {(() => {
+            const focusX = settings?.heroimagefocusx ?? 50;
+            const focusY = settings?.heroimagefocusy ?? 50;
+            const mobilePosition = `center ${focusY}%`;
+            const desktopPosition = `${focusX}% center`;
 
-        {/* Featured Products Section */}
-        {featuredProducts.length > 0 && (
-          <section className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-12 sm:py-16">
-            <h2 
-              className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center transition-colors duration-300"
-              style={{ color: theme.colors.text }}
-            >
-              {language === 'bg' ? 'Избрани артикули' : 'Featured Items'}
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {featuredProducts.map((product) => {
-                const productId = String(product.id || product.productid || '');
-                return (
-                  <ProductCard 
-                    key={product.id} 
-                    product={product}
-                    isFavorited={featuredFavorites[productId] || false}
-                  />
-                );
-              })}
-            </div>
-          </section>
-        )}
+            return (
+              <div className="relative w-full h-[280px] sm:h-[360px] lg:h-[440px] overflow-hidden">
+                {settings.heroimageurl.toLowerCase().endsWith('.gif') ? (
+                  <>
+                    <img
+                      src={settings.heroimageurl}
+                      alt=""
+                      className="w-full h-full object-cover hero-image-mobile"
+                      style={{
+                        objectPosition: mobilePosition,
+                      }}
+                    />
+                    <style jsx>{`
+                      @media (min-width: 768px) {
+                        .hero-image-mobile {
+                          object-position: ${desktopPosition} !important;
+                        }
+                      }
+                    `}</style>
+                  </>
+                ) : (
+                  <>
+                    <Image
+                      src={settings.heroimageurl}
+                      alt=""
+                      fill
+                      sizes="100vw"
+                      className="object-cover animate-zoom-in hero-image-mobile"
+                      style={{
+                        objectPosition: mobilePosition,
+                      }}
+                    />
+                    <style jsx>{`
+                      @media (min-width: 768px) {
+                        .hero-image-mobile {
+                          object-position: ${desktopPosition} !important;
+                        }
+                      }
+                    `}</style>
+                  </>
+                )}
+                <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
+                  <div className="text-center px-3 sm:px-4 lg:px-8 max-w-4xl mx-auto">
+                    <p
+                      className="text-lg sm:text-xl lg:text-2xl text-white drop-shadow-md transition-colors duration-300"
+                    >
+                      {t.homeDescription || 'Discover our latest collection of fashion and style'}
+                    </p>
+                    <Link
+                      href="/products"
+                      className="inline-block mt-6 px-6 py-3 rounded-lg font-semibold text-base transition-all duration-300 hover:scale-105"
+                      style={{
+                        backgroundColor: theme.colors.primary,
+                        color: '#ffffff',
+                        boxShadow: theme.effects.shadowHover,
+                      }}
+                    >
+                      {t.shopNow || 'Shop Now'}
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </section>
+        ) : null}
 
         {/* CTA Section */}
         <section className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-12 sm:py-16">
