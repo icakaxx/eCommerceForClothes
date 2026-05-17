@@ -405,7 +405,7 @@ export async function GET(request: NextRequest) {
       }
 
       return {
-        id: `#ORD-${order.orderid.toUpperCase()}`,
+        id: `#${order.orderid}`,
         customer: customerName,
         amount: Number(order.total || 0),
         status: order.status || 'pending',

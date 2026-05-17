@@ -9,8 +9,11 @@ import {
   isReturnedStatus,
   isValidTrackingStatus,
   normalizeOrderStatus,
+  orderItemsPayloadEqual,
+  reconcileOrderItemsStock,
   TRACKING_ORDER_STATUSES,
 } from '@/lib/admin-order-stock';
+import { splitCustomerName } from '@/lib/admin-order-form';
 import { deleteOrderByOrderId } from '@/lib/admin-delete-order';
 
 function mapAdminStatusToEmail(
@@ -362,6 +365,207 @@ function buildOrderDetailsForEmail(
     },
     orderDate: existingOrder.createdat || new Date().toISOString(),
   };
+}
+
+interface PatchAdminOrderBody {
+  customer: {
+    fullName: string;
+    phone: string;
+    email?: string;
+    city: string;
+    region?: string;
+    country?: string;
+    econtOfficeId?: string;
+    customerNote?: string;
+  };
+  internalNote?: string;
+  deliveryType?: string;
+  deliveryNotes?: string;
+  subtotal: number;
+  deliveryCost: number;
+  total: number;
+  items: Array<{
+    productVariantId: string;
+    quantity: number;
+    unitPrice: number;
+  }>;
+  changedBy?: string;
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const body = (await request.json()) as PatchAdminOrderBody;
+
+    if (!body.customer?.fullName || !body.customer?.phone || !body.customer?.city) {
+      return NextResponse.json(
+        { success: false, error: 'Липсват задължителни полета за клиент (име, телефон, град).' },
+        { status: 400 }
+      );
+    }
+    if (!body.items?.length) {
+      return NextResponse.json({ success: false, error: 'Добави поне един артикул.' }, { status: 400 });
+    }
+
+    const { data: existingOrder, error: fetchError } = await supabaseAdmin
+      .from('orders')
+      .select(
+        `
+        *,
+        order_items (
+          orderitemid,
+          quantity,
+          price,
+          productid,
+          productvariantid
+        )
+      `
+      )
+      .eq('orderid', id)
+      .single();
+
+    if (fetchError || !existingOrder) {
+      return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+    }
+
+    const returnStockApplied = Boolean(
+      (existingOrder as { return_stock_applied?: boolean }).return_stock_applied
+    );
+    const customerId = (existingOrder as { customerid?: string }).customerid;
+    if (!customerId) {
+      return NextResponse.json({ success: false, error: 'Order has no customer' }, { status: 400 });
+    }
+
+    const oldItems = ((existingOrder as { order_items?: Array<{ productvariantid?: string; quantity?: number }> })
+      .order_items || []) as Array<{ productvariantid?: string; quantity?: number }>;
+
+    const newItemsPayload = body.items.map((line) => ({
+      productvariantid: line.productVariantId,
+      quantity: line.quantity,
+    }));
+
+    if (returnStockApplied && !orderItemsPayloadEqual(oldItems, newItemsPayload)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Поръчката е върната — артикулите не могат да се променят. Редактирай само клиент, доставка и бележки.',
+        },
+        { status: 400 }
+      );
+    }
+
+    const { first, last } = splitCustomerName(body.customer.fullName);
+    const phone = body.customer.phone.trim();
+    const emailInput = body.customer.email?.trim();
+
+    const { error: customerErr } = await supabaseAdmin
+      .from('customers')
+      .update({
+        firstname: first,
+        lastname: last,
+        telephone: phone || null,
+        city: body.customer.city.trim(),
+        country: body.customer.country?.trim() || 'Bulgaria',
+        ...(emailInput ? { email: emailInput } : {}),
+        updatedat: new Date().toISOString(),
+      })
+      .eq('customerid', customerId);
+
+    if (customerErr) {
+      return NextResponse.json(
+        { success: false, error: customerErr.message || 'Failed to update customer' },
+        { status: 500 }
+      );
+    }
+
+    const now = new Date().toISOString();
+    const deliveryType =
+      body.deliveryType?.trim() ||
+      (existingOrder as { deliverytype?: string }).deliverytype ||
+      'office';
+
+    const { error: orderErr } = await supabaseAdmin
+      .from('orders')
+      .update({
+        deliverytype: deliveryType,
+        deliverynotes: body.deliveryNotes?.trim() || null,
+        econtoffice: body.customer.econtOfficeId?.trim() || null,
+        delivery_region: body.customer.region?.trim() || null,
+        customer_order_note: body.customer.customerNote?.trim() || null,
+        internal_note: body.internalNote?.trim() || null,
+        subtotal: body.subtotal,
+        deliverycost: body.deliveryCost,
+        total: body.total,
+        updatedat: now,
+      })
+      .eq('orderid', id);
+
+    if (orderErr) {
+      return NextResponse.json(
+        { success: false, error: orderErr.message || 'Failed to update order' },
+        { status: 500 }
+      );
+    }
+
+    if (!returnStockApplied) {
+      const stockRes = await reconcileOrderItemsStock({
+        orderId: id,
+        oldItems,
+        newItems: newItemsPayload,
+        created_by: body.changedBy || null,
+      });
+      if (!stockRes.ok) {
+        return NextResponse.json(
+          { success: false, error: stockRes.error || 'Грешка при коригиране на наличност' },
+          { status: 500 }
+        );
+      }
+    }
+
+    const rows = await Promise.all(
+      body.items.map(async (line) => {
+        const { data: variant } = await supabaseAdmin
+          .from('product_variants')
+          .select('productid, price')
+          .eq('productvariantid', line.productVariantId)
+          .single();
+        const price = line.unitPrice ?? variant?.price ?? 0;
+        return {
+          orderid: id,
+          productid: variant?.productid ?? null,
+          productvariantid: line.productVariantId,
+          quantity: line.quantity,
+          price,
+          createdat: now,
+        };
+      })
+    );
+
+    const { error: delItemsErr } = await supabaseAdmin.from('order_items').delete().eq('orderid', id);
+    if (delItemsErr) {
+      return NextResponse.json(
+        { success: false, error: delItemsErr.message || 'Failed to replace order items' },
+        { status: 500 }
+      );
+    }
+
+    const { error: itemsErr } = await supabaseAdmin.from('order_items').insert(rows);
+    if (itemsErr) {
+      return NextResponse.json(
+        { success: false, error: itemsErr.message || 'Failed to save order items' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true, orderId: id });
+  } catch (e) {
+    console.error('PATCH order:', e);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+  }
 }
 
 export async function DELETE(

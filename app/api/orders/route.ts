@@ -3,6 +3,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendCustomerOrderEmail, sendAdminOrderEmail } from '@/lib/email';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { generateUniqueOrderId } from '@/lib/order-id';
 
 interface OrderData {
   customer: {
@@ -258,7 +259,7 @@ async function getOrCreateCustomer(customerData: OrderData['customer']): Promise
 // Create order record
 async function createOrder(orderData: OrderData): Promise<string> {
   const supabase = supabaseAdmin;
-  const orderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+  const orderId = await generateUniqueOrderId(supabase);
 
   // Get or create customer first
   const customerId = await getOrCreateCustomer(orderData.customer);

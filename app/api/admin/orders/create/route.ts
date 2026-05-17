@@ -3,6 +3,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { decreaseStockForOrderItems, normalizeOrderStatus } from '@/lib/admin-order-stock';
+import { generateUniqueOrderId } from '@/lib/order-id';
 
 interface CreateAdminOrderBody {
   customer: {
@@ -138,7 +139,7 @@ export async function POST(request: NextRequest) {
     }
 
     const customerId = await getOrCreateCustomerForAdmin(body.customer);
-    const orderId = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 11).toUpperCase()}`;
+    const orderId = await generateUniqueOrderId(supabaseAdmin);
     const now = new Date().toISOString();
 
     const orderRecord: Record<string, unknown> = {

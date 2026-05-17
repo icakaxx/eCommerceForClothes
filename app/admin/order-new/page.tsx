@@ -33,6 +33,45 @@ function uid() {
   return Math.random().toString(36).slice(2, 11);
 }
 
+function isSizeProperty(name: string): boolean {
+  const n = name.toLowerCase();
+  return n.includes('size') || n.includes('размер');
+}
+
+function getVariantOptionLabel(v: StockVariant): string {
+  const sizeChar = v.characteristics.find((c) => isSizeProperty(c.property_name));
+  const otherChars = v.characteristics.filter((c) => !isSizeProperty(c.property_name));
+
+  const parts: string[] = [];
+  if (sizeChar?.value) {
+    parts.push(sizeChar.value);
+  }
+  if (otherChars.length) {
+    parts.push(...otherChars.map((c) => c.value));
+  }
+  if (!parts.length) {
+    const all = v.characteristics.map((c) => c.value).filter(Boolean);
+    if (all.length) parts.push(...all);
+    else if (v.sku) parts.push(v.sku);
+    else parts.push(v.productvariantid.slice(0, 8));
+  }
+
+  return `${parts.join(' · ')} · Q:${v.quantity}`;
+}
+
+function sortVariantsForPicker(list: StockVariant[]): StockVariant[] {
+  return [...list].sort((a, b) => {
+    const sizeA = a.characteristics.find((c) => isSizeProperty(c.property_name))?.value ?? '';
+    const sizeB = b.characteristics.find((c) => isSizeProperty(c.property_name))?.value ?? '';
+    const numA = parseFloat(sizeA);
+    const numB = parseFloat(sizeB);
+    if (!Number.isNaN(numA) && !Number.isNaN(numB) && sizeA !== '' && sizeB !== '') {
+      return numA - numB;
+    }
+    return getVariantOptionLabel(a).localeCompare(getVariantOptionLabel(b), 'bg', { numeric: true });
+  });
+}
+
 function stockWarningBg(language: string, available: number, lineQty: number): string | null {
   if (available < 0) {
     return language === 'bg'
@@ -73,6 +112,7 @@ export default function AdminNewOrderPage() {
   const [internalNote, setInternalNote] = useState('');
   const [deliveryCost, setDeliveryCost] = useState(0);
 
+  const [pickProductId, setPickProductId] = useState('');
   const [pickVariant, setPickVariant] = useState('');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -109,6 +149,27 @@ export default function AdminNewOrderPage() {
     return m;
   }, [variants]);
 
+  const productsGrouped = useMemo(() => {
+    const map = new Map<string, { productid: string; product_name: string; variants: StockVariant[] }>();
+    variants.forEach((v) => {
+      let group = map.get(v.productid);
+      if (!group) {
+        group = { productid: v.productid, product_name: v.product_name, variants: [] };
+        map.set(v.productid, group);
+      }
+      group.variants.push(v);
+    });
+    return Array.from(map.values()).sort((a, b) =>
+      a.product_name.localeCompare(b.product_name, 'bg', { sensitivity: 'base' })
+    );
+  }, [variants]);
+
+  const variantsForProduct = useMemo(() => {
+    if (!pickProductId) return [];
+    const group = productsGrouped.find((p) => p.productid === pickProductId);
+    return sortVariantsForPicker(group?.variants ?? []);
+  }, [pickProductId, productsGrouped]);
+
   const addLine = () => {
     if (!pickVariant) return;
     const v = variantMap.get(pickVariant);
@@ -126,7 +187,14 @@ export default function AdminNewOrderPage() {
         unitPrice: v.price || 0,
       },
     ]);
+    setPickProductId('');
     setPickVariant('');
+  };
+
+  const selectStyle = {
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.cardBg,
+    color: theme.colors.text,
   };
 
   const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
@@ -286,24 +354,42 @@ export default function AdminNewOrderPage() {
             <h2 className="font-semibold" style={{ color: theme.colors.text }}>
               {language === 'bg' ? 'Артикули' : 'Items'}
             </h2>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
               <select
-                className="flex-1 py-3 px-3 rounded-lg border min-h-[44px]"
-                style={{ borderColor: theme.colors.border, backgroundColor: theme.colors.cardBg, color: theme.colors.text }}
+                className="flex-1 min-w-[140px] py-3 px-3 rounded-lg border min-h-[44px]"
+                style={selectStyle}
+                value={pickProductId}
+                onChange={(e) => {
+                  setPickProductId(e.target.value);
+                  setPickVariant('');
+                }}
+              >
+                <option value="">{language === 'bg' ? '— Избери артикул —' : '— Pick product —'}</option>
+                {productsGrouped.map((p) => (
+                  <option key={p.productid} value={p.productid}>
+                    {p.product_name}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="flex-1 min-w-[140px] py-3 px-3 rounded-lg border min-h-[44px] disabled:opacity-50"
+                style={selectStyle}
                 value={pickVariant}
+                disabled={!pickProductId}
                 onChange={(e) => setPickVariant(e.target.value)}
               >
-                <option value="">{language === 'bg' ? '— Избери артикул —' : '— Pick item —'}</option>
-                {variants.map((v) => (
+                <option value="">{language === 'bg' ? '— Избери размер —' : '— Pick size —'}</option>
+                {variantsForProduct.map((v) => (
                   <option key={v.productvariantid} value={v.productvariantid}>
-                    {v.product_name} · Q:{v.quantity} · {v.characteristics.map((c) => c.value).join('/') || v.sku || '—'}
+                    {getVariantOptionLabel(v)}
                   </option>
                 ))}
               </select>
               <button
                 type="button"
                 onClick={addLine}
-                className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-white min-h-[44px]"
+                disabled={!pickVariant}
+                className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-white min-h-[44px] disabled:opacity-50 sm:flex-shrink-0"
                 style={{ backgroundColor: theme.colors.primary }}
               >
                 <Plus className="w-4 h-4" />

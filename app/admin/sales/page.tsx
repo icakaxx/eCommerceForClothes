@@ -1,10 +1,11 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Edit2, ChevronDown, ChevronUp, Package, Eye, Save, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Package, Eye, Save, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase-browser';
 import AdminModal from '../components/AdminModal';
+import OrderEditModal from '../components/OrderEditModal';
 import AdminLayout from '../components/AdminLayout';
 import { getAdminSession } from '@/lib/auth';
 import type { EcontOfficesData, EcontOffice } from '@/types/econt';
@@ -12,6 +13,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
 import { Badge } from '../components/layout';
 import { getOrderStatusVariant } from '@/lib/admin-status-utils';
+import { normalizeOrderStatus } from '@/lib/admin-order-status';
 
 interface OrderItem {
   OrderItemID: string;
@@ -59,6 +61,8 @@ interface Order {
   updatedat?: string;
   internal_note?: string | null;
   customer_order_note?: string | null;
+  delivery_region?: string | null;
+  return_stock_applied?: boolean;
 }
 
 const ALL_STATUS_KEYS = [
@@ -105,11 +109,9 @@ export default function SalesPage() {
   const itemsPerPage = 10;
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showOrderEditModal, setShowOrderEditModal] = useState(false);
+  const [orderBeingEdited, setOrderBeingEdited] = useState<Order | null>(null);
   const [adminUserId, setAdminUserId] = useState<string | null>(null);
-  const [showStatusModal, setShowStatusModal] = useState(false);
-  const [statusTargetOrder, setStatusTargetOrder] = useState<Order | null>(null);
-  const [statusDraft, setStatusDraft] = useState('');
-  const [statusNote, setStatusNote] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -251,10 +253,16 @@ export default function SalesPage() {
 
       const result = await response.json();
       if (result.success) {
+        const normalized = normalizeOrderStatus(newStatus);
         setOrders((prevOrders) =>
           prevOrders.map((order) =>
-            order.orderid === orderId ? { ...order, status: newStatus, updatedat: new Date().toISOString() } : order
+            order.orderid === orderId
+              ? { ...order, status: normalized, updatedat: new Date().toISOString() }
+              : order
           )
+        );
+        setSelectedOrder((prev) =>
+          prev?.orderid === orderId ? { ...prev, status: normalized, updatedat: new Date().toISOString() } : prev
         );
       } else {
         alert('Failed to update order status: ' + result.error);
@@ -267,22 +275,18 @@ export default function SalesPage() {
     }
   };
 
-  const openStatusModal = (order: Order) => {
-    setStatusTargetOrder(order);
-    setStatusDraft(order.status);
-    setStatusNote('');
-    setShowStatusModal(true);
+  const statusOptionsForOrder = (order: Order): string[] => {
+    const current = normalizeOrderStatus(order.status || '');
+    const keys = [...ALL_STATUS_KEYS];
+    if (current && !keys.includes(current as (typeof ALL_STATUS_KEYS)[number])) {
+      return [current, ...keys];
+    }
+    return keys;
   };
 
-  const closeStatusModal = () => {
-    setShowStatusModal(false);
-    setStatusTargetOrder(null);
-  };
-
-  const confirmStatusChange = async () => {
-    if (!statusTargetOrder) return;
-    await updateOrderStatus(statusTargetOrder.orderid, statusDraft, statusNote);
-    closeStatusModal();
+  const handleStatusSelectChange = (order: Order, newStatus: string) => {
+    if (normalizeOrderStatus(newStatus) === normalizeOrderStatus(order.status || '')) return;
+    void updateOrderStatus(order.orderid, newStatus);
   };
 
   const saveCurrentView = async () => {
@@ -486,6 +490,33 @@ export default function SalesPage() {
     setSelectedOrder(null);
   };
 
+  const openOrderEditModal = (order: Order) => {
+    setOrderBeingEdited(order);
+    setShowOrderEditModal(true);
+  };
+
+  const closeOrderEditModal = () => {
+    setShowOrderEditModal(false);
+    setOrderBeingEdited(null);
+  };
+
+  const handleOrderEditSaved = async (orderId: string) => {
+    try {
+      const response = await fetch('/api/admin/orders');
+      const result = await response.json();
+      if (result.success) {
+        const list: Order[] = result.orders || [];
+        setOrders(list);
+        if (selectedOrder?.orderid === orderId) {
+          const updated = list.find((o) => o.orderid === orderId);
+          if (updated) setSelectedOrder(updated);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh orders after edit:', error);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString(language === 'bg' ? 'bg-BG' : 'en-US', {
@@ -597,7 +628,7 @@ export default function SalesPage() {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-6">
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Продажби</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">{t.sales || (language === 'bg' ? 'Продажби' : 'Sales')}</h1>
             <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">Управление и преглед на вашите поръчки</p>
           </div>
           <button
@@ -707,71 +738,6 @@ export default function SalesPage() {
               </button>
             </div>
           </div>
-        </AdminModal>
-
-        <AdminModal
-          isOpen={showStatusModal}
-          onClose={closeStatusModal}
-          title={language === 'bg' ? 'Смяна на статус' : 'Change status'}
-          subheader={statusTargetOrder?.orderid}
-          maxWidth="max-w-md"
-          minWidth={280}
-          minHeight={200}
-        >
-          {statusTargetOrder && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  {language === 'bg' ? 'Статус' : 'Status'}
-                </label>
-                <select
-                  className="w-full border rounded-lg px-3 py-2.5 text-sm min-h-[44px]"
-                  value={statusDraft}
-                  onChange={(e) => setStatusDraft(e.target.value)}
-                >
-                  {ALL_STATUS_KEYS.map((s) => (
-                    <option key={s} value={s}>
-                      {getStatusTranslation(s)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  {language === 'bg' ? 'Бележка (по избор)' : 'Note (optional)'}
-                </label>
-                <textarea
-                  className="w-full border rounded-lg px-3 py-2 text-sm min-h-[80px]"
-                  value={statusNote}
-                  onChange={(e) => setStatusNote(e.target.value)}
-                  placeholder={language === 'bg' ? 'Причина / коментар към смяната…' : 'Reason / comment…'}
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <button
-                  type="button"
-                  className="px-4 py-2 rounded-lg border text-sm min-h-[44px]"
-                  onClick={closeStatusModal}
-                >
-                  {language === 'bg' ? 'Отказ' : 'Cancel'}
-                </button>
-                <button
-                  type="button"
-                  className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm min-h-[44px] disabled:opacity-50"
-                  disabled={updatingStatus === statusTargetOrder.orderid}
-                  onClick={() => confirmStatusChange()}
-                >
-                  {updatingStatus === statusTargetOrder.orderid
-                    ? language === 'bg'
-                      ? 'Запис…'
-                      : 'Saving…'
-                    : language === 'bg'
-                      ? 'Запази'
-                      : 'Save'}
-                </button>
-              </div>
-            </div>
-          )}
         </AdminModal>
 
         <AdminModal
@@ -938,6 +904,15 @@ export default function SalesPage() {
           )}
         </AdminModal>
 
+        <OrderEditModal
+          isOpen={showOrderEditModal}
+          order={orderBeingEdited}
+          language={language}
+          adminUserId={adminUserId}
+          onClose={closeOrderEditModal}
+          onSaved={handleOrderEditSaved}
+        />
+
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
           <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
@@ -1085,6 +1060,11 @@ export default function SalesPage() {
             </div>
           ) : (
             <>
+            <p className="text-xs text-gray-500 mb-2 px-1">
+              {language === 'bg'
+                ? 'Двоен клик върху ред за редакция на поръчката.'
+                : 'Double-click a row to edit the order.'}
+            </p>
             {/* Desktop Table View */}
             <div className="hidden lg:block overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -1134,7 +1114,10 @@ export default function SalesPage() {
 
                     return (
                       <React.Fragment key={order.orderid}>
-                        <tr className="hover:bg-gray-50">
+                        <tr
+                          className="hover:bg-gray-50 cursor-pointer"
+                          onDoubleClick={() => openOrderEditModal(order)}
+                        >
                           <td className="px-3 xl:px-4 py-3 align-top text-xs font-mono text-gray-800 whitespace-nowrap min-w-[11rem]">
                             <span title={order.orderid}>{order.orderid}</span>
                           </td>
@@ -1169,7 +1152,10 @@ export default function SalesPage() {
                             <div className="flex items-start gap-1">
                               <button
                                 type="button"
-                                onClick={() => toggleOrderExpansion(order.orderid)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleOrderExpansion(order.orderid);
+                                }}
                                 className="flex-shrink-0 mt-0.5 p-0.5 text-blue-600 hover:text-blue-800"
                                 title={language === 'bg' ? 'Детайли' : 'Details'}
                               >
@@ -1183,15 +1169,34 @@ export default function SalesPage() {
                           <td className="px-3 xl:px-4 py-3 align-top whitespace-nowrap text-sm font-medium text-gray-900">
                             €{order.total?.toFixed(2) || '0.00'}
                           </td>
-                          <td className="px-3 xl:px-4 py-3 align-top whitespace-nowrap">
-                            <Badge variant={getOrderStatusVariant(order.status)}>
-                              {getStatusTranslation(order.status)}
-                            </Badge>
+                          <td
+                            className="px-3 xl:px-4 py-3 align-top whitespace-nowrap"
+                            onClick={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => e.stopPropagation()}
+                          >
+                            <select
+                              className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1.5 min-h-[36px] max-w-[11rem] bg-white hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
+                              value={normalizeOrderStatus(order.status || 'pending')}
+                              disabled={updatingStatus === order.orderid}
+                              onChange={(e) => handleStatusSelectChange(order, e.target.value)}
+                              title={language === 'bg' ? 'Статус' : 'Status'}
+                              aria-label={language === 'bg' ? 'Статус' : 'Status'}
+                            >
+                              {statusOptionsForOrder(order).map((s) => (
+                                <option key={s} value={s}>
+                                  {getStatusTranslation(s)}
+                                </option>
+                              ))}
+                            </select>
                           </td>
                           <td className="px-3 xl:px-4 py-3 align-top whitespace-nowrap text-sm text-gray-500">
                             {new Date(order.createdat).toLocaleDateString()}
                           </td>
-                          <td className="px-3 xl:px-4 py-3 align-top text-right text-sm font-medium">
+                          <td
+                            className="px-3 xl:px-4 py-3 align-top text-right text-sm font-medium"
+                            onClick={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => e.stopPropagation()}
+                          >
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 type="button"
@@ -1203,15 +1208,6 @@ export default function SalesPage() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => openStatusModal(order)}
-                                disabled={updatingStatus === order.orderid}
-                                className="inline-flex items-center gap-1 text-xs sm:text-sm border border-gray-300 rounded px-2 py-1.5 min-h-[36px] hover:bg-gray-50 disabled:opacity-50"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                                {language === 'bg' ? 'Статус' : 'Status'}
-                              </button>
-                              <button
-                                type="button"
                                 onClick={() => openDeleteOrderModal(order)}
                                 disabled={deletingOrderId === order.orderid}
                                 className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
@@ -1220,7 +1216,9 @@ export default function SalesPage() {
                                 <Trash2 className="w-4 h-4" />
                               </button>
                               {updatingStatus === order.orderid && (
-                                <span className="ml-2 text-xs text-gray-500">Обновяване...</span>
+                                <span className="ml-2 text-xs text-gray-500">
+                                  {language === 'bg' ? 'Обновяване...' : 'Updating...'}
+                                </span>
                               )}
                             </div>
                           </td>
@@ -1292,7 +1290,7 @@ export default function SalesPage() {
                                           </p>
                                           <div className="text-xs text-gray-500 space-y-0.5 sm:space-y-1 mt-1">
                                             {item.product.name === 'Unknown Product' ? (
-                                              <p className="text-red-500">⚠️ Product data missing</p>
+                                              <p className="text-red-500">a️ Product data missing</p>
                                             ) : (
                                               <>
                                                 {/* Display all properties */}
@@ -1353,6 +1351,11 @@ export default function SalesPage() {
 
             {/* Mobile/Tablet Card View */}
             <div className="lg:hidden">
+              <p className="text-xs text-gray-500 mb-2 px-1 lg:hidden">
+                {language === 'bg'
+                  ? 'Двоен клик върху картата за редакция.'
+                  : 'Double-click a card to edit.'}
+              </p>
               <div className="divide-y divide-gray-200">
                 {paginatedOrders.map((order) => {
                   const isExpanded = expandedOrders.has(order.orderid);
@@ -1361,7 +1364,11 @@ export default function SalesPage() {
                   const mNote = getInternalNote(order);
 
                   return (
-                    <div key={order.orderid} className="p-3 sm:p-4 hover:bg-gray-50 transition-colors">
+                    <div
+                      key={order.orderid}
+                      className="p-3 sm:p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                      onDoubleClick={() => openOrderEditModal(order)}
+                    >
                       {/* Order Header Card */}
                       <div className="space-y-2">
                         <div className="flex items-start justify-between gap-2">
@@ -1392,9 +1399,22 @@ export default function SalesPage() {
                               <p className="text-xs text-gray-500 mt-1 truncate">{order.customeremail}</p>
                             ) : null}
                           </div>
-                          <Badge variant={getOrderStatusVariant(order.status)} className="flex-shrink-0">
-                            {getStatusTranslation(order.status)}
-                          </Badge>
+                          <select
+                            className="flex-shrink-0 text-xs border border-gray-300 rounded px-2 py-1.5 min-h-[36px] max-w-[10rem] bg-white disabled:opacity-50 cursor-pointer"
+                            value={normalizeOrderStatus(order.status || 'pending')}
+                            disabled={updatingStatus === order.orderid}
+                            onClick={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => e.stopPropagation()}
+                            onChange={(e) => handleStatusSelectChange(order, e.target.value)}
+                            title={language === 'bg' ? 'Статус' : 'Status'}
+                            aria-label={language === 'bg' ? 'Статус' : 'Status'}
+                          >
+                            {statusOptionsForOrder(order).map((s) => (
+                              <option key={s} value={s}>
+                                {getStatusTranslation(s)}
+                              </option>
+                            ))}
+                          </select>
                         </div>
 
                         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
@@ -1410,7 +1430,10 @@ export default function SalesPage() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => openOrderModal(order)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openOrderModal(order);
+                            }}
                             className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
                             title={language === 'bg' ? 'Преглед' : 'View'}
                           >
@@ -1418,8 +1441,13 @@ export default function SalesPage() {
                           </button>
                         </div>
 
-                        <div className="flex items-center justify-between gap-2 pt-2">
+                        <div
+                          className="flex items-center justify-between gap-2 pt-2"
+                          onClick={(e) => e.stopPropagation()}
+                          onDoubleClick={(e) => e.stopPropagation()}
+                        >
                           <button
+                            type="button"
                             onClick={() => toggleOrderExpansion(order.orderid)}
                             className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors text-sm"
                           >
@@ -1433,15 +1461,6 @@ export default function SalesPage() {
                           </button>
 
                           <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => openStatusModal(order)}
-                              disabled={updatingStatus === order.orderid}
-                              className="inline-flex items-center gap-1 text-xs border border-gray-300 rounded px-2 py-2 min-h-[44px] min-w-[44px] justify-center hover:bg-gray-50 disabled:opacity-50"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                              <span className="hidden xs:inline">{language === 'bg' ? 'Статус' : 'Status'}</span>
-                            </button>
                             <button
                               type="button"
                               onClick={() => openDeleteOrderModal(order)}
@@ -1522,7 +1541,7 @@ export default function SalesPage() {
                                     </p>
                                     <div className="text-xs text-gray-500 space-y-0.5 mb-2">
                                       {item.product.name === 'Unknown Product' ? (
-                                        <p className="text-red-500">⚠️ Product data missing</p>
+                                        <p className="text-red-500">a️ Product data missing</p>
                                       ) : (
                                         <>
                                           {/* Display all properties */}

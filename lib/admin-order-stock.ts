@@ -1,33 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
-export const TRACKING_ORDER_STATUSES = [
-  'pending',
-  'confirmed',
-  'shipped',
-  'delivered',
-  'cancelled',
-  'new',
-  'prepared',
-  'sent',
-  'picked_up',
-  'returned',
-  'waiting_for_stock',
-] as const;
-
-export type TrackingOrderStatus = (typeof TRACKING_ORDER_STATUSES)[number];
-
-export function normalizeOrderStatus(status: string): string {
-  return String(status || '').trim().toLowerCase();
-}
-
-export function isValidTrackingStatus(status: string): status is TrackingOrderStatus {
-  return (TRACKING_ORDER_STATUSES as readonly string[]).includes(normalizeOrderStatus(status));
-}
-
-export function isReturnedStatus(status: string): boolean {
-  return normalizeOrderStatus(status) === 'returned';
-}
+export {
+  TRACKING_ORDER_STATUSES,
+  type TrackingOrderStatus,
+  normalizeOrderStatus,
+  isValidTrackingStatus,
+  isReturnedStatus,
+} from '@/lib/admin-order-status';
 
 export async function recordStockMovement(params: {
   productvariantid: string;
@@ -149,6 +129,62 @@ export async function increaseStockForOrderItems(params: {
       productvariantid: vid,
       delta: qty,
       movement_type: params.movementType,
+      related_order_id: params.orderId,
+      allowNegative: true,
+      created_by: params.created_by,
+    });
+    if (!res.ok) return res;
+  }
+  return { ok: true };
+}
+
+export function aggregateItemsByVariant(
+  items: OrderItemRow[]
+): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const item of items) {
+    const vid = item.productvariantid ? String(item.productvariantid) : '';
+    const qty = Number(item.quantity) || 0;
+    if (!vid || qty <= 0) continue;
+    map.set(vid, (map.get(vid) || 0) + qty);
+  }
+  return map;
+}
+
+export function orderItemsPayloadEqual(
+  oldItems: OrderItemRow[],
+  newItems: OrderItemRow[]
+): boolean {
+  const a = aggregateItemsByVariant(oldItems);
+  const b = aggregateItemsByVariant(newItems);
+  if (a.size !== b.size) return false;
+  for (const [vid, qty] of a) {
+    if (b.get(vid) !== qty) return false;
+  }
+  return true;
+}
+
+/** Apply stock delta when order line items change (active orders only). */
+export async function reconcileOrderItemsStock(params: {
+  orderId: string;
+  oldItems: OrderItemRow[];
+  newItems: OrderItemRow[];
+  created_by?: string | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  const oldMap = aggregateItemsByVariant(params.oldItems);
+  const newMap = aggregateItemsByVariant(params.newItems);
+  const allVids = new Set([...oldMap.keys(), ...newMap.keys()]);
+
+  for (const vid of allVids) {
+    const oldQty = oldMap.get(vid) || 0;
+    const newQty = newMap.get(vid) || 0;
+    const diff = newQty - oldQty;
+    if (diff === 0) continue;
+
+    const res = await adjustVariantQuantityByDelta({
+      productvariantid: vid,
+      delta: -diff,
+      movement_type: 'order_edited',
       related_order_id: params.orderId,
       allowNegative: true,
       created_by: params.created_by,

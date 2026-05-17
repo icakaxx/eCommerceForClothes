@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# Block admin area from indexing
+Disallow: /admin/
+Disallow: /api/
+Disallow: /checkout/
+Disallow: /user/
+
+# Allow product and category pages
+Allow: /products/
+Allow: /for-her/
+Allow: /for-him/
+Allow: /accessories/
+Allow: /about/
+
+Sitemap: https://modabox.eu/sitemap.xml
