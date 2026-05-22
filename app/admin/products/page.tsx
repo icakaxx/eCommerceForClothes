@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit2, Trash2, X, Image as ImageIcon, ChevronDown, Upload, Eye } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Image as ImageIcon, ChevronDown, Upload, Eye, EyeOff } from 'lucide-react';
 import { ProductType, Property } from '@/lib/types/product-types';
 import AdminLayout from '../components/AdminLayout';
 import AdminModal from '../components/AdminModal';
@@ -126,6 +126,9 @@ export default function ProductsPage() {
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkVisibilityModal, setBulkVisibilityModal] = useState<'hide' | 'show' | null>(null);
+  const [bulkUpdatingVisibility, setBulkUpdatingVisibility] = useState(false);
+  const [showBulkVisibilityCompleteAnimation, setShowBulkVisibilityCompleteAnimation] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<number, { price?: boolean; quantity?: boolean }>>({});
   const [showCompleteAnimation, setShowCompleteAnimation] = useState(false);
   const [showDeleteCompleteAnimation, setShowDeleteCompleteAnimation] = useState(false);
@@ -678,6 +681,55 @@ export default function ProductsPage() {
     });
   };
 
+  const handleBulkVisibilityConfirm = async () => {
+    if (!bulkVisibilityModal || selectedProductIds.length === 0) return;
+
+    const hideFromShop = bulkVisibilityModal === 'hide';
+
+    try {
+      setBulkUpdatingVisibility(true);
+      const authHeaders = await adminAuthHeaders();
+      const response = await fetch('/api/admin/products/bulk-visibility', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders,
+        },
+        body: JSON.stringify({
+          productIds: selectedProductIds,
+          isdisabled: hideFromShop,
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        alert(
+          language === 'bg'
+            ? `Грешка: ${result.error || 'Неуспешна промяна'}`
+            : `Error: ${result.error || 'Update failed'}`
+        );
+        return;
+      }
+
+      setShowBulkVisibilityCompleteAnimation(true);
+      setTimeout(() => {
+        setSelectedProductIds([]);
+        setBulkVisibilityModal(null);
+        setShowBulkVisibilityCompleteAnimation(false);
+        loadProducts();
+      }, 1200);
+    } catch (error) {
+      console.error('Failed to bulk update visibility:', error);
+      alert(
+        language === 'bg'
+          ? 'Неуспешна промяна на видимостта'
+          : 'Failed to update visibility'
+      );
+    } finally {
+      setBulkUpdatingVisibility(false);
+    }
+  };
+
   const handleBulkDeleteConfirm = async () => {
     if (selectedProductIds.length === 0) return;
     try {
@@ -960,15 +1012,38 @@ export default function ProductsPage() {
           <h1 className="text-2xl sm:text-3xl font-bold">Артикули</h1>
           <div className="flex flex-wrap items-center gap-2">
             {selectedProductIds.length > 0 && (
-              <button
-                onClick={() => setShowBulkDeleteModal(true)}
-                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 active:bg-red-800 transition-colors touch-manipulation text-sm sm:text-base"
-              >
-                <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                {language === 'bg'
-                  ? `Изтрий избрани (${selectedProductIds.length})`
-                  : `Delete selected (${selectedProductIds.length})`}
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setBulkVisibilityModal('hide')}
+                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 active:bg-amber-800 transition-colors touch-manipulation text-sm sm:text-base"
+                >
+                  <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {language === 'bg'
+                    ? `Скрий избрани (${selectedProductIds.length})`
+                    : `Hide selected (${selectedProductIds.length})`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBulkVisibilityModal('show')}
+                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 active:bg-emerald-800 transition-colors touch-manipulation text-sm sm:text-base"
+                >
+                  <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {language === 'bg'
+                    ? `Покажи избрани (${selectedProductIds.length})`
+                    : `Show selected (${selectedProductIds.length})`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowBulkDeleteModal(true)}
+                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 active:bg-red-800 transition-colors touch-manipulation text-sm sm:text-base"
+                >
+                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {language === 'bg'
+                    ? `Изтрий избрани (${selectedProductIds.length})`
+                    : `Delete selected (${selectedProductIds.length})`}
+                </button>
+              </>
             )}
             <button
               onClick={() => {
@@ -2431,6 +2506,95 @@ export default function ProductsPage() {
             
             {/* Complete Animation Overlay */}
             {showDeleteCompleteAnimation && (
+              <div className="absolute inset-0 flex items-center justify-center z-50">
+                <CompleteAnimation size={120} />
+              </div>
+            )}
+          </div>
+        </AdminModal>
+
+        <AdminModal
+          isOpen={bulkVisibilityModal !== null}
+          onClose={() => {
+            if (!showBulkVisibilityCompleteAnimation) {
+              setBulkVisibilityModal(null);
+              setShowBulkVisibilityCompleteAnimation(false);
+            }
+          }}
+          title={
+            bulkVisibilityModal === 'hide'
+              ? language === 'bg'
+                ? 'Скрий избраните от магазина'
+                : 'Hide selected from shop'
+              : language === 'bg'
+                ? 'Покажи избраните в магазина'
+                : 'Show selected in shop'
+          }
+          subheader={
+            bulkVisibilityModal === 'hide'
+              ? language === 'bg'
+                ? 'Избраните артикули няма да се виждат от клиентите. Можете да ги покажете отново по всяко време.'
+                : 'Selected products will be hidden from customers. You can show them again anytime.'
+              : language === 'bg'
+                ? 'Избраните артикули ще станат видими в онлайн магазина.'
+                : 'Selected products will become visible in the online shop.'
+          }
+          maxWidth="max-w-md"
+          minWidth={400}
+          minHeight={200}
+        >
+          <div className="relative">
+            <div
+              className={`space-y-4 transition-all duration-300 ${
+                showBulkVisibilityCompleteAnimation ? 'blur-sm pointer-events-none' : ''
+              }`}
+            >
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm font-medium text-gray-900 mb-1">
+                  {language === 'bg' ? 'Избрани артикули:' : 'Selected items:'}
+                </p>
+                <p className="text-sm text-gray-700">{selectedProductIds.length}</p>
+              </div>
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!showBulkVisibilityCompleteAnimation) {
+                      setBulkVisibilityModal(null);
+                      setShowBulkVisibilityCompleteAnimation(false);
+                    }
+                  }}
+                  disabled={bulkUpdatingVisibility || showBulkVisibilityCompleteAnimation}
+                  className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation disabled:opacity-50"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkVisibilityConfirm}
+                  disabled={bulkUpdatingVisibility || showBulkVisibilityCompleteAnimation}
+                  className={`w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base text-white rounded transition-opacity touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed ${
+                    bulkVisibilityModal === 'hide'
+                      ? 'bg-amber-600 hover:bg-amber-700'
+                      : 'bg-emerald-600 hover:bg-emerald-700'
+                  }`}
+                >
+                  {bulkUpdatingVisibility
+                    ? language === 'bg'
+                      ? 'Запазване...'
+                      : 'Saving...'
+                    : bulkVisibilityModal === 'hide'
+                      ? language === 'bg'
+                        ? 'Скрий избраните'
+                        : 'Hide selected'
+                      : language === 'bg'
+                        ? 'Покажи избраните'
+                        : 'Show selected'}
+                </button>
+              </div>
+            </div>
+
+            {showBulkVisibilityCompleteAnimation && (
               <div className="absolute inset-0 flex items-center justify-center z-50">
                 <CompleteAnimation size={120} />
               </div>
