@@ -17,8 +17,6 @@ export interface CartItem {
 export interface CartState {
   items: CartItem[];
   isCartOpen: boolean;
-  /** False until zustand persist has read localStorage (avoids empty-cart redirect on mobile). */
-  _hasHydrated: boolean;
 
   // Actions
   addItem: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;

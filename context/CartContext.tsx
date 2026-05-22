@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { CartItem } from '@/types/cart';
 
@@ -25,24 +25,47 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const cartStore = useCartStore();
+  const [hasHydrated, setHasHydrated] = useState(false);
+  const items = useCartStore((state) => state.items);
+  const isCartOpen = useCartStore((state) => state.isCartOpen);
+  const addItem = useCartStore((state) => state.addItem);
+  const removeItem = useCartStore((state) => state.removeItem);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const clearCart = useCartStore((state) => state.clearCart);
+  const toggleCart = useCartStore((state) => state.toggleCart);
+  const openCart = useCartStore((state) => state.openCart);
+  const closeCart = useCartStore((state) => state.closeCart);
+
+  useEffect(() => {
+    const markHydrated = () => setHasHydrated(true);
+
+    const unsubFinish = useCartStore.persist.onFinishHydration(markHydrated);
+
+    if (useCartStore.persist.hasHydrated()) {
+      markHydrated();
+    } else {
+      void useCartStore.persist.rehydrate();
+    }
+
+    return unsubFinish;
+  }, []);
+
+  const totalItems = items.reduce((total, item) => total + item.quantity, 0);
+  const totalPrice = items.reduce((total, item) => total + item.price * item.quantity, 0);
 
   const value: CartContextType = {
-    // State
-    items: cartStore.items,
-    isCartOpen: cartStore.isCartOpen,
-    hasHydrated: cartStore._hasHydrated,
-    totalItems: cartStore.totalItems(),
-    totalPrice: cartStore.totalPrice(),
-
-    // Actions
-    addItem: cartStore.addItem,
-    removeItem: cartStore.removeItem,
-    updateQuantity: cartStore.updateQuantity,
-    clearCart: cartStore.clearCart,
-    toggleCart: cartStore.toggleCart,
-    openCart: cartStore.openCart,
-    closeCart: cartStore.closeCart,
+    items,
+    isCartOpen,
+    hasHydrated,
+    totalItems,
+    totalPrice,
+    addItem,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    toggleCart,
+    openCart,
+    closeCart,
   };
 
   return (
@@ -59,14 +82,3 @@ export function useCart() {
   }
   return context;
 }
-
-
-
-
-
-
-
-
-
-
-

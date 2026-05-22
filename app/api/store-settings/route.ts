@@ -1,5 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { getContactEmail } from '@/lib/mail';
+
+function withPublicContactEmail<T extends { email?: string | null } | null>(settings: T): T {
+  if (!settings) {
+    return settings;
+  }
+
+  const publicEmail = getContactEmail();
+  if (!publicEmail || publicEmail === 'contact@store.com') {
+    return settings;
+  }
+
+  return { ...settings, email: publicEmail };
+}
 
 // GET - Fetch store settings
 export async function GET() {
@@ -22,7 +36,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      settings: data
+      settings: withPublicContactEmail(data)
     })
 
   } catch (error) {
