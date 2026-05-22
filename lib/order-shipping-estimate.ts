@@ -4,8 +4,10 @@ const SOFIA_TZ = 'Europe/Sofia';
 const SAME_DAY_CUTOFF_HOUR = 13;
 
 export interface ShippingEstimate {
-  /** Order placed before 13:00 Sofia time */
+  /** Order placed before 13:00 Sofia time on a weekday */
   shipsSameDay: boolean;
+  /** Order was placed on Saturday or Sunday (Sofia time) */
+  orderOnWeekend: boolean;
   shipDateLabel: string;
   expectedDeliveryLabel: string;
 }
@@ -39,6 +41,39 @@ function addCalendarDays(year: number, month: number, day: number, days: number)
   };
 }
 
+/** 0 = Sunday, 6 = Saturday */
+function getWeekday(year: number, month: number, day: number): number {
+  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0)).getUTCDay();
+}
+
+function isWeekend(year: number, month: number, day: number): boolean {
+  const weekday = getWeekday(year, month, day);
+  return weekday === 0 || weekday === 6;
+}
+
+function addBusinessDays(
+  year: number,
+  month: number,
+  day: number,
+  businessDays: number
+): { year: number; month: number; day: number } {
+  let current = { year, month, day };
+  let remaining = businessDays;
+
+  while (remaining > 0) {
+    current = addCalendarDays(current.year, current.month, current.day, 1);
+    if (!isWeekend(current.year, current.month, current.day)) {
+      remaining -= 1;
+    }
+  }
+
+  return current;
+}
+
+function nextBusinessDayAfter(year: number, month: number, day: number) {
+  return addBusinessDays(year, month, day, 1);
+}
+
 function formatCalendarDate(year: number, month: number, day: number, language: Language): string {
   const utc = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
   return utc.toLocaleDateString(language === 'bg' ? 'bg-BG' : 'en-GB', {
@@ -51,21 +86,36 @@ function formatCalendarDate(year: number, month: number, day: number, language: 
 }
 
 /**
- * Econt-style estimate: orders before 13:00 Sofia ship same day; after 13:00 ship next day.
- * Typical delivery is 1 business day after dispatch.
+ * Econt-style estimate (weekdays only):
+ * - Mon–Thu before 13:00 Sofia → ship same day
+ * - Mon–Thu after 13:00 → next business day
+ * - Fri before 13:00 → ship Friday; after 13:00 → Monday
+ * - Sat/Sun → ship Monday
+ * - Delivery is 1 business day after dispatch
  */
 export function getShippingEstimate(orderDateIso: string, language: Language): ShippingEstimate {
   const { year, month, day, hour } = getSofiaDateParts(orderDateIso);
-  const shipsSameDay = hour < SAME_DAY_CUTOFF_HOUR;
+  const orderOnWeekend = isWeekend(year, month, day);
 
-  const shipParts = shipsSameDay
-    ? { year, month, day }
-    : addCalendarDays(year, month, day, 1);
+  let shipParts: { year: number; month: number; day: number };
+  let shipsSameDay: boolean;
 
-  const deliveryParts = addCalendarDays(shipParts.year, shipParts.month, shipParts.day, 1);
+  if (orderOnWeekend) {
+    shipParts = nextBusinessDayAfter(year, month, day);
+    shipsSameDay = false;
+  } else if (hour < SAME_DAY_CUTOFF_HOUR) {
+    shipParts = { year, month, day };
+    shipsSameDay = true;
+  } else {
+    shipParts = nextBusinessDayAfter(year, month, day);
+    shipsSameDay = false;
+  }
+
+  const deliveryParts = addBusinessDays(shipParts.year, shipParts.month, shipParts.day, 1);
 
   return {
     shipsSameDay,
+    orderOnWeekend,
     shipDateLabel: formatCalendarDate(shipParts.year, shipParts.month, shipParts.day, language),
     expectedDeliveryLabel: formatCalendarDate(
       deliveryParts.year,
@@ -80,14 +130,20 @@ export function getShippingEstimateMessage(orderDateIso: string, language: Langu
   const estimate = getShippingEstimate(orderDateIso, language);
 
   if (language === 'bg') {
-    if (estimate.shipsSameDay) {
-      return `Поръчката ви ще бъде изпратена днес (${estimate.shipDateLabel}), тъй като е направена преди 13:00 ч. Очаквана доставка: ${estimate.expectedDeliveryLabel} (обикновено 1 работен ден).`;
+    if (estimate.orderOnWeekend) {
+      return `Поръчката ви е получена в почивен ден и ще бъде изпратена в ${estimate.shipDateLabel}. Очаквана доставка: ${estimate.expectedDeliveryLabel} (обикновено 1 работен ден след изпращане).`;
     }
-    return `Поръчката ви ще бъде изпратена на ${estimate.shipDateLabel} (след 13:00 ч. изпращаме на следващия ден). Очаквана доставка: ${estimate.expectedDeliveryLabel} (обикновено 1 работен ден).`;
+    if (estimate.shipsSameDay) {
+      return `Поръчката ви ще бъде изпратена днес (${estimate.shipDateLabel}), тъй като е направена преди 13:00 ч. в работен ден. Очаквана доставка: ${estimate.expectedDeliveryLabel} (обикновено 1 работен ден).`;
+    }
+    return `Поръчката ви ще бъде изпратена на ${estimate.shipDateLabel} (след 13:00 ч. изпращаме на следващия работен ден). Очаквана доставка: ${estimate.expectedDeliveryLabel} (обикновено 1 работен ден).`;
   }
 
-  if (estimate.shipsSameDay) {
-    return `Your order will be dispatched today (${estimate.shipDateLabel}) because it was placed before 13:00. Expected delivery: ${estimate.expectedDeliveryLabel} (typically 1 business day).`;
+  if (estimate.orderOnWeekend) {
+    return `Your order was received on a weekend and will be dispatched on ${estimate.shipDateLabel}. Expected delivery: ${estimate.expectedDeliveryLabel} (typically 1 business day after dispatch).`;
   }
-  return `Your order will be dispatched on ${estimate.shipDateLabel} (orders after 13:00 ship the next day). Expected delivery: ${estimate.expectedDeliveryLabel} (typically 1 business day).`;
+  if (estimate.shipsSameDay) {
+    return `Your order will be dispatched today (${estimate.shipDateLabel}) because it was placed before 13:00 on a business day. Expected delivery: ${estimate.expectedDeliveryLabel} (typically 1 business day).`;
+  }
+  return `Your order will be dispatched on ${estimate.shipDateLabel} (orders after 13:00 ship the next business day). Expected delivery: ${estimate.expectedDeliveryLabel} (typically 1 business day).`;
 }
