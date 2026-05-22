@@ -236,11 +236,6 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
                 e.stopPropagation();
                 setShowAddToCartModal(true);
               }}
-              onMouseDown={(e) => {
-                // Prevent card click from firing when clicking the button
-                e.preventDefault();
-                e.stopPropagation();
-              }}
               className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center justify-center gap-2"
             >
               <ShoppingCart size={16} />

@@ -8,6 +8,7 @@ interface CartContextType {
   // State
   items: CartItem[];
   isCartOpen: boolean;
+  hasHydrated: boolean;
   totalItems: number;
   totalPrice: number;
 
@@ -30,6 +31,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // State
     items: cartStore.items,
     isCartOpen: cartStore.isCartOpen,
+    hasHydrated: cartStore._hasHydrated,
     totalItems: cartStore.totalItems(),
     totalPrice: cartStore.totalPrice(),
 

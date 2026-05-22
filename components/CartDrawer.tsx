@@ -1,15 +1,25 @@
 // components/CartDrawer.tsx
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { X, Plus, Minus, ShoppingCart, Trash2 } from 'lucide-react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { useCart } from '@/context/CartContext';
 import { translations } from '@/lib/translations';
 import Link from 'next/link';
 
+function unlockBodyScroll(savedScrollY: number) {
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.width = '';
+  document.body.style.overflow = '';
+  window.scrollTo(0, savedScrollY);
+}
+
 const CartDrawer: React.FC = () => {
+  const router = useRouter();
   const { language } = useLanguage();
   const {
     items,
@@ -23,28 +33,29 @@ const CartDrawer: React.FC = () => {
   } = useCart();
 
   const t = translations[language || 'en'];
+  const scrollYRef = useRef(0);
 
   const formatPrice = (price: number) => {
     return `€${price.toFixed(2)}`;
   };
 
+  const handleCheckout = useCallback(() => {
+    unlockBodyScroll(scrollYRef.current);
+    closeCart();
+    router.push('/checkout');
+  }, [closeCart, router]);
+
   // Prevent body scrolling when cart drawer is open
   useEffect(() => {
     if (isCartOpen) {
-      // Save current scroll position
-      const scrollY = window.scrollY;
+      scrollYRef.current = window.scrollY;
       document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
+      document.body.style.top = `-${scrollYRef.current}px`;
       document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
-      
+
       return () => {
-        // Restore scroll position when cart closes
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        document.body.style.overflow = '';
-        window.scrollTo(0, scrollY);
+        unlockBodyScroll(scrollYRef.current);
       };
     }
   }, [isCartOpen]);
@@ -74,6 +85,7 @@ const CartDrawer: React.FC = () => {
               )}
             </div>
             <button
+              type="button"
               onClick={closeCart}
               className="p-2 hover:bg-gray-100 rounded-full transition"
             >
@@ -151,6 +163,7 @@ const CartDrawer: React.FC = () => {
                         </p>
                       </div>
                       <button
+                        type="button"
                         onClick={() => removeItem(item.id, item.size)}
                         className="p-1 hover:bg-red-100 rounded transition"
                       >
@@ -162,6 +175,7 @@ const CartDrawer: React.FC = () => {
                     <div className="flex items-center justify-between mt-3">
                       <div className="flex items-center space-x-2">
                         <button
+                          type="button"
                           onClick={() => updateQuantity(item.id, item.quantity - 1, item.size)}
                           className="p-1 hover:bg-gray-200 rounded transition"
                         >
@@ -171,6 +185,7 @@ const CartDrawer: React.FC = () => {
                           {item.quantity}
                         </span>
                         <button
+                          type="button"
                           onClick={() => updateQuantity(item.id, item.quantity + 1, item.size)}
                           className="p-1 hover:bg-gray-200 rounded transition"
                         >
@@ -202,21 +217,23 @@ const CartDrawer: React.FC = () => {
 
               <div className="flex space-x-3">
                 <button
+                  type="button"
                   onClick={clearCart}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
                 >
                   {t.clearCart}
                 </button>
-                <Link
-                  href="/checkout"
-                  onClick={closeCart}
+                <button
+                  type="button"
+                  onClick={handleCheckout}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-center"
                 >
                   {t.checkout}
-                </Link>
+                </button>
               </div>
 
               <button
+                type="button"
                 onClick={closeCart}
                 className="w-full px-4 py-2 border border-gray-900 text-gray-900 rounded-lg hover:bg-gray-900 hover:text-white transition"
               >
@@ -231,8 +248,3 @@ const CartDrawer: React.FC = () => {
 };
 
 export default CartDrawer;
-
-
-
-
-

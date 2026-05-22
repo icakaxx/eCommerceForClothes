@@ -12,6 +12,7 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
       isCartOpen: false,
+      _hasHydrated: false,
 
       addItem: (newItem) => {
         const { items } = get();
@@ -98,6 +99,9 @@ export const useCartStore = create<CartState>()(
       name: 'cart-storage',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ items: state.items }), // Only persist items
+      onRehydrateStorage: () => () => {
+        useCartStore.setState({ _hasHydrated: true });
+      },
     }
   )
 );

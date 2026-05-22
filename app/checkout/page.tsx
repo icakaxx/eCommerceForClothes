@@ -20,7 +20,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { language } = useLanguage();
   const { theme } = useTheme();
-  const { items, totalItems, totalPrice, clearCart } = useCart();
+  const { items, totalItems, totalPrice, clearCart, hasHydrated } = useCart();
   const { settings } = useStoreSettings();
   const { user, isAuthenticated } = useAuth();
   const t = translations[language];
@@ -68,11 +68,26 @@ export default function CheckoutPage() {
   const cityDropdownRef = useRef<HTMLDivElement>(null);
   const [showMissingOfficePrompt, setShowMissingOfficePrompt] = useState(false);
   const hasAutoPopulated = useRef(false);
+  const placeOrderButtonRef = useRef<HTMLButtonElement>(null);
+
+  const scrollToCheckoutIssue = () => {
+    const firstInvalid = document.querySelector('[data-checkout-field-error], .border-red-500');
+    if (firstInvalid) {
+      firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    placeOrderButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   useEffect(() => {
     const adminState = localStorage.getItem('isAdmin');
     if (adminState === 'true') {
       setIsAdmin(true);
+    }
+
+    // Wait for cart rehydration before treating an empty cart as empty
+    if (!hasHydrated) {
+      return;
     }
 
     // Redirect if cart is empty
@@ -86,7 +101,7 @@ export default function CheckoutPage() {
     
     // Load Econt offices data
     loadEcontOffices();
-  }, [totalItems, router]);
+  }, [hasHydrated, totalItems, router]);
 
   // Auto-populate form with user data when logged in (only once)
   useEffect(() => {
@@ -433,12 +448,14 @@ export default function CheckoutPage() {
         telephone: phoneError,
         email: emailError
       });
-      setError('Please correct the errors in the form');
+      setError(t.pleaseFillAllRequiredFields || 'Please fill in all required fields');
+      scrollToCheckoutIssue();
       return;
     }
 
     if (!isFormValid()) {
-      setError('Please fill in all required fields');
+      setError(t.pleaseFillAllRequiredFields || 'Please fill in all required fields');
+      scrollToCheckoutIssue();
       return;
     }
 
@@ -450,6 +467,7 @@ export default function CheckoutPage() {
     ) {
       setValidationErrors(prev => ({ ...prev, econtOfficeId: t.selectEcontOffice }));
       setError(t.selectEcontOffice);
+      scrollToCheckoutIssue();
       return;
     }
 
@@ -467,6 +485,7 @@ export default function CheckoutPage() {
       if (Object.keys(addressErrors).length > 0) {
         setValidationErrors(prev => ({ ...prev, ...addressErrors }));
         setError(t.pleaseFillAllRequiredFields || 'Please fill all required fields');
+        scrollToCheckoutIssue();
         return;
       }
     }
@@ -628,6 +647,18 @@ export default function CheckoutPage() {
     setIsAdmin(value);
     localStorage.setItem('isAdmin', value.toString());
   };
+
+  if (!hasHydrated) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin} />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-gray-600">{language === 'bg' ? 'Зареждане...' : 'Loading...'}</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (totalItems === 0) {
     return null; // Will redirect in useEffect
@@ -826,7 +857,7 @@ export default function CheckoutPage() {
                         required
                       />
                       {validationErrors.telephone && (
-                        <p className="text-red-500 text-xs mt-1">{validationErrors.telephone}</p>
+                        <p className="text-red-500 text-xs mt-1" data-checkout-field-error>{validationErrors.telephone}</p>
                       )}
                     </div>
                     <div>
@@ -844,7 +875,7 @@ export default function CheckoutPage() {
                         required
                       />
                       {validationErrors.email && (
-                        <p className="text-red-500 text-xs mt-1">{validationErrors.email}</p>
+                        <p className="text-red-500 text-xs mt-1" data-checkout-field-error>{validationErrors.email}</p>
                       )}
                     </div>
                   </div>
@@ -1038,7 +1069,7 @@ export default function CheckoutPage() {
                           ))}
                         </select>
                       {validationErrors.econtOfficeId && (
-                        <p className="text-red-500 text-xs mt-1">{validationErrors.econtOfficeId}</p>
+                        <p className="text-red-500 text-xs mt-1" data-checkout-field-error>{validationErrors.econtOfficeId}</p>
                       )}
                       
                       {/* Show office details when selected */}
@@ -1255,9 +1286,17 @@ export default function CheckoutPage() {
 
                 {/* Place Order Button */}
                 <button
+                  ref={placeOrderButtonRef}
+                  type="button"
                   onClick={handleSubmitOrder}
-                  disabled={isSubmitting || isValidatingStock || !isFormValid()}
-                  className="w-full mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center"
+                  disabled={isSubmitting || isValidatingStock}
+                  className={`w-full mt-6 px-6 py-3 text-white rounded-lg transition-colors font-medium flex items-center justify-center ${
+                    isSubmitting || isValidatingStock
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : isFormValid()
+                        ? 'bg-blue-600 hover:bg-blue-700'
+                        : 'bg-blue-500 hover:bg-blue-600'
+                  }`}
                 >
                   {isValidatingStock ? (
                     <>
