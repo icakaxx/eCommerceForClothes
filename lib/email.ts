@@ -1,5 +1,6 @@
-import nodemailer from 'nodemailer';
+import { sendEmail, getContactEmail, getAdminNotificationEmails, isEmailConfigured } from '@/lib/mail';
 import { translations, Language } from '@/lib/translations';
+import { getShippingEstimateMessage } from '@/lib/order-shipping-estimate';
 
 interface OrderDetails {
   orderId: string;
@@ -41,7 +42,6 @@ interface OrderDetails {
   orderDate: string;
 }
 
-// Helper function to translate delivery type
 function getDeliveryTypeLabel(type: string, language: Language): string {
   const t = translations[language];
   const typeLower = type.toLowerCase();
@@ -55,27 +55,14 @@ function getDeliveryTypeLabel(type: string, language: Language): string {
   return type;
 }
 
-// Validate email configuration
-function getEmailTransporter() {
-  const email = process.env.NEXT_PUBLIC_EMAIL;
-  const password = process.env.NEXT_PUBLIC_EMAIL_PASS;
-
-  if (!email || !password) {
-    console.error('Email configuration missing. NEXT_PUBLIC_EMAIL and NEXT_PUBLIC_EMAIL_PASS must be set.');
-    throw new Error('Email service not configured');
+export async function sendCustomerOrderEmail(orderDetails: OrderDetails, language: Language = 'en'): Promise<void> {
+  if (!isEmailConfigured()) {
+    console.warn('Skipping customer order email: email not configured');
+    return;
   }
 
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: email,
-      pass: password,
-    },
-  });
-}
-
-export async function sendCustomerOrderEmail(orderDetails: OrderDetails, language: Language = 'en'): Promise<void> {
   const t = translations[language];
+  const contactEmail = getContactEmail();
   const customerEmailHtml = `
     <!DOCTYPE html>
     <html>
@@ -104,7 +91,8 @@ export async function sendCustomerOrderEmail(orderDetails: OrderDetails, languag
         <div class="content">
           <p>${language === 'bg' ? 'Уважаеми' : 'Dear'} ${orderDetails.customer.firstName} ${orderDetails.customer.lastName},</p>
 
-          <p>${language === 'bg' ? 'Благодарим ви за покупката от нас! Вашата поръчка е успешно направена и се обработва.' : 'Thank you for shopping with us! Your order has been successfully placed and is being processed.'}</p>
+          <p>${t.emailPendingIntro}</p>
+          <p><strong>${t.emailPendingAwaitingConfirm}</strong></p>
 
           <div class="order-details">
             <h3>${t.emailOrderSummary}</h3>
@@ -172,12 +160,12 @@ export async function sendCustomerOrderEmail(orderDetails: OrderDetails, languag
             <ul>
               <li>${t.emailWillReceiveConfirmation}</li>
               <li>${t.emailOrderProcessed}</li>
-              <li>${t.emailWillReceiveTracking}</li>
+              <li>${t.emailPendingAfterConfirm}</li>
             </ul>
           </div>
 
           <div class="footer">
-            <p>${t.emailContactUs} ${process.env.NEXT_PUBLIC_EMAIL || 'contact@storename.com'}</p>
+            <p>${t.emailContactUs} ${contactEmail}</p>
             <p>${t.emailOrderDate} ${new Date(orderDetails.orderDate).toLocaleDateString(language === 'bg' ? 'bg-BG' : 'en-US')}</p>
           </div>
         </div>
@@ -186,38 +174,22 @@ export async function sendCustomerOrderEmail(orderDetails: OrderDetails, languag
     </html>
   `;
 
-  const mailOptions = {
-    from: process.env.NEXT_PUBLIC_EMAIL,
+  await sendEmail({
     to: orderDetails.customer.email,
-    subject: `${t.emailOrderConfirmation} - #${orderDetails.orderId}`,
+    subject: `${t.emailOrderReceivedSubject} - #${orderDetails.orderId}`,
     html: customerEmailHtml,
-  };
+    replyTo: contactEmail,
+  });
 
-  try {
-    const transporter = getEmailTransporter();
-    await transporter.sendMail(mailOptions);
-    console.log('Customer order email sent successfully');
-  } catch (error: any) {
-    console.error('Error sending customer order email:', error);
-    
-    // Provide helpful error message for Gmail auth issues
-    if (error?.code === 'EAUTH' || error?.message?.includes('BadCredentials') || error?.message?.includes('Username and Password not accepted')) {
-      const helpfulError = new Error(
-        'Gmail authentication failed. Please ensure:\n' +
-        '1. You are using a Gmail App Password (not your regular password)\n' +
-        '2. 2-Step Verification is enabled on your Google account\n' +
-        '3. Generate an App Password at: https://myaccount.google.com/apppasswords\n' +
-        '4. Use the 16-character App Password in NEXT_PUBLIC_EMAIL_PASS\n' +
-        `Original error: ${error.message}`
-      );
-      throw helpfulError;
-    }
-    
-    throw new Error(`Failed to send customer confirmation email: ${error.message}`);
-  }
+  console.log('Customer order email sent successfully to', orderDetails.customer.email);
 }
 
 export async function sendAdminOrderEmail(orderDetails: OrderDetails, language: Language = 'en'): Promise<void> {
+  if (!isEmailConfigured()) {
+    console.warn('Skipping admin order email: email not configured');
+    return;
+  }
+
   const t = translations[language];
   const adminEmailHtml = `
     <!DOCTYPE html>
@@ -245,7 +217,7 @@ export async function sendAdminOrderEmail(orderDetails: OrderDetails, language: 
         </div>
 
         <div class="content">
-          <p>${language === 'bg' ? 'Нова поръчка е направена в вашия магазин.' : 'A new order has been placed on your store.'}</p>
+          <p>${t.emailAdminAwaitingConfirmation}</p>
 
           <div class="customer-info">
             <h3>${t.emailCustomerInformation}</h3>
@@ -337,45 +309,27 @@ export async function sendAdminOrderEmail(orderDetails: OrderDetails, language: 
     </html>
   `;
 
-  const mailOptions = {
-    from: process.env.NEXT_PUBLIC_EMAIL,
-    to: process.env.NEXT_PUBLIC_EMAIL, // Send to self
+  await sendEmail({
+    to: getAdminNotificationEmails(),
     subject: `${t.emailNewOrderReceived} - #${orderDetails.orderId}`,
     html: adminEmailHtml,
-  };
+  });
 
-  try {
-    const transporter = getEmailTransporter();
-    await transporter.sendMail(mailOptions);
-    console.log('Admin order email sent successfully');
-  } catch (error: any) {
-    console.error('Error sending admin order email:', error);
-    
-    // Provide helpful error message for Gmail auth issues
-    if (error?.code === 'EAUTH' || error?.message?.includes('BadCredentials') || error?.message?.includes('Username and Password not accepted')) {
-      const helpfulError = new Error(
-        'Gmail authentication failed. Please ensure:\n' +
-        '1. You are using a Gmail App Password (not your regular password)\n' +
-        '2. 2-Step Verification is enabled on your Google account\n' +
-        '3. Generate an App Password at: https://myaccount.google.com/apppasswords\n' +
-        '4. Use the 16-character App Password in NEXT_PUBLIC_EMAIL_PASS\n' +
-        `Original error: ${error.message}`
-      );
-      throw helpfulError;
-    }
-    
-    throw new Error(`Failed to send admin notification email: ${error.message}`);
-  }
+  console.log('Admin order email sent successfully');
 }
 
-// Send order status update email to customer
 export async function sendOrderStatusEmail(
   orderDetails: OrderDetails,
   status: 'confirmed' | 'shipped' | 'dispatched' | 'delivered' | 'cancelled',
   language: Language = 'en'
 ): Promise<void> {
+  if (!isEmailConfigured()) {
+    console.warn('Skipping order status email: email not configured');
+    return;
+  }
+
   const t = translations[language];
-  // Map 'shipped' to 'dispatched' for email display
+  const contactEmail = getContactEmail();
   const emailStatus = status === 'shipped' ? 'dispatched' : status;
   const statusMessages: Record<string, { title: string; message: string; color: string }> = {
     confirmed: {
@@ -406,6 +360,15 @@ export async function sendOrderStatusEmail(
   };
 
   const statusInfo = statusMessages[emailStatus] || statusMessages.confirmed;
+  const shippingEstimateHtml =
+    emailStatus === 'confirmed'
+      ? `
+          <div style="background: #eef2ff; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${statusInfo.color};">
+            <p><strong>${t.emailShippingScheduleTitle}</strong></p>
+            <p>${getShippingEstimateMessage(orderDetails.orderDate, language)}</p>
+          </div>
+        `
+      : '';
 
   const customerEmailHtml = `
     <!DOCTYPE html>
@@ -463,6 +426,8 @@ export async function sendOrderStatusEmail(
                       </div>
                     </div>
 
+                    ${shippingEstimateHtml}
+
                     ${(emailStatus === 'dispatched' || status === 'shipped') ? `
           <div style="background: #e6fffa; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${statusInfo.color};">
             <p><strong>${t.emailTrackingInformation}</strong></p>
@@ -485,7 +450,7 @@ export async function sendOrderStatusEmail(
           ` : ''}
 
           <div class="footer">
-            <p>${t.emailContactUs} ${process.env.NEXT_PUBLIC_EMAIL || 'contact@storename.com'}</p>
+            <p>${t.emailContactUs} ${contactEmail}</p>
             <p>${t.emailOrderDate} ${new Date(orderDetails.orderDate).toLocaleDateString(language === 'bg' ? 'bg-BG' : 'en-US')}</p>
           </div>
         </div>
@@ -494,33 +459,12 @@ export async function sendOrderStatusEmail(
     </html>
   `;
 
-  const mailOptions = {
-    from: process.env.NEXT_PUBLIC_EMAIL,
+  await sendEmail({
     to: orderDetails.customer.email,
     subject: `Order ${statusInfo.title} - #${orderDetails.orderId}`,
     html: customerEmailHtml,
-  };
+    replyTo: contactEmail,
+  });
 
-  try {
-    const transporter = getEmailTransporter();
-    await transporter.sendMail(mailOptions);
-    console.log(`Order ${status} email sent successfully to ${orderDetails.customer.email}`);
-  } catch (error: any) {
-    console.error(`Error sending order ${status} email:`, error);
-    
-    // Provide helpful error message for Gmail auth issues
-    if (error?.code === 'EAUTH' || error?.message?.includes('BadCredentials') || error?.message?.includes('Username and Password not accepted')) {
-      const helpfulError = new Error(
-        'Gmail authentication failed. Please ensure:\n' +
-        '1. You are using a Gmail App Password (not your regular password)\n' +
-        '2. 2-Step Verification is enabled on your Google account\n' +
-        '3. Generate an App Password at: https://myaccount.google.com/apppasswords\n' +
-        '4. Use the 16-character App Password in NEXT_PUBLIC_EMAIL_PASS\n' +
-        `Original error: ${error.message}`
-      );
-      throw helpfulError;
-    }
-    
-    throw new Error(`Failed to send order ${status} email: ${error.message}`);
-  }
+  console.log(`Order ${status} email sent successfully to ${orderDetails.customer.email}`);
 }

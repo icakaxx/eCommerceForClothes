@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer'
+import { sendEmail, getContactEmail, isEmailConfigured } from '@/lib/mail'
 
 interface EmailOptions {
   to: string
@@ -13,37 +13,14 @@ interface PasswordResetEmailOptions {
 }
 
 export class EmailService {
-  private transporter: nodemailer.Transporter | null = null
-  private hasCredentials: boolean = false
-
-  constructor() {
-    // Check if email credentials are available
-    const emailUser = process.env.EMAIL_USER
-    const emailPass = process.env.EMAIL_PASS
-    
-    if (emailUser && emailPass) {
-      this.hasCredentials = true
-      this.transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: emailUser,
-          pass: emailPass,
-        },
-      })
-    } else {
-      this.hasCredentials = false
-    }
-  }
-
   async sendWelcomeEmail({ to, name }: EmailOptions): Promise<void> {
-    // Skip sending emails if credentials are not configured
-    if (!this.hasCredentials || !this.transporter) {
-      return;
+    if (!isEmailConfigured()) {
+      return
     }
-    
+
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-    const storeName = process.env.NEXT_PUBLIC_STORE_NAME || 'Store'
-    
+    const storeName = process.env.RESEND_FROM_NAME || process.env.NEXT_PUBLIC_STORE_NAME || 'Store'
+
     const htmlContent = `
       <!DOCTYPE html>
       <html lang="bg">
@@ -131,29 +108,25 @@ export class EmailService {
       </html>
     `
 
-    const mailOptions = {
-      from: `"${storeName}" <${process.env.EMAIL_USER || 'noreply@store.com'}>`,
-      to,
-      subject: `Добре дошли в ${storeName}!`,
-      html: htmlContent,
-    }
-
     try {
-      await this.transporter!.sendMail(mailOptions)
+      await sendEmail({
+        to,
+        subject: `Добре дошли в ${storeName}!`,
+        html: htmlContent,
+        replyTo: getContactEmail(),
+      })
     } catch (error) {
       console.error('Error sending welcome email:', error)
-      // Don't throw error - just log it
     }
   }
 
   async sendPasswordResetEmail({ to, name, resetToken, resetUrl }: PasswordResetEmailOptions): Promise<void> {
-    // Skip sending emails if credentials are not configured
-    if (!this.hasCredentials || !this.transporter) {
-      return;
+    if (!isEmailConfigured()) {
+      return
     }
-    
-    const storeName = process.env.NEXT_PUBLIC_STORE_NAME || 'Store'
-    
+
+    const storeName = process.env.RESEND_FROM_NAME || process.env.NEXT_PUBLIC_STORE_NAME || 'Store'
+
     const htmlContent = `
       <!DOCTYPE html>
       <html lang="bg">
@@ -255,18 +228,15 @@ export class EmailService {
       </html>
     `
 
-    const mailOptions = {
-      from: `"${storeName}" <${process.env.EMAIL_USER || 'noreply@store.com'}>`,
-      to,
-      subject: `Възстановяване на парола - ${storeName} 🔐`,
-      html: htmlContent,
-    }
-
     try {
-      await this.transporter!.sendMail(mailOptions)
+      await sendEmail({
+        to,
+        subject: `Възстановяване на парола - ${storeName} 🔐`,
+        html: htmlContent,
+        replyTo: getContactEmail(),
+      })
     } catch (error) {
       console.error('Error sending password reset email:', error)
-      // Don't throw error - just log it
     }
   }
 }

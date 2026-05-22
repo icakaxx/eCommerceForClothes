@@ -369,7 +369,11 @@ export interface Translations {
 
   // Email Translations
   emailOrderConfirmation: string;
+  emailOrderReceivedSubject: string;
   emailThankYouForOrder: string;
+  emailPendingIntro: string;
+  emailPendingAwaitingConfirm: string;
+  emailPendingAfterConfirm: string;
   emailOrderSummary: string;
   emailDeliveryInformation: string;
   emailMethod: string;
@@ -384,6 +388,7 @@ export interface Translations {
   emailContactUs: string;
   emailOrderDate: string;
   emailNewOrderReceived: string;
+  emailAdminAwaitingConfirmation: string;
   emailCustomerInformation: string;
   emailName: string;
   emailOrderDetails: string;
@@ -395,6 +400,7 @@ export interface Translations {
   emailAutomatedNotification: string;
   emailOrderConfirmed: string;
   emailOrderConfirmedMessage: string;
+  emailShippingScheduleTitle: string;
   emailOrderDispatched: string;
   emailOrderDispatchedMessage: string;
   emailOrderDelivered: string;
@@ -1078,8 +1084,12 @@ export const translations: Record<Language, Translations> = {
   unexpectedError: 'An unexpected error occurred',
 
   // Email Translations
-  emailOrderConfirmation: 'Order Confirmation',
+  emailOrderConfirmation: 'Order Received',
+  emailOrderReceivedSubject: 'We received your order',
   emailThankYouForOrder: 'Thank You for Your Order!',
+  emailPendingIntro: 'Thank you for shopping with us! We have received your order and our team will review it shortly.',
+  emailPendingAwaitingConfirm: 'Your order is awaiting confirmation. We will email you again once it is confirmed.',
+  emailPendingAfterConfirm: 'After confirmation, you will receive shipping details (dispatch today if ordered before 13:00, otherwise the next day).',
   emailOrderSummary: 'Order Summary',
   emailDeliveryInformation: 'Delivery Information:',
   emailMethod: 'Method:',
@@ -1088,23 +1098,25 @@ export const translations: Record<Language, Translations> = {
   emailContactInformation: 'Contact Information:',
   emailPhone: 'Phone:',
   emailWhatHappensNext: 'What happens next?',
-  emailWillReceiveConfirmation: 'You will receive an email confirmation shortly',
-  emailOrderProcessed: 'Your order will be processed within 1-2 business days',
-  emailWillReceiveTracking: 'You will receive tracking information once shipped',
+  emailWillReceiveConfirmation: 'We will confirm your order as soon as possible',
+  emailOrderProcessed: 'Once confirmed, your order will be prepared for shipment',
+  emailWillReceiveTracking: 'You will receive another email with shipping details after confirmation',
   emailContactUs: 'If you have any questions, please contact us at',
   emailOrderDate: 'Order Date:',
-  emailNewOrderReceived: 'New Order Received!',
+  emailNewOrderReceived: 'New Order — Awaiting Confirmation',
+  emailAdminAwaitingConfirmation: 'A customer placed an order. Please review and confirm it in the admin panel.',
   emailCustomerInformation: 'Customer Information',
   emailName: 'Name:',
   emailOrderDetails: 'Order Details',
   emailOrderNotes: 'Order Notes:',
   emailActionRequired: 'Action Required:',
-  emailProcessOrder: 'Process the order within 1-2 business days',
-  emailUpdateInventory: 'Update inventory quantities',
-  emailSendTracking: 'Send tracking information to customer',
+  emailProcessOrder: 'Review the order and set status to Confirmed when ready',
+  emailUpdateInventory: 'Stock has already been deducted automatically',
+  emailSendTracking: 'Customer will receive a confirmation email with shipping estimate',
   emailAutomatedNotification: 'This is an automated notification from your store system.',
-  emailOrderConfirmed: 'Order Confirmed!',
-  emailOrderConfirmedMessage: 'Your order has been confirmed and is being prepared for shipment.',
+  emailOrderConfirmed: 'Your Order is Confirmed!',
+  emailOrderConfirmedMessage: 'Good news! We have confirmed your order and it is being prepared for shipment.',
+  emailShippingScheduleTitle: 'Shipping schedule',
   emailOrderDispatched: 'Order Dispatched!',
   emailOrderDispatchedMessage: 'Great news! Your order has been dispatched and is on its way to you.',
   emailOrderDelivered: 'Order Delivered!',
@@ -1828,8 +1840,12 @@ export const translations: Record<Language, Translations> = {
   unexpectedError: 'Възникна неочаквана грешка',
 
   // Email Translations
-  emailOrderConfirmation: 'Потвърждение на поръчка',
+  emailOrderConfirmation: 'Получихме поръчката',
+  emailOrderReceivedSubject: 'Получихме вашата поръчка',
   emailThankYouForOrder: 'Благодарим ви за поръчката!',
+  emailPendingIntro: 'Благодарим ви, че пазарувахте при нас! Получихме поръчката ви и екипът ни ще я прегледа скоро.',
+  emailPendingAwaitingConfirm: 'Поръчката ви очаква потвърждение. Ще ви изпратим имейл, когато бъде потвърдена.',
+  emailPendingAfterConfirm: 'След потвърждение ще получите информация за изпращане (днес до 13:00 ч., иначе на следващия ден).',
   emailOrderSummary: 'Резюме на поръчката',
   emailDeliveryInformation: 'Информация за доставка:',
   emailMethod: 'Метод:',
@@ -1838,23 +1854,25 @@ export const translations: Record<Language, Translations> = {
   emailContactInformation: 'Информация за контакт:',
   emailPhone: 'Телефон:',
   emailWhatHappensNext: 'Какво следва?',
-  emailWillReceiveConfirmation: 'Ще получите имейл потвърждение скоро',
-  emailOrderProcessed: 'Вашата поръчка ще бъде обработена в рамките на 1-2 работни дни',
-  emailWillReceiveTracking: 'Ще получите информация за проследяване след изпращането',
+  emailWillReceiveConfirmation: 'Ще потвърдим поръчката ви възможно най-скоро',
+  emailOrderProcessed: 'След потвърждение поръчката ще бъде подготвена за изпращане',
+  emailWillReceiveTracking: 'Ще получите нов имейл с детайли за доставка след потвърждение',
   emailContactUs: 'Ако имате въпроси, моля свържете се с нас на',
   emailOrderDate: 'Дата на поръчка:',
-  emailNewOrderReceived: 'Получена е нова поръчка!',
+  emailNewOrderReceived: 'Нова поръчка — очаква потвърждение',
+  emailAdminAwaitingConfirmation: 'Клиент направи поръчка. Моля, прегледайте и потвърдете я в админ панела.',
   emailCustomerInformation: 'Информация за клиента',
   emailName: 'Име:',
   emailOrderDetails: 'Детайли на поръчката',
   emailOrderNotes: 'Бележки към поръчката:',
   emailActionRequired: 'Необходимо действие:',
-  emailProcessOrder: 'Обработете поръчката в рамките на 1-2 работни дни',
-  emailUpdateInventory: 'Актуализирайте наличностите',
-  emailSendTracking: 'Изпратете информация за проследяване на клиента',
+  emailProcessOrder: 'Прегледайте поръчката и задайте статус „Потвърдена“, когато е готова',
+  emailUpdateInventory: 'Наличностите вече са намалени автоматично',
+  emailSendTracking: 'Клиентът ще получи имейл с очаквана дата на изпращане',
   emailAutomatedNotification: 'Това е автоматично известие от системата на вашия магазин.',
-  emailOrderConfirmed: 'Поръчката е потвърдена!',
-  emailOrderConfirmedMessage: 'Вашата поръчка е потвърдена и се подготвя за изпращане.',
+  emailOrderConfirmed: 'Поръчката ви е потвърдена!',
+  emailOrderConfirmedMessage: 'Добра новина! Потвърдихме поръчката ви и тя се подготвя за изпращане.',
+  emailShippingScheduleTitle: 'График на изпращане',
   emailOrderDispatched: 'Поръчката е изпратена!',
   emailOrderDispatchedMessage: 'Добра новина! Вашата поръчка е изпратена и е на път към вас.',
   emailOrderDelivered: 'Поръчката е доставена!',

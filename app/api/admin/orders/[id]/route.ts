@@ -189,7 +189,12 @@ export async function PUT(
     });
 
     const emailStatus = mapAdminStatusToEmail(normalizedStatus);
-    if (emailStatus && normalizedStatus !== 'pending' && normalizedStatus !== 'new') {
+    if (
+      emailStatus &&
+      oldStatus !== normalizedStatus &&
+      normalizedStatus !== 'pending' &&
+      normalizedStatus !== 'new'
+    ) {
       try {
         const customer = Array.isArray(existingOrder.customers)
           ? existingOrder.customers[0]

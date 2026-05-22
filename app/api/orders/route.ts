@@ -571,23 +571,19 @@ export async function POST(request: NextRequest) {
     if (customerEmailResult.status === 'rejected') {
       const errorMsg = customerEmailResult.reason?.message || String(customerEmailResult.reason);
       console.error('❌ Customer email failed:', errorMsg);
-      // Log detailed error for debugging Gmail issues
-      if (errorMsg.includes('Gmail authentication failed') || errorMsg.includes('BadCredentials')) {
-        console.error('🔧 Fix Gmail authentication:');
-        console.error('   1. Enable 2-Step Verification: https://myaccount.google.com/security');
-        console.error('   2. Generate App Password: https://myaccount.google.com/apppasswords');
-        console.error('   3. Use the 16-character App Password in NEXT_PUBLIC_EMAIL_PASS');
+      if (errorMsg.includes('Resend:')) {
+        console.error('🔧 Check RESEND_API_KEY and RESEND_FROM_EMAIL (verified domain in Resend dashboard).');
+      } else if (errorMsg.includes('Gmail authentication failed') || errorMsg.includes('BadCredentials')) {
+        console.error('🔧 Fix Gmail authentication or switch to Resend (RESEND_API_KEY + RESEND_FROM_EMAIL).');
       }
     }
     if (adminEmailResult.status === 'rejected') {
       const errorMsg = adminEmailResult.reason?.message || String(adminEmailResult.reason);
       console.error('❌ Admin email failed:', errorMsg);
-      // Log detailed error for debugging Gmail issues
-      if (errorMsg.includes('Gmail authentication failed') || errorMsg.includes('BadCredentials')) {
-        console.error('🔧 Fix Gmail authentication:');
-        console.error('   1. Enable 2-Step Verification: https://myaccount.google.com/security');
-        console.error('   2. Generate App Password: https://myaccount.google.com/apppasswords');
-        console.error('   3. Use the 16-character App Password in NEXT_PUBLIC_EMAIL_PASS');
+      if (errorMsg.includes('Resend:')) {
+        console.error('🔧 Check RESEND_API_KEY and RESEND_FROM_EMAIL (verified domain in Resend dashboard).');
+      } else if (errorMsg.includes('Gmail authentication failed') || errorMsg.includes('BadCredentials')) {
+        console.error('🔧 Fix Gmail authentication or switch to Resend (RESEND_API_KEY + RESEND_FROM_EMAIL).');
       }
     }
 
