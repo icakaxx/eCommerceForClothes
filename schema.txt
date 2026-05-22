@@ -147,6 +147,7 @@ CREATE TABLE public.products (
   isdeleted boolean NOT NULL DEFAULT false,
   rfproducttypeid integer DEFAULT 1,
   isfeatured boolean NOT NULL DEFAULT false,
+  isdisabled boolean NOT NULL DEFAULT false,
   subtitle text,
   CONSTRAINT products_pkey PRIMARY KEY (productid),
   CONSTRAINT products_producttypeid_fkey FOREIGN KEY (producttypeid) REFERENCES public.product_types(producttypeid),

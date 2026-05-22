@@ -15,6 +15,8 @@ export interface Product {
   description?: string;
   subtitle?: string; // Product subtitle (e.g., "Close fit", "Loose fit")
   isfeatured?: boolean; // Whether the product is featured on the home page
+  /** When true, product is hidden from the shop (admin only). */
+  isdisabled?: boolean;
   // New fields for product type system
   productTypeID?: string;
   propertyValues?: Record<string, string | string[]>; // property name -> value(s) mapping

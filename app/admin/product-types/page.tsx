@@ -11,6 +11,7 @@ import { translations } from '@/lib/translations';
 import { AdminPage, PageHeader, Section, SectionSurface, EmptyState, DataTableShell, TableHeader, TableHeaderRow, TableHeaderCell, TableBody, TableRow, TableCell } from '../components/layout';
 import { Tag } from 'lucide-react';
 import CompleteAnimation from '@/components/CompleteAnimation';
+import { adminAuthHeaders } from '@/lib/admin-auth-headers';
 
 type ProductTypeRow = ProductType & {
   properties?: Array<{ propertyid: string; name: string }>;
@@ -66,9 +67,12 @@ export default function ProductTypesPage() {
       if (!showDeleteModal || !productTypeToDelete) return;
       setDeleteDependencies({ loading: true, properties: [], products: [] });
       try {
+        const authHeaders = await adminAuthHeaders();
         const [propertiesRes, productsRes] = await Promise.all([
           fetch(`/api/product-types/${productTypeToDelete.producttypeid}/properties`),
-          fetch(`/api/products?producttypeid=${productTypeToDelete.producttypeid}`)
+          fetch(`/api/products?producttypeid=${productTypeToDelete.producttypeid}&includeDisabled=true`, {
+            headers: authHeaders,
+          }),
         ]);
         const propertiesJson = await propertiesRes.json();
         const productsJson = await productsRes.json();

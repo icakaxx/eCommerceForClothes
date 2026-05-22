@@ -35,7 +35,7 @@ export async function GET(
     const productsWithDetails = await Promise.all(
       (relatedProducts || []).map(async (rp: any) => {
         const product = rp.related_product;
-        if (!product) return null;
+        if (!product || product.isdisabled) return null;
 
         // Get variants
         const { data: variants } = await supabase

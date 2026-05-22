@@ -11,6 +11,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
 import { AdminPage, PageHeader, DataTableShell, TableHeader, TableHeaderRow, TableHeaderCell, TableBody, TableRow, TableCell, SectionSurface, EmptyState, Section } from '../components/layout';
 import CompleteAnimation from '@/components/CompleteAnimation';
+import { adminAuthHeaders } from '@/lib/admin-auth-headers';
 
 export default function PropertiesPage() {
   const router = useRouter();
@@ -88,7 +89,11 @@ export default function PropertiesPage() {
       setDeleteConfirmed(false);
       setDeleteProducts({ loading: true, items: [] });
       try {
-        const response = await fetch(`/api/products?propertyid=${propertyToDelete.propertyid}&basic=true`);
+        const authHeaders = await adminAuthHeaders();
+        const response = await fetch(
+          `/api/products?propertyid=${propertyToDelete.propertyid}&basic=true&includeDisabled=true`,
+          { headers: authHeaders }
+        );
         const result = await response.json();
         if (result.success) {
           setDeleteProducts({

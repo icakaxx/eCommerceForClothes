@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { isVerifiedAdminRequest } from '@/lib/api/is-verified-admin-request';
 
 // Type-safe Supabase client for this module
 const getSupabase = () => supabaseAdmin as any;
@@ -66,6 +67,10 @@ export async function GET(request: NextRequest) {
     const excludeId = searchParams.get('excludeId');
     const limit = searchParams.get('limit');
 
+    const hideDisabledProducts = !(
+      searchParams.get('includeDisabled') === 'true' && (await isVerifiedAdminRequest(request))
+    );
+
     // Build query
     let query = supabase
       .from('products')
@@ -74,6 +79,10 @@ export async function GET(request: NextRequest) {
         product_types(*)
       `)
       .neq('isdeleted', true);
+
+    if (hideDisabledProducts) {
+      query = query.eq('isdisabled', false);
+    }
 
     // Filter by rfproducttypeid if provided
     if (rfproducttypeid) {
@@ -130,12 +139,17 @@ export async function GET(request: NextRequest) {
       }
 
       if (basic) {
-        const { data: basicProducts, error: basicError } = await supabase
+        let basicQuery = supabase
           .from('products')
           .select('productid,name')
           .in('productid', productIdList)
-          .neq('isdeleted', true)
-          .order('name', { ascending: true });
+          .neq('isdeleted', true);
+
+        if (hideDisabledProducts) {
+          basicQuery = basicQuery.eq('isdisabled', false);
+        }
+
+        const { data: basicProducts, error: basicError } = await basicQuery.order('name', { ascending: true });
 
         if (basicError) {
           console.error('Error fetching basic products:', basicError);
@@ -286,7 +300,17 @@ export async function POST(request: NextRequest) {
 
     console.log('📝 POST /api/products - Received body:', JSON.stringify(body, null, 2));
 
-    const { name, sku, description, subtitle, producttypeid, rfproducttypeid, isfeatured, Variants = [] } = body;
+    const {
+      name,
+      sku,
+      description,
+      subtitle,
+      producttypeid,
+      rfproducttypeid,
+      isfeatured,
+      isdisabled,
+      Variants = [],
+    } = body;
     const productImages = Array.isArray(body.productImages) ? body.productImages.filter(Boolean) : [];
 
     // Ensure SKUs are unique before creating variants
@@ -342,6 +366,7 @@ export async function POST(request: NextRequest) {
         producttypeid,
         rfproducttypeid: rfproducttypeid || 1, // Default to 1 (For Him) if not provided
         isfeatured: isfeatured || false,
+        isdisabled: !!isdisabled,
         updatedat: new Date().toISOString()
       })
       .select()

@@ -572,6 +572,11 @@ export interface Translations {
   notAvailable: string;
   inStock: string;
   outOfStock: string;
+  lowStock: string;
+  lowStockForOption: string;
+  outOfStockForOption: string;
+  outOfStockForSize: string;
+  sameSizeAlternatives: string;
   selectAProductType: string;
   allPropertiesAssigned: string;
   removeProperty: string;
@@ -1286,6 +1291,11 @@ export const translations: Record<Language, Translations> = {
     notAvailable: 'N/A',
     inStock: 'In Stock',
     outOfStock: 'Out of Stock',
+    lowStock: 'Low stock',
+    lowStockForOption: 'Only {n} left',
+    outOfStockForOption: 'Out of stock',
+    outOfStockForSize: 'Size {size} is out of stock',
+    sameSizeAlternatives: 'Available in size {size}',
     selectAProductType: 'Select a product type',
     allPropertiesAssigned: 'All available properties are already assigned.',
     removeProperty: 'Are you sure you want to remove this property?',
@@ -1993,6 +2003,11 @@ export const translations: Record<Language, Translations> = {
   notAvailable: 'Н/Д',
   inStock: 'В наличност',
   outOfStock: 'Изчерпан',
+  lowStock: 'Малко на брой',
+  lowStockForOption: 'Остават {n} бр.',
+  outOfStockForOption: 'Изчерпан',
+  outOfStockForSize: 'Размер {size} е изчерпан',
+  sameSizeAlternatives: 'Налични в размер {size}',
   selectAProductType: 'Изберете категория',
   allPropertiesAssigned: 'Всички налични характеристики вече са присвоени.',
   removeProperty: 'Сигурни ли сте, че искате да премахнете тази характеристика?',

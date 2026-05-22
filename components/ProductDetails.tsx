@@ -12,6 +12,14 @@ import { ShoppingCart, Heart, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import QuickLoginModal from './QuickLoginModal';
 import FomoBadge, { type FomoMessage } from './FomoBadge';
+import ProductCard from './ProductCard';
+import {
+  LOW_STOCK_MAX,
+  findSameSizeAlternatives,
+  findSizePropertyKey,
+  getOptionStockQuantity,
+  getOptionStockStatus,
+} from '@/lib/variant-stock';
 
 interface ProductDetailsProps {
   product: Product;
@@ -44,6 +52,12 @@ interface Variant {
   imageurl?: string;
   images?: string[];
   IsPrimaryImage?: boolean;
+  trackquantity?: boolean;
+  product_variant_property_values?: Array<{
+    propertyid: string;
+    properties?: { name: string };
+    value: string;
+  }>;
 }
 
 export default function ProductDetails({ product, onVariantChange }: ProductDetailsProps) {
@@ -67,6 +81,8 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   const [favoriteCount, setFavoriteCount] = useState(0);
+  const [sameSizeAlternatives, setSameSizeAlternatives] = useState<Product[]>([]);
+  const [loadingAlternatives, setLoadingAlternatives] = useState(false);
 
   // Check if product is favorited and get favorite count on mount
   useEffect(() => {
@@ -125,7 +141,11 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
       const nameMap: Record<string, string> = {}; // Maps lowercase keys to original property names
       visibleVariants.forEach((variant: any) => {
         // Handle both naming conventions
-        const propertyValues = variant.ProductVariantPropertyvalues || variant.ProductVariantPropertyValues || [];
+        const propertyValues =
+          variant.ProductVariantPropertyvalues ||
+          variant.ProductVariantPropertyValues ||
+          variant.product_variant_property_values ||
+          [];
         console.log(`🔍 ProductDetails: Variant ${variant.productvariantid} property values:`, propertyValues);
 
         propertyValues.forEach((pv: any) => {
@@ -159,7 +179,11 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
 
         // Set initial selected options
         const initialOptions: Record<string, string> = {};
-        const primaryPropertyValues = primaryVariant.ProductVariantPropertyvalues || primaryVariant.ProductVariantPropertyValues || [];
+        const primaryPropertyValues =
+          primaryVariant.ProductVariantPropertyvalues ||
+          primaryVariant.ProductVariantPropertyValues ||
+          primaryVariant.product_variant_property_values ||
+          [];
         primaryPropertyValues.forEach((pv: any) => {
           // Get original property name with proper capitalization
           const originalPropertyName = pv.Property?.name || pv.Property?.Name || pv.propertyid || '';
@@ -198,7 +222,11 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
     // Find matching variant
     const matchingVariant = variants.find((variant) => {
       // Handle both naming conventions
-      const propertyValues = variant.ProductVariantPropertyvalues || variant.ProductVariantPropertyValues || [];
+      const propertyValues =
+        variant.ProductVariantPropertyvalues ||
+        variant.ProductVariantPropertyValues ||
+        variant.product_variant_property_values ||
+        [];
       if (propertyValues.length === 0) return false;
 
       const variantOptions: Record<string, string> = {};
@@ -259,15 +287,80 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
 
   // Get current price and quantity
   const currentPrice = selectedVariant?.price || product.price || 0;
-  const currentQuantity = selectedVariant?.quantity || product.quantity || 0;
+  const rawQuantity = selectedVariant?.quantity ?? product.quantity ?? 0;
+  const tracksStock =
+    selectedVariant == null ||
+    (selectedVariant.trackquantity !== false && selectedVariant.trackquantity !== null);
+  const currentQuantity = tracksStock ? Math.max(0, Number(rawQuantity) || 0) : rawQuantity;
   const currentPriceBgn = currentPrice * 1.95;
+
+  const selectedSizeKey = findSizePropertyKey(selectedOptions, propertyNameMap);
+  const selectedSizeValue = selectedSizeKey ? selectedOptions[selectedSizeKey] : null;
+
+  const currentStockStatus = !tracksStock
+    ? 'in_stock'
+    : currentQuantity <= 0
+      ? 'out_of_stock'
+      : currentQuantity <= LOW_STOCK_MAX
+        ? 'low_stock'
+        : 'in_stock';
+
+  useEffect(() => {
+    const productId = String(product.id || product.productid || '');
+
+    if (currentStockStatus !== 'out_of_stock' || !selectedSizeValue) {
+      setSameSizeAlternatives([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadAlternatives = async () => {
+      setLoadingAlternatives(true);
+      try {
+        const response = await fetch('/api/products');
+        const data = await response.json();
+        if (!response.ok || !data.success || !Array.isArray(data.products)) {
+          if (!cancelled) setSameSizeAlternatives([]);
+          return;
+        }
+
+        const alternatives = findSameSizeAlternatives(data.products, {
+          sizeValue: selectedSizeValue,
+          excludeProductId: productId,
+          producttypeid: product.productTypeID || (product as any).producttypeid,
+          rfproducttypeid: (product as any).rfproducttypeid ?? null,
+          limit: 4,
+        });
+
+        if (!cancelled) setSameSizeAlternatives(alternatives);
+      } catch {
+        if (!cancelled) setSameSizeAlternatives([]);
+      } finally {
+        if (!cancelled) setLoadingAlternatives(false);
+      }
+    };
+
+    loadAlternatives();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    currentStockStatus,
+    selectedSizeValue,
+    product.id,
+    product.productid,
+    product.productTypeID,
+    (product as any).producttypeid,
+    (product as any).rfproducttypeid,
+  ]);
 
   // Memoize FOMO messages to prevent recreation on every render
   const fomoMessages = useMemo(() => {
     const messages: FomoMessage[] = [];
     
-    // Stock-based messages
-    if (currentQuantity > 0 && currentQuantity <= 5) {
+    // Stock-based messages (low stock: 1–3)
+    if (tracksStock && currentQuantity > 0 && currentQuantity <= LOW_STOCK_MAX) {
       messages.push({
         text: language === 'bg' 
           ? `Остават само ${currentQuantity} налични` 
@@ -276,13 +369,13 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
       });
       messages.push({
         text: language === 'bg' 
-          ? 'Ниско наличност — продава се бързо' 
-          : 'Low stock — selling fast',
+          ? 'Малко на брой — поръчайте скоро' 
+          : 'Low stock — order soon',
         tone: 'warning'
       });
     }
     
-    if (currentQuantity > 5 && currentQuantity <= 15) {
+    if (tracksStock && currentQuantity > LOW_STOCK_MAX && currentQuantity <= 10) {
       messages.push({
         text: language === 'bg' 
           ? 'Почти изчерпано' 
@@ -322,7 +415,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
     });
     
     return messages;
-  }, [currentQuantity, language]);
+  }, [currentQuantity, language, tracksStock]);
 
   const getCategoryLabel = () => {
     if (product.category === 'clothes') return product.type || t.clothes;
@@ -336,7 +429,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   };
 
   const handleAddToCart = () => {
-    if (currentQuantity <= 0) return;
+    if (!tracksStock || currentQuantity <= 0) return;
 
     // Use selectedOptions to get only the selected property values (not all available options)
     const cartCompatiblePropertyValues: Record<string, string> = {};
@@ -590,18 +683,67 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
               <div className="flex flex-wrap gap-2">
                 {Array.from(values).map((value) => {
                   const isSelected = selectedOptions[propertyNameKey] === value;
+                  const optionQty = getOptionStockQuantity(
+                    variants,
+                    selectedOptions,
+                    propertyNameKey,
+                    value
+                  );
+                  const optionStatus = getOptionStockStatus(optionQty);
+                  const isOut = optionStatus === 'out_of_stock';
+                  const isLow = optionStatus === 'low_stock';
+
                   return (
                     <button
                       key={value}
+                      type="button"
                       onClick={() => handleOptionChange(propertyNameKey, value)}
-                      className="px-4 py-2 rounded-lg border-2 transition-all duration-200 hover:scale-105"
+                      className={`relative px-4 py-2 rounded-lg border-2 transition-all duration-200 ${
+                        isOut ? 'opacity-70' : 'hover:scale-105'
+                      }`}
                       style={{
-                        borderColor: isSelected ? theme.colors.primary : theme.colors.border,
+                        borderColor: isSelected
+                          ? theme.colors.primary
+                          : isOut
+                            ? '#fca5a5'
+                            : isLow
+                              ? '#fcd34d'
+                              : theme.colors.border,
                         backgroundColor: isSelected ? theme.colors.primary : 'transparent',
                         color: isSelected ? '#ffffff' : theme.colors.text,
+                        textDecoration: isOut && !isSelected ? 'line-through' : 'none',
                       }}
+                      aria-label={
+                        isOut
+                          ? `${value} — ${t.outOfStockForOption}`
+                          : isLow
+                            ? `${value} — ${t.lowStockForOption.replace('{n}', String(optionQty))}`
+                            : value
+                      }
                     >
-                      {value}
+                      <span className="flex flex-col items-center gap-0.5">
+                        <span>{value}</span>
+                        {optionStatus !== 'untracked' && (
+                          <span
+                            className="text-[10px] font-medium leading-tight"
+                            style={{
+                              color: isSelected
+                                ? 'rgba(255,255,255,0.9)'
+                                : isOut
+                                  ? '#dc2626'
+                                  : isLow
+                                    ? '#b45309'
+                                    : theme.colors.textSecondary,
+                            }}
+                          >
+                            {isOut
+                              ? t.outOfStockForOption
+                              : isLow
+                                ? t.lowStockForOption.replace('{n}', String(optionQty))
+                                : `${optionQty} ${product.category === 'shoes' ? t.pairs : t.pcs}`}
+                          </span>
+                        )}
+                      </span>
                     </button>
                   );
                 })}
@@ -659,11 +801,17 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         className="p-4 rounded-lg mb-6 order-6"
         style={{ 
           backgroundColor: theme.colors.surface,
-          border: `1px solid ${theme.colors.border}`
+          border: `1px solid ${
+            currentStockStatus === 'out_of_stock'
+              ? '#fecaca'
+              : currentStockStatus === 'low_stock'
+                ? '#fde68a'
+                : theme.colors.border
+          }`
         }}
       >
         <div className="flex items-center gap-2 mb-2">
-          {currentQuantity > 0 ? (
+          {currentStockStatus === 'in_stock' && (
             <>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -680,14 +828,35 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
-              <span 
-                className="font-semibold"
-                style={{ color: '#10b981' }}
-              >
+              <span className="font-semibold" style={{ color: '#10b981' }}>
                 {t.inStock}
               </span>
             </>
-          ) : (
+          )}
+          {currentStockStatus === 'low_stock' && (
+            <>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ color: '#d97706' }}
+              >
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+              <span className="font-semibold" style={{ color: '#d97706' }}>
+                {t.lowStock}
+              </span>
+            </>
+          )}
+          {currentStockStatus === 'out_of_stock' && (
             <>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -705,27 +874,79 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
                 <line x1="15" y1="9" x2="9" y2="15"></line>
                 <line x1="9" y1="9" x2="15" y2="15"></line>
               </svg>
-              <span 
-                className="font-semibold"
-                style={{ color: '#ef4444' }}
-              >
+              <span className="font-semibold" style={{ color: '#ef4444' }}>
                 {t.outOfStock}
               </span>
             </>
           )}
         </div>
-        <p 
-          className="text-sm transition-colors duration-300"
-          style={{ color: theme.colors.textSecondary }}
-        >
-          {t.available}: <span className="font-medium" style={{ color: theme.colors.text }}>
-            {currentQuantity} {product.category === 'shoes' ? t.pairs : t.pcs}
-          </span>
-        </p>
+
+        {tracksStock && (
+          <p
+            className="text-sm transition-colors duration-300"
+            style={{ color: theme.colors.textSecondary }}
+          >
+            {t.available}:{' '}
+            <span className="font-medium" style={{ color: theme.colors.text }}>
+              {currentQuantity} {product.category === 'shoes' ? t.pairs : t.pcs}
+            </span>
+          </p>
+        )}
+
+        {currentStockStatus === 'low_stock' && (
+          <p className="text-sm mt-2" style={{ color: '#b45309' }}>
+            {t.lowStockForOption.replace('{n}', String(currentQuantity))}
+          </p>
+        )}
+
+        {currentStockStatus === 'out_of_stock' && selectedSizeValue && (
+          <p className="text-sm mt-2 font-medium" style={{ color: '#dc2626' }}>
+            {t.outOfStockForSize.replace('{size}', selectedSizeValue)}
+          </p>
+        )}
+
+        {currentStockStatus === 'out_of_stock' && !selectedSizeValue && (
+          <p className="text-sm mt-2 font-medium" style={{ color: '#dc2626' }}>
+            {t.outOfStock}
+          </p>
+        )}
       </div>
 
+      {/* Same-size alternatives when out of stock */}
+      {currentStockStatus === 'out_of_stock' && selectedSizeValue && (
+        <div className="mb-6 order-7">
+          <h3
+            className="text-lg font-semibold mb-4"
+            style={{ color: theme.colors.text }}
+          >
+            {t.sameSizeAlternatives.replace('{size}', selectedSizeValue)}
+          </h3>
+          {loadingAlternatives ? (
+            <div className="flex items-center gap-2 text-sm" style={{ color: theme.colors.textSecondary }}>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-400" />
+              {language === 'bg' ? 'Зареждане...' : 'Loading...'}
+            </div>
+          ) : sameSizeAlternatives.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {sameSizeAlternatives.map((alt) => (
+                <ProductCard
+                  key={String(alt.id || alt.productid)}
+                  product={alt}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
+              {language === 'bg'
+                ? `Няма други артикули в размер ${selectedSizeValue} в момента.`
+                : `No other items in size ${selectedSizeValue} right now.`}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Add to Cart Button - order 8 */}
-      {product.visible && currentQuantity > 0 && (
+      {product.visible && tracksStock && currentQuantity > 0 && (
         <div className="mb-6 order-8">
           <button
             onClick={handleAddToCart}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
 import { ProductVariantPropertyValue } from '@/lib/types/product-types';
+import { isVerifiedAdminRequest } from '@/lib/api/is-verified-admin-request';
 
 // Ensure SKUs are unique by checking database and generating alternatives if needed
 async function ensureUniqueSKUs(variants: any[], supabase: any) {
@@ -77,6 +78,11 @@ export async function GET(
         { error: 'Product not found' },
         { status: 404 }
       );
+    }
+
+    const hideFromShop = !!(product as { isdisabled?: boolean }).isdisabled;
+    if (hideFromShop && !(await isVerifiedAdminRequest(request))) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
     // Get variants first
@@ -304,6 +310,7 @@ export async function GET(
       description: product.description,
       subtitle: product.subtitle || '', // Add subtitle field
       producttypeid: product.producttypeid,
+      isdisabled: !!(product as { isdisabled?: boolean }).isdisabled,
       ProductType: product.ProductType,
       Variants: variantsWithImages || [],
       variants: variantsWithImages || [], // Add lowercase version for compatibility
@@ -360,7 +367,8 @@ export async function PUT(
       producttypeid,
       rfproducttypeid,
       isfeatured,
-      Variants = []
+      isdisabled,
+      Variants = [],
     } = body;
     const productImages = Array.isArray(body.productImages) ? body.productImages.filter(Boolean) : [];
 
@@ -403,6 +411,7 @@ export async function PUT(
         producttypeid,
         rfproducttypeid: rfproducttypeid || 1, // Default to 1 (For Him) if not provided
         isfeatured: isfeatured || false,
+        isdisabled: !!isdisabled,
         updatedat: new Date().toISOString()
       })
       .eq('productid', id)

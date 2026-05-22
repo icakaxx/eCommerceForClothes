@@ -8,6 +8,11 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useCart } from '@/context/CartContext';
 import { Product } from '@/lib/data';
 import { translations } from '@/lib/translations';
+import {
+  getOptionStockQuantity,
+  getOptionStockStatus,
+  LOW_STOCK_MAX,
+} from '@/lib/variant-stock';
 
 interface AddToCartModalProps {
   isOpen: boolean;
@@ -23,6 +28,7 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [availableOptions, setAvailableOptions] = useState<Record<string, Set<string>>>({});
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
+  const [variants, setVariants] = useState<any[]>([]);
   const [quantity, setQuantity] = useState<number>(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -33,7 +39,7 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
       
       if (Array.isArray(productVariants) && productVariants.length > 0) {
         const visibleVariants = productVariants.filter((v: any) => v.isvisible !== false);
-        
+        setVariants(visibleVariants);
         // Build available options map from all variants
         const optionsMap: Record<string, Set<string>> = {};
         visibleVariants.forEach((variant: any) => {
@@ -97,6 +103,7 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
         setAvailableOptions({});
         setSelectedOptions({});
         setSelectedVariant(null);
+        setVariants([]);
       }
       
       setQuantity(1);
@@ -275,8 +282,14 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
 
   if (!isOpen) return null;
 
-  // Get current quantity available
-  const currentQuantity = selectedVariant?.quantity || product.quantity || 0;
+  const tracksStock =
+    selectedVariant == null ||
+    (selectedVariant.trackquantity !== false && selectedVariant.trackquantity !== null);
+  const currentQuantity = tracksStock
+    ? Math.max(0, Number(selectedVariant?.quantity ?? product.quantity ?? 0) || 0)
+    : Number(selectedVariant?.quantity ?? product.quantity ?? 0) || 0;
+  const isOutOfStock = tracksStock && currentQuantity <= 0;
+  const isLowStock = tracksStock && currentQuantity > 0 && currentQuantity <= LOW_STOCK_MAX;
 
   return (
     <div 
@@ -362,19 +375,45 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
                         {propertyLabel} <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
-                        {Array.from(values).map((value) => (
+                        {Array.from(values).map((value) => {
+                          const optionQty = getOptionStockQuantity(
+                            variants,
+                            selectedOptions,
+                            propertyName,
+                            value as string
+                          );
+                          const optionStatus = getOptionStockStatus(optionQty);
+                          const isOut = optionStatus === 'out_of_stock';
+                          const isLow = optionStatus === 'low_stock';
+
+                          return (
                     <button
                             key={value}
+                            type="button"
                             onClick={() => handleOptionChange(propertyName, value as string)}
-                      className={`py-2 px-4 border rounded-lg text-sm font-medium transition ${
+                      className={`py-2 px-2 border rounded-lg text-xs font-medium transition flex flex-col items-center ${
                               selectedOptions[propertyName] === value
                           ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 hover:border-gray-300'
+                          : isOut
+                            ? 'border-red-200 text-red-600 opacity-75'
+                            : isLow
+                              ? 'border-amber-300 text-amber-800'
+                              : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                            {value}
+                            <span>{value}</span>
+                            {optionStatus !== 'untracked' && (
+                              <span className="text-[10px] mt-0.5 font-normal">
+                                {isOut
+                                  ? t.outOfStockForOption
+                                  : isLow
+                                    ? t.lowStockForOption.replace('{n}', String(optionQty))
+                                    : `${optionQty}`}
+                              </span>
+                            )}
                     </button>
-                  ))}
+                          );
+                        })}
                 </div>
                       {errors[propertyName] && (
                         <p className="text-red-500 text-sm mt-1">{errors[propertyName]}</p>
@@ -416,6 +455,12 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 {t.availableItems}: {currentQuantity} {t.pcs}
+                {isLowStock && (
+                  <span className="text-amber-600 font-medium ml-1">({t.lowStock})</span>
+                )}
+                {isOutOfStock && (
+                  <span className="text-red-600 font-medium ml-1">({t.outOfStock})</span>
+                )}
               </p>
               {errors.quantity && (
                 <p className="text-red-500 text-sm mt-1">{errors.quantity}</p>
@@ -445,7 +490,8 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
             </button>
             <button
               onClick={handleAddToCart}
-              className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center justify-center space-x-2"
+              disabled={isOutOfStock}
+              className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ShoppingCart size={16} />
               <span>{t.addToCart}</span>

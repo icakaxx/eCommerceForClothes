@@ -52,6 +52,8 @@ export interface Product {
   producttypeid: string;
   rfproducttypeid?: number | null;
   isfeatured?: boolean;
+  /** When true, product is hidden from the customer-facing storefront. */
+  isdisabled?: boolean;
   createdat: string;
   updatedat: string;
 }

@@ -11,6 +11,7 @@ import { translations } from '@/lib/translations';
 import { AdminPage, PageHeader, Section, SectionSurface, EmptyState, DataTableShell, TableHeader, TableHeaderRow, TableHeaderCell, TableBody, TableRow, TableCell } from '../components/layout';
 import { Package } from 'lucide-react';
 import CompleteAnimation from '@/components/CompleteAnimation';
+import { adminAuthHeaders } from '@/lib/admin-auth-headers';
 
 // Select All Checkbox Component for Variant Characteristics
 function VariantSelectAllCheckbox({
@@ -57,6 +58,8 @@ interface Product {
   sku?: string;
   description?: string;
   producttypeid: string;
+  /** Hidden from storefront (out of stock / temporarily unavailable). */
+  isdisabled?: boolean;
   ProductType?: ProductType;
   propertyvalues?: Record<string, string>;
 }
@@ -99,6 +102,7 @@ export default function ProductsPage() {
     rfproducttypeid: 1, // Default to 1 (For Him)
     producttypeid: '',
     isfeatured: false,
+    isdisabled: false,
     propertyvalues: {} as Record<string, string>
   });
   const [availableProperties, setAvailableProperties] = useState<Property[]>([]);
@@ -275,7 +279,10 @@ export default function ProductsPage() {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/products');
+      const authHeaders = await adminAuthHeaders();
+      const response = await fetch('/api/products?includeDisabled=true', {
+        headers: authHeaders,
+      });
       const result = await response.json();
       if (result.success) {
         // Map API response to Product interface
@@ -285,6 +292,7 @@ export default function ProductsPage() {
           sku: p.sku || '',
           description: p.description || '',
           producttypeid: p.producttypeid || '',
+          isdisabled: p.isdisabled === true,
           ProductType: p.producttype,
           propertyvalues: p.propertyvalues || {}
         }));
@@ -479,6 +487,7 @@ export default function ProductsPage() {
         rfproducttypeid: formData.rfproducttypeid,
         producttypeid: formData.producttypeid,
         isfeatured: formData.isfeatured || false,
+        isdisabled: formData.isdisabled === true,
         Variants: variants,
         productImages
       };
@@ -501,7 +510,7 @@ export default function ProductsPage() {
         setTimeout(() => {
           setShowModal(false);
           setShowCompleteAnimation(false);
-          setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, propertyvalues: {} });
+          setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, propertyvalues: {} });
           setEditingProduct(null);
           setVariants([]);
           setVariantDisplayValues({});
@@ -527,7 +536,10 @@ export default function ProductsPage() {
     
     // Fetch full product details including variants
     try {
-      const response = await fetch(`/api/products/${product.productid}`);
+      const authHeaders = await adminAuthHeaders();
+      const response = await fetch(`/api/products/${product.productid}`, {
+        headers: authHeaders,
+      });
       const result = await response.json();
       
       if (result.success && result.product) {
@@ -541,6 +553,7 @@ export default function ProductsPage() {
           rfproducttypeid: fullProduct.rfproducttypeid || 1,
           producttypeid: fullProduct.producttypeid,
           isfeatured: fullProduct.isfeatured || false,
+          isdisabled: fullProduct.isdisabled === true,
           propertyvalues: {}
         });
 
@@ -960,7 +973,7 @@ export default function ProductsPage() {
             <button
               onClick={() => {
                 setEditingProduct(null);
-                setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, propertyvalues: {} });
+                setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, propertyvalues: {} });
                 setProductTypeProperties([]);
                 setSelectedPropertyValues({});
                 setVariants([]);
@@ -1023,7 +1036,7 @@ export default function ProductsPage() {
                   <button
                     onClick={() => {
                       setEditingProduct(null);
-                      setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, propertyvalues: {} });
+                      setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, propertyvalues: {} });
                       setProductTypeProperties([]);
                       setSelectedPropertyValues({});
                       setVariants([]);
@@ -1058,6 +1071,9 @@ export default function ProductsPage() {
                         </TableHeaderCell>
                         <TableHeaderCell>{t.name}</TableHeaderCell>
                         <TableHeaderCell>{t.productType}</TableHeaderCell>
+                        <TableHeaderCell align="center">
+                          {language === 'bg' ? 'Магазин' : 'Shop'}
+                        </TableHeaderCell>
                         <TableHeaderCell align="right">{t.actions}</TableHeaderCell>
                       </TableHeaderRow>
                     </TableHeader>
@@ -1078,6 +1094,17 @@ export default function ProductsPage() {
                           </TableCell>
                           <TableCell>
                             {productTypes.find(pt => pt.producttypeid === product.producttypeid)?.name || '-'}
+                          </TableCell>
+                          <TableCell align="center">
+                            {product.isdisabled ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900 border border-amber-200">
+                                {language === 'bg' ? 'Скрит' : 'Hidden'}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-100">
+                                {language === 'bg' ? 'Видим' : 'Live'}
+                              </span>
+                            )}
                           </TableCell>
                           <TableCell align="right">
                             <div className="flex justify-end gap-2">
@@ -1145,6 +1172,14 @@ export default function ProductsPage() {
                       <div className="space-y-1 text-xs sm:text-sm text-gray-500">
                         <p>
                           <span className="font-medium">{t.productType}:</span> {productTypes.find(pt => pt.producttypeid === product.producttypeid)?.name || '-'}
+                        </p>
+                        <p>
+                          <span className="font-medium">{language === 'bg' ? 'Магазин' : 'Shop'}:</span>{' '}
+                          {product.isdisabled ? (
+                            <span className="text-amber-800">{language === 'bg' ? 'Скрит от клиентите' : 'Hidden from customers'}</span>
+                          ) : (
+                            <span className="text-emerald-800">{language === 'bg' ? 'Видим' : 'Visible'}</span>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -1444,6 +1479,29 @@ export default function ProductsPage() {
                         </span>
                         <p className="text-xs text-gray-500 mt-1">
                           {language === 'bg' ? 'Максимум 4 избрани продукта ще се покажат на началната страница' : 'Maximum 4 featured products will be displayed on the home page'}
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.isdisabled === true}
+                        onChange={(e) => setFormData({ ...formData, isdisabled: e.target.checked })}
+                        className="mt-0.5 w-4 h-4 text-primary border-border rounded focus:ring-primary"
+                      />
+                      <div>
+                        <span className="text-xs sm:text-sm font-medium text-gray-700 block">
+                          {language === 'bg'
+                            ? 'Скрий от онлайн магазина (няма наличност / неактивен)'
+                            : 'Hide from online store (out of stock / inactive)'}
+                        </span>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {language === 'bg'
+                            ? 'Когато е отметнато, клиентите не виждат този артикул в магазина. Можете да го включите отново по всяко време.'
+                            : 'When checked, customers will not see this product in the shop. You can turn it back on anytime.'}
                         </p>
                       </div>
                     </label>
