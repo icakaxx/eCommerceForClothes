@@ -82,10 +82,7 @@ const jsonLd = {
     '@type': 'PostalAddress',
     addressCountry: 'BG',
   },
-  sameAs: [
-    'https://www.facebook.com/modabox.eu',
-    'https://www.instagram.com/modabox.eu',
-  ],
+  sameAs: ['https://www.tiktok.com/@.modabox.bg'],
   priceRange: '€€',
   currenciesAccepted: 'EUR, BGN',
   paymentAccepted: 'Cash, Credit Card',

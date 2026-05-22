@@ -7,15 +7,9 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useStoreSettings } from '@/context/StoreSettingsContext';
 import { translations } from '@/lib/translations';
-import { 
-  FaDiscord, 
-  FaFacebook, 
-  FaPinterest, 
-  FaYoutube, 
-  FaInstagram,
-  FaXTwitter,
-  FaTiktok
-} from 'react-icons/fa6';
+import { FaTiktok } from 'react-icons/fa6';
+
+const TIKTOK_URL = 'https://www.tiktok.com/@.modabox.bg';
 
 export default function Footer() {
   const { language } = useLanguage();
@@ -63,51 +57,8 @@ export default function Footer() {
       ? 'Вашият надежден партньор за модни дрехи и аксесоари.'
       : 'Your trusted partner for fashionable clothing and accessories.';
 
-  // Social media links - all platforms from store settings
-  const socialLinks = [
-    { 
-      id: 'discord', 
-      url: settings?.discordurl, 
-      icon: FaDiscord,
-      label: 'Discord'
-    },
-    { 
-      id: 'facebook', 
-      url: settings?.facebookurl, 
-      icon: FaFacebook,
-      label: 'Facebook'
-    },
-    { 
-      id: 'pinterest', 
-      url: settings?.pinteresturl, 
-      icon: FaPinterest,
-      label: 'Pinterest'
-    },
-    { 
-      id: 'youtube', 
-      url: settings?.youtubeurl, 
-      icon: FaYoutube,
-      label: 'YouTube'
-    },
-    { 
-      id: 'instagram', 
-      url: settings?.instagramurl, 
-      icon: FaInstagram,
-      label: 'Instagram'
-    },
-    { 
-      id: 'x', 
-      url: settings?.xurl, 
-      icon: FaXTwitter,
-      label: 'X (Twitter)'
-    },
-    { 
-      id: 'tiktok', 
-      url: settings?.tiktokurl, 
-      icon: FaTiktok,
-      label: 'TikTok'
-    }
-  ].filter(link => link.url); // Only include links that have URLs
+  // Social — TikTok only
+  const tiktokUrl = TIKTOK_URL;
 
   // Categories navigation links
   const secondaryLinks = [
@@ -186,28 +137,6 @@ export default function Footer() {
             >
               {brandDescription}
             </p>
-            
-            {/* Social Icons - Outline Style */}
-            {socialLinks.length > 0 && (
-              <div className="flex items-center justify-center md:justify-start gap-3 sm:gap-4 pt-2 flex-wrap">
-                {socialLinks.map(link => {
-                  const Icon = link.icon;
-                  return (
-                    <a
-                      key={link.id}
-                      href={link.url || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="transition-all duration-300 hover:scale-110 hover:opacity-80"
-                      style={{ color: theme.colors.textSecondary }}
-                      aria-label={link.label}
-                    >
-                      <Icon size={20} />
-                    </a>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
           {/* Column 2: Categories */}
@@ -281,6 +210,19 @@ export default function Footer() {
               )}
             </div>
           </div>
+        </div>
+
+        <div className="flex justify-center mt-10">
+          <a
+            href={tiktokUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-all duration-300 hover:scale-110 hover:opacity-80"
+            style={{ color: theme.colors.textSecondary }}
+            aria-label="TikTok"
+          >
+            <FaTiktok size={28} />
+          </a>
         </div>
       </div>
 
