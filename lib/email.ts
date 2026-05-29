@@ -55,19 +55,26 @@ function getDeliveryTypeLabel(type: string, language: Language): string {
   return type;
 }
 
+function getValidCustomerEmail(email?: string): string | null {
+  const customerEmail = email?.trim() || '';
+  if (
+    customerEmail.length > 0 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail) &&
+    !customerEmail.endsWith('@checkout.local')
+  ) {
+    return customerEmail;
+  }
+  return null;
+}
+
 export async function sendCustomerOrderEmail(orderDetails: OrderDetails, language: Language = 'en'): Promise<void> {
   if (!isEmailConfigured()) {
     console.warn('Skipping customer order email: email not configured');
     return;
   }
 
-  const customerEmail = orderDetails.customer.email?.trim() || '';
-  const isValidCustomerEmail =
-    customerEmail.length > 0 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail) &&
-    !customerEmail.endsWith('@checkout.local');
-
-  if (!isValidCustomerEmail) {
+  const customerEmail = getValidCustomerEmail(orderDetails.customer.email);
+  if (!customerEmail) {
     console.log('Skipping customer order email: no valid customer email provided');
     return;
   }
@@ -339,6 +346,12 @@ export async function sendOrderStatusEmail(
     return;
   }
 
+  const customerEmail = getValidCustomerEmail(orderDetails.customer.email);
+  if (!customerEmail) {
+    console.log('Skipping order status email: no valid customer email provided');
+    return;
+  }
+
   const t = translations[language];
   const contactEmail = getContactEmail();
   const emailStatus = status === 'shipped' ? 'dispatched' : status;
@@ -471,11 +484,11 @@ export async function sendOrderStatusEmail(
   `;
 
   await sendEmail({
-    to: orderDetails.customer.email,
+    to: customerEmail,
     subject: `Order ${statusInfo.title} - #${orderDetails.orderId}`,
     html: customerEmailHtml,
     replyTo: contactEmail,
   });
 
-  console.log(`Order ${status} email sent successfully to ${orderDetails.customer.email}`);
+  console.log(`Order ${status} email sent successfully to ${customerEmail}`);
 }
