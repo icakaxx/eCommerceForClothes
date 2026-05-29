@@ -7,6 +7,11 @@ const generateCartItemId = (id: string | number, size?: string): string => {
   return `${id}${size ? `_${size}` : ''}`;
 };
 
+const normalizePrice = (price: unknown): number => {
+  const n = Number(price);
+  return Number.isFinite(n) ? n : 0;
+};
+
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
@@ -34,6 +39,7 @@ export const useCartStore = create<CartState>()(
           // Add new item
           const itemToAdd: CartItem = {
             ...newItem,
+            price: normalizePrice(newItem.price),
             quantity: newItem.quantity || 1
           };
           set({ items: [...items, itemToAdd] });
@@ -91,7 +97,10 @@ export const useCartStore = create<CartState>()(
 
       totalPrice: () => {
         const { items } = get();
-        return items.reduce((total, item) => total + (item.price * item.quantity), 0);
+        return items.reduce(
+          (total, item) => total + normalizePrice(item.price) * item.quantity,
+          0
+        );
       }
     }),
     {
@@ -100,6 +109,14 @@ export const useCartStore = create<CartState>()(
       partialize: (state) => ({ items: state.items }), // Only persist items
       // Defer hydration to CartProvider (required for Next.js SSR)
       skipHydration: true,
+      onRehydrateStorage: () => (state) => {
+        if (state?.items?.length) {
+          state.items = state.items.map((item) => ({
+            ...item,
+            price: normalizePrice(item.price),
+          }));
+        }
+      },
     }
   )
 );

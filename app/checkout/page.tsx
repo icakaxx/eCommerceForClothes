@@ -13,7 +13,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useCheckoutStore, type DeliveryType, type CityOption } from '@/store/checkoutStore';
 import { translations } from '@/lib/translations';
 import { ShoppingBag, Truck, MapPin, Package } from 'lucide-react';
-import type { EcontOfficesData, EcontOffice } from '@/types/econt';
 import FomoBadge, { type FomoMessage } from '@/components/FomoBadge';
 
 export default function CheckoutPage() {
@@ -62,11 +61,8 @@ export default function CheckoutPage() {
     streetNumber?: string;
     econtOfficeId?: string;
   }>({});
-  const [econtOffices, setEcontOffices] = useState<EcontOfficesData | null>(null);
-  const [selectedOffice, setSelectedOffice] = useState<EcontOffice | null>(null);
   const [showCityDropdown, setShowCityDropdown] = useState<boolean>(false);
   const cityDropdownRef = useRef<HTMLDivElement>(null);
-  const [showMissingOfficePrompt, setShowMissingOfficePrompt] = useState(false);
   const hasAutoPopulated = useRef(false);
   const placeOrderButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -98,9 +94,6 @@ export default function CheckoutPage() {
 
     // Load cities data
     loadCities();
-    
-    // Load Econt offices data
-    loadEcontOffices();
   }, [hasHydrated, totalItems, router]);
 
   // Auto-populate form with user data when logged in (only once)
@@ -223,70 +216,6 @@ export default function CheckoutPage() {
     setCities(bulgarianCities);
   };
 
-  const loadEcontOffices = async () => {
-    try {
-      const response = await fetch('/data/econt-offices.json');
-      const data: EcontOfficesData = await response.json();
-      setEcontOffices(data);
-    } catch (error) {
-      console.error('Failed to load Econt offices:', error);
-    }
-  };
-
-  // Set selected office when Econt offices load and user has a preferred office
-  useEffect(() => {
-    if (econtOffices && formData.deliveryType === 'office' && formData.city && formData.econtOfficeId) {
-      // Try to find the city in Econt offices - handle both display name format and plain city name
-      let cityName = formData.city;
-      
-      // If city is in display format like "Пловдив [4000]", extract just the city name
-      const displayNameMatch = cityName.match(/^(.+?)\s*\[/);
-      if (displayNameMatch) {
-        cityName = displayNameMatch[1].trim();
-      }
-      
-      // Try exact match first
-      let cityOffices = econtOffices.officesByCity[cityName] || [];
-      
-      // If no offices found, try to find by partial match
-      if (cityOffices.length === 0) {
-        const matchingCity = econtOffices.cities.find(c => 
-          c.toLowerCase() === cityName.toLowerCase() ||
-          c.toLowerCase().includes(cityName.toLowerCase()) ||
-          cityName.toLowerCase().includes(c.toLowerCase())
-        );
-        if (matchingCity) {
-          cityOffices = econtOffices.officesByCity[matchingCity] || [];
-        }
-      }
-      
-      // Find the office by ID in the city
-      let office = cityOffices.find(o => o.id === formData.econtOfficeId);
-      
-      // If not found in the city, search across all cities (in case city name doesn't match)
-      if (!office) {
-        for (const city of econtOffices.cities) {
-          const offices = econtOffices.officesByCity[city] || [];
-          office = offices.find(o => o.id === formData.econtOfficeId);
-          if (office) {
-            break;
-          }
-        }
-      }
-      
-      if (office) {
-        setSelectedOffice(office);
-      } else {
-        // Office not found - might be because city doesn't match or office was removed
-        console.warn('Could not find office with ID:', formData.econtOfficeId, 'in city:', cityName);
-        setSelectedOffice(null);
-      }
-    } else if (formData.deliveryType !== 'office' || !formData.econtOfficeId) {
-      // Clear selected office if delivery type changed or no office ID
-      setSelectedOffice(null);
-    }
-  }, [econtOffices, formData.deliveryType, formData.city, formData.econtOfficeId]);
-
   // Validation functions
   const validateBulgarianPhone = (phone: string): boolean => {
     if (!phone || phone.trim() === '') return false;
@@ -339,9 +268,7 @@ export default function CheckoutPage() {
         error = t.invalidPhone;
       }
     } else if (field === 'email') {
-      if (!value || value.trim() === '') {
-        error = t.emailRequired;
-      } else if (!validateEmail(value)) {
+      if (value && value.trim() !== '' && !validateEmail(value)) {
         error = t.invalidEmail;
       }
     }
@@ -366,9 +293,7 @@ export default function CheckoutPage() {
   };
 
   const handleDeliveryTypeChange = (deliveryType: DeliveryType) => {
-    updateFormData({ deliveryType, econtOfficeId: '', missingEcontOffice: '' });
-    setSelectedOffice(null);
-    setShowMissingOfficePrompt(false);
+    updateFormData({ deliveryType, econtOfficeId: '' });
     
     // Clear validation errors when delivery type changes
     setValidationErrors(prev => {
@@ -378,38 +303,6 @@ export default function CheckoutPage() {
       delete newErrors.streetNumber;
       return newErrors;
     });
-  };
-
-  const handleOfficeSelect = (officeId: string) => {
-    updateFormData({ econtOfficeId: officeId });
-    
-    // Clear validation error when office is selected
-    if (validationErrors.econtOfficeId) {
-      setValidationErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.econtOfficeId;
-        return newErrors;
-      });
-    }
-    
-    // Find and set the selected office for displaying working hours
-    if (econtOffices && formData.city) {
-      const cityOffices = econtOffices.officesByCity[formData.city] || [];
-      const office = cityOffices.find(o => o.id === officeId);
-      setSelectedOffice(office || null);
-    }
-  };
-
-  const handleOfficeSelectValue = (value: string) => {
-    if (value === '__missing__') {
-      updateFormData({ econtOfficeId: '', missingEcontOffice: formData.missingEcontOffice || '' });
-      setSelectedOffice(null);
-      setShowMissingOfficePrompt(true);
-      return;
-    }
-
-    setShowMissingOfficePrompt(false);
-    handleOfficeSelect(value);
   };
 
   const getDeliveryCost = (deliveryType: DeliveryType) => {
@@ -437,10 +330,9 @@ export default function CheckoutPage() {
         ? t.invalidPhone 
         : undefined;
     
-    const emailError = !formData.email || formData.email.trim() === '' 
-      ? t.emailRequired 
-      : !validateEmail(formData.email) 
-        ? t.invalidEmail 
+    const emailError =
+      formData.email && formData.email.trim() !== '' && !validateEmail(formData.email)
+        ? t.invalidEmail
         : undefined;
 
     if (phoneError || emailError) {
@@ -459,11 +351,10 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Validate Econt office selection for office delivery
+    // Validate Econt office for office delivery
     if (
       formData.deliveryType === 'office' &&
-      !formData.econtOfficeId &&
-      !(formData.missingEcontOffice && formData.missingEcontOffice.trim())
+      (!formData.econtOfficeId || !formData.econtOfficeId.trim())
     ) {
       setValidationErrors(prev => ({ ...prev, econtOfficeId: t.selectEcontOffice }));
       setError(t.selectEcontOffice);
@@ -862,7 +753,7 @@ export default function CheckoutPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.email} *
+                        {t.email}
                       </label>
                       <input
                         type="email"
@@ -872,7 +763,6 @@ export default function CheckoutPage() {
                         className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                           validationErrors.email ? 'border-red-500' : 'border-gray-300'
                         }`}
-                        required
                       />
                       {validationErrors.email && (
                         <p className="text-red-500 text-xs mt-1" data-checkout-field-error>{validationErrors.email}</p>
@@ -906,11 +796,8 @@ export default function CheckoutPage() {
                             const value = e.target.value;
                             handleInputChange('city', value);
                             setShowCityDropdown(true);
-                            // Reset office selection when city changes
                             if (formData.deliveryType === 'office') {
-                              updateFormData({ econtOfficeId: '', missingEcontOffice: '' });
-                              setSelectedOffice(null);
-                              setShowMissingOfficePrompt(false);
+                              updateFormData({ econtOfficeId: '' });
                             }
                           }}
                           onFocus={() => setShowCityDropdown(true)}
@@ -920,56 +807,28 @@ export default function CheckoutPage() {
                         />
                         {showCityDropdown && (
                           <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                            {/* Show Econt cities if office delivery is selected and data is loaded */}
-                            {formData.deliveryType === 'office' && econtOffices ? (
-                              econtOffices.cities
-                                .filter((city) => 
-                                  city.toLowerCase().includes((formData.city || '').toLowerCase())
-                                )
-                                .map((city) => (
-                                  <button
-                                    key={city}
-                                    type="button"
-                                    onClick={() => {
-                                      handleInputChange('city', city);
-                                      setShowCityDropdown(false);
-                                      if (formData.deliveryType === 'office') {
-                                        updateFormData({ econtOfficeId: '', missingEcontOffice: '' });
-                                        setSelectedOffice(null);
-                                        setShowMissingOfficePrompt(false);
-                                      }
-                                    }}
-                                    className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-                                  >
-                                    {city}
-                                  </button>
-                                ))
-                            ) : (
-                              cities
-                                .filter((city) => 
-                                  city.name.toLowerCase().includes((formData.city || '').toLowerCase()) ||
-                                  city.displayName.toLowerCase().includes((formData.city || '').toLowerCase()) ||
-                                  city.postcode.includes(formData.city || '')
-                                )
-                                .map((city) => (
-                                  <button
-                                    key={city.displayName}
-                                    type="button"
-                                    onClick={() => {
-                                      handleInputChange('city', city.displayName);
-                                      setShowCityDropdown(false);
-                                      if (formData.deliveryType === 'office') {
-                                        updateFormData({ econtOfficeId: '', missingEcontOffice: '' });
-                                        setSelectedOffice(null);
-                                        setShowMissingOfficePrompt(false);
-                                      }
-                                    }}
-                                    className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-                                  >
-                                    {city.displayName}
-                                  </button>
-                                ))
-                            )}
+                            {cities
+                              .filter((city) => 
+                                city.name.toLowerCase().includes((formData.city || '').toLowerCase()) ||
+                                city.displayName.toLowerCase().includes((formData.city || '').toLowerCase()) ||
+                                city.postcode.includes(formData.city || '')
+                              )
+                              .map((city) => (
+                                <button
+                                  key={city.displayName}
+                                  type="button"
+                                  onClick={() => {
+                                    handleInputChange('city', city.displayName);
+                                    setShowCityDropdown(false);
+                                    if (formData.deliveryType === 'office') {
+                                      updateFormData({ econtOfficeId: '' });
+                                    }
+                                  }}
+                                  className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                >
+                                  {city.displayName}
+                                </button>
+                              ))}
                           </div>
                         )}
                       </div>
@@ -1022,101 +881,28 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* Econt Office Selection - Only show if office delivery is selected */}
-                  {formData.deliveryType === 'office' && formData.city && econtOffices && (() => {
-                    // Normalize city name - extract from display format if needed
-                    let cityName = formData.city;
-                    const displayNameMatch = cityName.match(/^(.+?)\s*\[/);
-                    if (displayNameMatch) {
-                      cityName = displayNameMatch[1].trim();
-                    }
-                    
-                    // Try to find matching city in Econt offices
-                    let cityOffices = econtOffices.officesByCity[cityName] || [];
-                    if (cityOffices.length === 0) {
-                      const matchingCity = econtOffices.cities.find(c => 
-                        c.toLowerCase() === cityName.toLowerCase() ||
-                        c.toLowerCase().includes(cityName.toLowerCase()) ||
-                        cityName.toLowerCase().includes(c.toLowerCase())
-                      );
-                      if (matchingCity) {
-                        cityName = matchingCity;
-                        cityOffices = econtOffices.officesByCity[matchingCity] || [];
-                      }
-                    }
-                    
-                    return (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          {t.econtOffice} *
-                        </label>
-                        <select
-                          value={formData.econtOfficeId || ''}
-                          onChange={(e) => handleOfficeSelectValue(e.target.value)}
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                            validationErrors.econtOfficeId ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                          required={!(formData.missingEcontOffice && formData.missingEcontOffice.trim())}
-                        >
-                          <option value="">{t.selectEcontOffice}</option>
-                          <option value="__missing__">
-                            {language === 'bg' ? 'Офисът не е наличен' : 'Office not available'}
-                          </option>
-                          {cityOffices.map((office) => (
-                            <option key={office.id} value={office.id}>
-                              {office.name}
-                            </option>
-                          ))}
-                        </select>
+                  {/* Econt Office - free text when office delivery is selected */}
+                  {formData.deliveryType === 'office' && formData.city && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {t.econtOffice} *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.econtOfficeId || ''}
+                        onChange={(e) => handleInputChange('econtOfficeId', e.target.value)}
+                        placeholder={language === 'bg'
+                          ? 'Напр. Еконт офис Център, ул. Примерна 10'
+                          : 'e.g. Econt office Center, Example St 10'}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                          validationErrors.econtOfficeId ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      />
                       {validationErrors.econtOfficeId && (
                         <p className="text-red-500 text-xs mt-1" data-checkout-field-error>{validationErrors.econtOfficeId}</p>
                       )}
-                      
-                      {/* Show office details when selected */}
-                      {selectedOffice && (
-                        <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-md">
-                          <div className="space-y-2">
-                            <div>
-                              <span className="text-sm font-medium text-gray-700">{t.officeAddress}:</span>
-                              <p className="text-sm text-gray-900">{selectedOffice.address}</p>
-                            </div>
-                            <div>
-                              <span className="text-sm font-medium text-gray-700">{t.workingHours}:</span>
-                              <p className="text-sm text-gray-900">{selectedOffice.workingHours}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {(showMissingOfficePrompt ||
-                        (cityName && cityOffices.length === 0)) && (
-                        <div className="mt-2 space-y-3">
-                          {cityName && cityOffices.length === 0 && (
-                            <p className="text-sm text-amber-600">
-                              {t.noOfficesInCity}
-                            </p>
-                          )}
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              {language === 'bg'
-                                ? 'Липсващ офис? моля напишете име и адрес?'
-                                : 'Missing office? Please enter name and address.'}
-                            </label>
-                            <textarea
-                              value={formData.missingEcontOffice || ''}
-                              onChange={(e) => handleInputChange('missingEcontOffice', e.target.value)}
-                              placeholder={language === 'bg'
-                                ? 'Напр. Еконт офис Център, ул. Примерна 10'
-                                : 'e.g. Econt office Center, Example St 10'}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              rows={3}
-                            />
-                          </div>
-                        </div>
-                      )}
                     </div>
-                    );
-                  })()}
+                  )}
 
                   {/* Address Fields - Only show if address delivery is selected */}
                   {formData.deliveryType === 'address' && (

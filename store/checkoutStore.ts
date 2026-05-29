@@ -202,7 +202,6 @@ export const useCheckoutStore = create<CheckoutState>()(
           formData.firstName.trim() &&
           formData.lastName.trim() &&
           formData.telephone.trim() &&
-          formData.email.trim() &&
           formData.city &&
           formData.deliveryType
         );
@@ -213,9 +212,7 @@ export const useCheckoutStore = create<CheckoutState>()(
         
         // Validate delivery-specific fields
         if (formData.deliveryType === 'office') {
-          const hasOfficeSelection = !!formData.econtOfficeId && formData.econtOfficeId.trim() !== '';
-          const hasMissingOffice = !!formData.missingEcontOffice && formData.missingEcontOffice.trim() !== '';
-          return hasOfficeSelection || hasMissingOffice;
+          return !!formData.econtOfficeId && formData.econtOfficeId.trim() !== '';
         }
         
         if (formData.deliveryType === 'address') {

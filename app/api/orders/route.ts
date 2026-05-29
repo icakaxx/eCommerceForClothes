@@ -9,7 +9,7 @@ interface OrderData {
   customer: {
     firstName: string;
     lastName: string;
-    email: string;
+    email?: string;
     telephone: string;
     country: string;
     city: string;
@@ -209,16 +209,9 @@ async function reduceStock(items: OrderData['items']): Promise<void> {
 // Get or create customer
 async function getOrCreateCustomer(customerData: OrderData['customer']): Promise<string> {
   const supabase = supabaseAdmin;
+  const email = customerData.email?.trim() || '';
 
-  // Check if customer exists by email
-  const { data: existingCustomer, error: fetchError } = await supabase
-    .from('customers')
-    .select('customerid')
-    .eq('email', customerData.email)
-    .single();
-
-  if (existingCustomer && !fetchError) {
-    // Update customer information
+  const updateExistingCustomer = async (customerId: string) => {
     await supabase
       .from('customers')
       .update({
@@ -229,18 +222,42 @@ async function getOrCreateCustomer(customerData: OrderData['customer']): Promise
         city: customerData.city,
         updatedat: new Date().toISOString()
       })
-      .eq('customerid', existingCustomer.customerid);
+      .eq('customerid', customerId);
+  };
 
-    return existingCustomer.customerid;
+  if (email) {
+    const { data: existingCustomer, error: fetchError } = await supabase
+      .from('customers')
+      .select('customerid')
+      .eq('email', email)
+      .single();
+
+    if (existingCustomer && !fetchError) {
+      await updateExistingCustomer(existingCustomer.customerid);
+      return existingCustomer.customerid;
+    }
+  } else {
+    const { data: existingByPhone, error: phoneFetchError } = await supabase
+      .from('customers')
+      .select('customerid')
+      .eq('telephone', customerData.telephone)
+      .maybeSingle();
+
+    if (existingByPhone && !phoneFetchError) {
+      await updateExistingCustomer(existingByPhone.customerid);
+      return existingByPhone.customerid;
+    }
   }
 
-  // Create new customer
+  const customerEmail =
+    email || `guest.${Date.now()}.${Math.random().toString(36).slice(2, 9)}@checkout.local`;
+
   const { data: newCustomer, error: createError } = await supabase
     .from('customers')
     .insert({
       firstname: customerData.firstName,
       lastname: customerData.lastName,
-      email: customerData.email,
+      email: customerEmail,
       telephone: customerData.telephone,
       country: customerData.country,
       city: customerData.city

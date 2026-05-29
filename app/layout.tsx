@@ -94,15 +94,17 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const jsonLdScript = JSON.stringify(jsonLd)
+
   return (
-    <html lang="bg">
-      <head>
+    <html lang="bg" suppressHydrationWarning>
+      <body>
+        {/* In body to avoid head injection from browser extensions; valid for schema.org */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: jsonLdScript }}
+          suppressHydrationWarning
         />
-      </head>
-      <body>
         <Providers>
           {children}
         </Providers>

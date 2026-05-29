@@ -191,7 +191,7 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
 
     // Use selected variant if available, otherwise use product
     const itemId = selectedVariant?.productvariantid || selectedVariant?.ProductVariantID || product.id;
-    const itemPrice = selectedVariant?.price || product.price;
+    const itemPrice = selectedVariant?.price ?? product.price ?? 0;
     const itemImageUrl = selectedVariant?.imageurl || selectedVariant?.ImageURL || product.images[0] || '/placeholder-image.jpg';
     
     // Extract property values from selected variant or use selected options

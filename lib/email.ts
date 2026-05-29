@@ -7,7 +7,7 @@ interface OrderDetails {
   customer: {
     firstName: string;
     lastName: string;
-    email: string;
+    email?: string;
     telephone: string;
     country: string;
     city: string;
@@ -58,6 +58,17 @@ function getDeliveryTypeLabel(type: string, language: Language): string {
 export async function sendCustomerOrderEmail(orderDetails: OrderDetails, language: Language = 'en'): Promise<void> {
   if (!isEmailConfigured()) {
     console.warn('Skipping customer order email: email not configured');
+    return;
+  }
+
+  const customerEmail = orderDetails.customer.email?.trim() || '';
+  const isValidCustomerEmail =
+    customerEmail.length > 0 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail) &&
+    !customerEmail.endsWith('@checkout.local');
+
+  if (!isValidCustomerEmail) {
+    console.log('Skipping customer order email: no valid customer email provided');
     return;
   }
 
@@ -175,13 +186,13 @@ export async function sendCustomerOrderEmail(orderDetails: OrderDetails, languag
   `;
 
   await sendEmail({
-    to: orderDetails.customer.email,
+    to: customerEmail,
     subject: `${t.emailOrderReceivedSubject} - #${orderDetails.orderId}`,
     html: customerEmailHtml,
     replyTo: contactEmail,
   });
 
-  console.log('Customer order email sent successfully to', orderDetails.customer.email);
+  console.log('Customer order email sent successfully to', customerEmail);
 }
 
 export async function sendAdminOrderEmail(orderDetails: OrderDetails, language: Language = 'en'): Promise<void> {

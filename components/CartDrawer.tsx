@@ -35,8 +35,9 @@ const CartDrawer: React.FC = () => {
   const t = translations[language || 'en'];
   const scrollYRef = useRef(0);
 
-  const formatPrice = (price: number) => {
-    return `€${price.toFixed(2)}`;
+  const formatPrice = (price: number | undefined | null) => {
+    const n = Number(price);
+    return `€${(Number.isFinite(n) ? n : 0).toFixed(2)}`;
   };
 
   const handleCheckout = useCallback(() => {

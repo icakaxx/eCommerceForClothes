@@ -14,28 +14,23 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const { settings } = useStoreSettings();
   
-  // Initialize state from localStorage synchronously to prevent flash
-  // Default to 'bg' to match DB configuration (DB is source of truth)
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window !== 'undefined') {
-      const savedLanguage = localStorage.getItem('language') as Language;
-      if (savedLanguage === 'en' || savedLanguage === 'bg') {
-        return savedLanguage;
-      }
+  // Fixed initial value so server and client markup match; hydrate prefs after mount
+  const [language, setLanguageState] = useState<Language>('bg');
+
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('language') as Language;
+    if (savedLanguage === 'en' || savedLanguage === 'bg') {
+      setLanguageState(savedLanguage);
     }
-    // Default to 'bg' since DB is configured to Bulgarian (prevents English flash)
-    return 'bg';
-  });
+  }, []);
 
   // Sync with StoreSettings from DB (DB is source of truth)
   useEffect(() => {
-    if (settings?.language && settings.language !== language) {
+    if (settings?.language) {
       setLanguageState(settings.language);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('language', settings.language);
-      }
+      localStorage.setItem('language', settings.language);
     }
-  }, [settings?.language, language]);
+  }, [settings?.language]);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);

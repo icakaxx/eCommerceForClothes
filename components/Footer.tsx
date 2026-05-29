@@ -18,34 +18,16 @@ export default function Footer() {
   const pathname = usePathname();
   const t = translations[language];
 
-  // Helper function to strip HTML tags and clean text
-  const stripHtml = (html: string): string => {
-    if (typeof window === 'undefined') {
-      // Server-side: use regex to strip HTML tags
-      return html
-        .replace(/<[^>]*>/g, '') // Remove HTML tags
-        .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
-        .replace(/&amp;/g, '&') // Replace &amp; with &
-        .replace(/&lt;/g, '<') // Replace &lt; with <
-        .replace(/&gt;/g, '>') // Replace &gt; with >
-        .replace(/&quot;/g, '"') // Replace &quot; with "
-        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-        .trim();
-    }
-    
-    // Client-side: use DOM parsing for better accuracy
-    const tmp = document.createElement('div');
-    tmp.innerHTML = html;
-    let text = tmp.textContent || tmp.innerText || '';
-    
-    // Clean up whitespace
-    text = text
-      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-      .replace(/\n\s*\n/g, ' ') // Replace multiple newlines with single space
+  const stripHtml = (html: string): string =>
+    html
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/\s+/g, ' ')
       .trim();
-    
-    return text;
-  };
 
   // Brand description - use aboutustext if available, otherwise default
   const brandDescription = settings?.aboutustext 
