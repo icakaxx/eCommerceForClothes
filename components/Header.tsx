@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Menu, Settings, LogOut, ShoppingCart, User as UserIcon, ChevronLeft, X, Search } from 'lucide-react';
+import { Menu, Settings, LogOut, ShoppingCart, User as UserIcon, ChevronLeft, ChevronRight, X, Search, Shirt, Gem } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -231,6 +231,20 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
   const handleMobileParentCategoryClick = (categoryId: string) => {
     setSelectedParentCategoryId(categoryId);
   };
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+    setMobileCategoryDrawerOpen(false);
+    setSelectedSectionForCategories(null);
+    setSelectedParentCategoryId(null);
+  };
+
+  const getNavItemIcon = (navId: string) => {
+    if (navId === 'accessories') return Gem;
+    return Shirt;
+  };
+
+  const storeName = settings?.storename || 'MODABOX';
 
   // Update displayed image when dropdown opens or category changes
   useEffect(() => {
@@ -679,294 +693,320 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
       </div>
     </header>
 
-    {/* Backdrop Overlay */}
+    {/* Mobile menu backdrop */}
     {mobileMenuOpen && (
       <div
         className="fixed inset-0 bg-black/50 z-40 md:hidden"
-        onClick={() => {
-          setMobileMenuOpen(false);
-          setMobileCategoryDrawerOpen(false);
-          setSelectedSectionForCategories(null);
-        }}
-        style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+        onClick={closeMobileMenu}
       />
     )}
 
-    {/* Mobile Menu - Sliding from Right */}
+    {/* Mobile menu drawer — screen 1: sections, screen 2: categories */}
     {mobileMenuOpen && (
       <div
-        className="fixed top-0 right-0 h-full w-[280px] z-50 md:hidden shadow-2xl"
-        style={{ 
-          backgroundColor: theme.colors.surface,
-          width: '280px',
-          minWidth: '280px',
-          maxWidth: '280px'
-        }}
+        className="fixed top-0 right-0 z-50 flex h-full w-[min(320px,88vw)] flex-col overflow-hidden rounded-l-3xl shadow-2xl md:hidden"
+        style={{ backgroundColor: theme.colors.surface }}
         onTouchStart={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header - No Close Button */}
-        <div className="flex items-center p-6 border-b"
-             style={{ borderColor: theme.colors.border }}>
-          <h2 className="font-semibold text-lg"
-              style={{ color: theme.colors.text }}>
-            МЕНЮ
-          </h2>
-        </div>
+        {!mobileCategoryDrawerOpen ? (
+          <>
+            <div className="relative px-6 pb-2 pt-8">
+              <button
+                type="button"
+                onClick={closeMobileMenu}
+                className="absolute right-5 top-5 p-1 transition-opacity hover:opacity-70"
+                style={{ color: theme.colors.text }}
+                aria-label={language === 'bg' ? 'Затвори' : 'Close'}
+              >
+                <X size={22} />
+              </button>
 
-        {/* Menu Items */}
-        <nav className="flex flex-col h-full">
-          <div className="flex-1 overflow-y-auto">
-            {navItems.map(item => {
-              const categories = getCategoriesForNavItem(item.id);
-              
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    if (categories.length > 0) {
-                      handleMobileSectionClick(item);
-                    } else {
-                      // If no categories, navigate directly to the section
-                      router.push(item.path);
-                      setIsAdmin(false);
-                      setMobileMenuOpen(false);
-                    }
-                  }}
-                  className="block w-full text-left px-6 py-4 font-medium border-b transition-colors duration-300 hover:opacity-70"
-                  style={{
-                    color: currentPage === item.id && !isAdmin
-                      ? theme.colors.primary
-                      : theme.colors.text,
-                    borderColor: theme.colors.border
-                  }}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
+              <div className="text-center pt-2">
+                <Link href="/" onClick={closeMobileMenu} className="inline-block">
+                  <span
+                    className="font-serif-display text-xl tracking-[0.14em]"
+                    style={{ color: theme.colors.text }}
+                  >
+                    {storeName.toUpperCase()}
+                  </span>
+                </Link>
+                <div className="mt-3 flex items-center justify-center gap-2">
+                  <span className="h-px w-6" style={{ backgroundColor: theme.colors.primary }} />
+                  <span
+                    className="text-[11px] font-serif-display italic"
+                    style={{ color: theme.colors.primary }}
+                  >
+                    {language === 'bg'
+                      ? `Добре дошли в ${storeName}`
+                      : `Welcome to ${storeName}`}
+                  </span>
+                  <span className="h-px w-6" style={{ backgroundColor: theme.colors.primary }} />
+                </div>
+              </div>
 
-            {/* User menu in mobile */}
-            {!isAdmin && (
-              <>
-                {isAuthenticated && user ? (
-                  <>
-                    <Link
-                      href="/user/dashboard"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 w-full text-left px-6 py-4 font-medium border-b transition-colors duration-300 hover:opacity-70"
-                      style={{
-                        color: theme.colors.text,
-                        borderColor: theme.colors.border
-                      }}
-                    >
-                      <UserIcon size={20} />
-                      {language === 'bg' ? 'Профил' : 'Profile'}
-                    </Link>
+              <h2
+                className="font-serif-display mt-6 text-3xl"
+                style={{ color: theme.colors.text }}
+              >
+                {language === 'bg' ? 'Меню' : 'Menu'}
+              </h2>
+            </div>
+
+            <nav className="flex flex-1 flex-col overflow-y-auto px-5 pb-8">
+              <div
+                className="overflow-hidden rounded-2xl"
+                style={{
+                  backgroundColor: theme.colors.secondary,
+                  border: `1px solid ${theme.colors.border}`,
+                }}
+              >
+                {navItems.map((item, index) => {
+                  const categories = getCategoriesForNavItem(item.id);
+                  const NavIcon = getNavItemIcon(item.id);
+
+                  return (
                     <button
+                      key={item.id}
+                      type="button"
                       onClick={() => {
-                        logout();
-                        setMobileMenuOpen(false);
-                        router.push('/');
+                        if (categories.length > 0) {
+                          handleMobileSectionClick(item);
+                        } else {
+                          router.push(item.path);
+                          setIsAdmin(false);
+                          closeMobileMenu();
+                        }
                       }}
-                      className="flex items-center gap-3 w-full text-left px-6 py-4 font-medium border-b transition-colors duration-300 hover:opacity-70"
+                      className="flex w-full items-center gap-3 px-4 py-4 text-left transition-opacity hover:opacity-80"
                       style={{
-                        color: theme.colors.text,
-                        borderColor: theme.colors.border
+                        borderBottom:
+                          index < navItems.length - 1 || !isAdmin
+                            ? `1px solid ${theme.colors.border}`
+                            : 'none',
                       }}
                     >
-                      <LogOut size={20} />
-                      {language === 'bg' ? 'Изход' : 'Logout'}
+                      <span
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                        style={{ backgroundColor: theme.colors.surface }}
+                      >
+                        <NavIcon size={18} style={{ color: theme.colors.text }} />
+                      </span>
+                      <span
+                        className="flex-1 text-[15px] font-medium"
+                        style={{ color: theme.colors.text }}
+                      >
+                        {item.label}
+                      </span>
+                      {categories.length > 0 && (
+                        <ChevronRight size={18} style={{ color: theme.colors.primary }} />
+                      )}
+                    </button>
+                  );
+                })}
+
+                {!isAdmin && (
+                  <>
+                    {isAuthenticated && user ? (
+                      <>
+                        <Link
+                          href="/user/dashboard"
+                          onClick={closeMobileMenu}
+                          className="flex w-full items-center gap-3 px-4 py-4 text-left transition-opacity hover:opacity-80"
+                          style={{ borderBottom: `1px solid ${theme.colors.border}` }}
+                        >
+                          <span
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                            style={{ backgroundColor: theme.colors.surface }}
+                          >
+                            <UserIcon size={18} style={{ color: theme.colors.text }} />
+                          </span>
+                          <span className="flex-1 text-[15px] font-medium" style={{ color: theme.colors.text }}>
+                            {language === 'bg' ? 'Профил' : 'Profile'}
+                          </span>
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            logout();
+                            closeMobileMenu();
+                            router.push('/');
+                          }}
+                          className="flex w-full items-center gap-3 px-4 py-4 text-left transition-opacity hover:opacity-80"
+                        >
+                          <span
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                            style={{ backgroundColor: theme.colors.surface }}
+                          >
+                            <LogOut size={18} style={{ color: theme.colors.text }} />
+                          </span>
+                          <span className="flex-1 text-[15px] font-medium" style={{ color: theme.colors.text }}>
+                            {language === 'bg' ? 'Изход' : 'Logout'}
+                          </span>
+                        </button>
+                      </>
+                    ) : (
+                      <Link
+                        href="/user"
+                        onClick={closeMobileMenu}
+                        className="flex w-full items-center gap-3 px-4 py-4 text-left transition-opacity hover:opacity-80"
+                      >
+                        <span
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                          style={{ backgroundColor: theme.colors.surface }}
+                        >
+                          <UserIcon size={18} style={{ color: theme.colors.text }} />
+                        </span>
+                        <span className="flex-1 text-[15px] font-medium" style={{ color: theme.colors.text }}>
+                          {language === 'bg' ? 'Вход' : 'Login'}
+                        </span>
+                      </Link>
+                    )}
+                  </>
+                )}
+
+                {isAdmin && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        router.push('/admin');
+                        closeMobileMenu();
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-4 text-left transition-opacity hover:opacity-80"
+                      style={{ borderBottom: `1px solid ${theme.colors.border}` }}
+                    >
+                      <span
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                        style={{ backgroundColor: theme.colors.surface }}
+                      >
+                        <Settings size={18} style={{ color: theme.colors.text }} />
+                      </span>
+                      <span className="flex-1 text-[15px] font-medium" style={{ color: theme.colors.text }}>
+                        {t.backToAdmin}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        localStorage.setItem('isAdmin', 'false');
+                        setIsAdmin(false);
+                        router.push('/');
+                        closeMobileMenu();
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-4 text-left transition-opacity hover:opacity-80"
+                    >
+                      <span
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                        style={{ backgroundColor: theme.colors.surface }}
+                      >
+                        <LogOut size={18} style={{ color: theme.colors.text }} />
+                      </span>
+                      <span className="flex-1 text-[15px] font-medium" style={{ color: theme.colors.text }}>
+                        {t.exitAdmin}
+                      </span>
                     </button>
                   </>
-                ) : (
-                  <Link
-                    href="/user"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 w-full text-left px-6 py-4 font-medium border-b transition-colors duration-300 hover:opacity-70"
-                    style={{
-                      color: theme.colors.text,
-                      borderColor: theme.colors.border
-                    }}
-                  >
-                    <UserIcon size={20} />
-                    {language === 'bg' ? 'Вход' : 'Login'}
-                  </Link>
                 )}
-              </>
-            )}
-
-            {/* Admin Buttons (only shown when in admin mode) */}
-            {isAdmin && (
-              <>
-                <button
-                  onClick={() => {
-                    router.push('/admin');
-                    setMobileMenuOpen(false);
-                  }}
-                  className="flex items-center gap-3 w-full text-left px-6 py-4 font-medium border-b transition-colors duration-300 hover:opacity-70"
-                  style={{
-                    color: theme.colors.textSecondary,
-                    borderColor: theme.colors.border
-                  }}
-                >
-                  <div 
-                    className="p-2 rounded-lg"
-                    style={{
-                      border: `1px solid ${theme.colors.border}`
-                    }}
-                  >
-                    <Settings size={18} />
-                  </div>
-                  {t.backToAdmin}
-                </button>
-                <button
-                  onClick={() => {
-                    localStorage.setItem('isAdmin', 'false');
-                    setIsAdmin(false);
-                    router.push('/');
-                    setMobileMenuOpen(false);
-                  }}
-                  className="flex items-center gap-3 w-full text-left px-6 py-4 font-medium border-b transition-colors duration-300 hover:opacity-70"
-                  style={{
-                    color: theme.colors.textSecondary,
-                    borderColor: theme.colors.border
-                  }}
-                >
-                  <div 
-                    className="p-2 rounded-lg"
-                    style={{
-                      border: `1px solid ${theme.colors.border}`
-                    }}
-                  >
-                    <LogOut size={18} />
-                  </div>
-                  {t.exitAdmin}
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Bottom CTA Button */}
-          <div className="p-6 border-t"
-               style={{ borderColor: theme.colors.border }}>
-            <Link
-              href="/for-him"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block w-full text-center py-3 px-6 rounded-lg font-medium transition-all duration-300"
-              style={{
-                backgroundColor: theme.colors.primary,
-                color: '#ffffff'
-              }}
+              </div>
+            </nav>
+          </>
+        ) : !selectedParentCategoryId ? (
+          <>
+            <div
+              className="flex items-center justify-between border-b px-4 py-5"
+              style={{ borderColor: theme.colors.border }}
             >
-              {t.goToStore}
-            </Link>
-          </div>
-        </nav>
-      </div>
-    )}
-
-    {/* Mobile Category Drawer - Overlay on top of main menu */}
-    {mobileCategoryDrawerOpen && selectedSectionForCategories && (
-      <>
-        {/* Main Categories Drawer */}
-        {!selectedParentCategoryId && (
-          <div
-            className="fixed top-0 right-0 h-full w-[280px] md:hidden shadow-2xl"
-            style={{ 
-              zIndex: 60,
-              backgroundColor: theme.colors.surface,
-              width: '280px',
-              minWidth: '280px',
-              maxWidth: '280px'
-            }}
-            onTouchStart={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header with Back and X Buttons */}
-            <div className="flex items-center justify-between p-6 border-b"
-                 style={{ borderColor: theme.colors.border }}>
               <button
+                type="button"
                 onClick={() => {
                   setMobileCategoryDrawerOpen(false);
                   setSelectedSectionForCategories(null);
                 }}
-                className="p-1 transition-colors duration-300"
+                className="p-1 transition-opacity hover:opacity-70"
+                style={{ color: theme.colors.text }}
+                aria-label={language === 'bg' ? 'Назад' : 'Back'}
+              >
+                <ChevronLeft size={22} />
+              </button>
+              <h2
+                className="font-serif-display flex-1 text-center text-xl"
                 style={{ color: theme.colors.text }}
               >
-                <ChevronLeft size={20} />
-              </button>
-              <h2 className="font-semibold text-lg flex-1 text-center"
-                  style={{ color: theme.colors.text }}>
-                {navItems.find(item => item.id === selectedSectionForCategories)?.label || 'Categories'}
+                {navItems.find(item => item.id === selectedSectionForCategories)?.label ||
+                  (language === 'bg' ? 'Категории' : 'Categories')}
               </h2>
               <button
-                onClick={() => {
-                  setMobileCategoryDrawerOpen(false);
-                  setSelectedSectionForCategories(null);
-                }}
-                className="p-1 transition-colors duration-300"
+                type="button"
+                onClick={closeMobileMenu}
+                className="p-1 transition-opacity hover:opacity-70"
                 style={{ color: theme.colors.text }}
+                aria-label={language === 'bg' ? 'Затвори' : 'Close'}
               >
-                <X size={20} />
+                <X size={22} />
               </button>
             </div>
 
-            {/* Category Items */}
-            <nav className="flex flex-col h-full">
-              <div className="flex-1 overflow-y-auto p-4">
-                {getCategoriesForNavItem(selectedSectionForCategories).length > 0 ? (
-                  <>
-                    <div className="mb-4 pb-2 border-b" style={{ borderColor: theme.colors.border }}>
-                      <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: theme.colors.textSecondary }}>
-                        {language === 'bg' ? 'Категории' : 'Categories'}
-                      </h3>
-                    </div>
-                    <div className="space-y-1">
-                      {getCategoriesForNavItem(selectedSectionForCategories).map(category => {
+            <nav className="flex flex-1 flex-col overflow-y-auto">
+              <div className="px-6 pb-3 pt-5">
+                <p
+                  className="text-[11px] font-semibold uppercase tracking-[0.18em]"
+                  style={{ color: theme.colors.primary }}
+                >
+                  {language === 'bg' ? 'Категории' : 'Categories'}
+                </p>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-4 pb-8">
+                {getCategoriesForNavItem(selectedSectionForCategories || '').length > 0 ? (
+                  <div
+                    className="overflow-hidden rounded-2xl"
+                    style={{
+                      backgroundColor: theme.colors.secondary,
+                      border: `1px solid ${theme.colors.border}`,
+                    }}
+                  >
+                    {getCategoriesForNavItem(selectedSectionForCategories || '').map(
+                      (category, index, arr) => {
                         const hasChildren = category.children && category.children.length > 0;
                         return (
                           <button
                             key={category.producttypeid}
+                            type="button"
                             onClick={() => {
                               if (hasChildren) {
                                 handleMobileParentCategoryClick(category.producttypeid);
                               } else {
-                                const navItem = navItems.find(item => item.id === selectedSectionForCategories);
+                                const navItem = navItems.find(
+                                  item => item.id === selectedSectionForCategories
+                                );
                                 if (navItem) {
                                   handleCategorySelect(navItem, category.producttypeid);
                                 }
                               }
                             }}
-                            className="block w-full text-left px-4 py-3 font-medium rounded-lg transition-all duration-200 group"
+                            className="flex w-full items-center gap-3 px-4 py-4 text-left transition-opacity hover:opacity-80"
                             style={{
-                              color: theme.colors.text,
-                              backgroundColor: 'transparent'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = theme.colors.cardBg;
-                              e.currentTarget.style.color = theme.colors.primary;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                              e.currentTarget.style.color = theme.colors.text;
+                              borderBottom:
+                                index < arr.length - 1
+                                  ? `1px solid ${theme.colors.border}`
+                                  : 'none',
                             }}
                           >
-                            <span className="flex items-center justify-between">
+                            <span
+                              className="flex-1 text-sm leading-snug"
+                              style={{ color: theme.colors.text }}
+                            >
                               {category.name}
-                              {hasChildren && (
-                                <span className="opacity-100 transition-opacity duration-200" style={{ color: theme.colors.primary }}>
-                                  →
-                                </span>
-                              )}
                             </span>
+                            <ChevronRight size={18} style={{ color: theme.colors.primary }} />
                           </button>
                         );
-                      })}
-                    </div>
-                  </>
+                      }
+                    )}
+                  </div>
                 ) : (
-                  <div className="text-center py-12">
+                  <div className="py-12 text-center">
                     <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
                       {language === 'bg' ? 'Няма налични категории' : 'No categories available'}
                     </p>
@@ -974,94 +1014,104 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                 )}
               </div>
             </nav>
-          </div>
-        )}
+          </>
+        ) : (
+          (() => {
+            const categories = getCategoriesForNavItem(selectedSectionForCategories || '');
+            const parentCategory = categories.find(
+              cat => cat.producttypeid === selectedParentCategoryId
+            );
+            if (!parentCategory?.children?.length) return null;
 
-        {/* Nested Subcategories Drawer */}
-        {selectedParentCategoryId && (() => {
-          const categories = getCategoriesForNavItem(selectedSectionForCategories);
-          const parentCategory = categories.find(cat => cat.producttypeid === selectedParentCategoryId);
-          if (!parentCategory || !parentCategory.children || parentCategory.children.length === 0) {
-            return null;
-          }
-          return (
-            <div
-              className="fixed top-0 right-0 h-full w-[280px] md:hidden shadow-2xl"
-              style={{ 
-                zIndex: 70,
-                backgroundColor: theme.colors.surface,
-                width: '280px',
-                minWidth: '280px',
-                maxWidth: '280px'
-              }}
-              onTouchStart={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header with Back and X Buttons */}
-              <div className="flex items-center justify-between p-6 border-b"
-                   style={{ borderColor: theme.colors.border }}>
-                <button
-                  onClick={() => {
-                    setSelectedParentCategoryId(null);
-                  }}
-                  className="p-1 transition-colors duration-300"
-                  style={{ color: theme.colors.text }}
+            return (
+              <>
+                <div
+                  className="flex items-center justify-between border-b px-4 py-5"
+                  style={{ borderColor: theme.colors.border }}
                 >
-                  <ChevronLeft size={20} />
-                </button>
-                <h2 className="font-semibold text-lg flex-1 text-center"
-                    style={{ color: theme.colors.text }}>
-                  {parentCategory.name}
-                </h2>
-                <button
-                  onClick={() => {
-                    setMobileCategoryDrawerOpen(false);
-                    setSelectedSectionForCategories(null);
-                    setSelectedParentCategoryId(null);
-                  }}
-                  className="p-1 transition-colors duration-300"
-                  style={{ color: theme.colors.text }}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Subcategory Items */}
-              <nav className="flex flex-col h-full">
-                <div className="flex-1 overflow-y-auto p-4">
-                  <div className="space-y-1">
-                    {parentCategory.children.map(subcategory => {
-                      const navItem = navItems.find(item => item.id === selectedSectionForCategories);
-                      if (!navItem) return null;
-                      return (
-                        <button
-                          key={subcategory.producttypeid}
-                          onClick={() => handleCategorySelect(navItem, subcategory.producttypeid)}
-                          className="block w-full text-left px-4 py-3 font-medium rounded-lg transition-all duration-200 group"
-                          style={{
-                            color: theme.colors.text,
-                            backgroundColor: 'transparent'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.colors.cardBg;
-                            e.currentTarget.style.color = theme.colors.primary;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.color = theme.colors.text;
-                          }}
-                        >
-                          {subcategory.name}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedParentCategoryId(null)}
+                    className="p-1 transition-opacity hover:opacity-70"
+                    style={{ color: theme.colors.text }}
+                    aria-label={language === 'bg' ? 'Назад' : 'Back'}
+                  >
+                    <ChevronLeft size={22} />
+                  </button>
+                  <h2
+                    className="font-serif-display flex-1 px-2 text-center text-lg leading-tight"
+                    style={{ color: theme.colors.text }}
+                  >
+                    {parentCategory.name}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={closeMobileMenu}
+                    className="p-1 transition-opacity hover:opacity-70"
+                    style={{ color: theme.colors.text }}
+                    aria-label={language === 'bg' ? 'Затвори' : 'Close'}
+                  >
+                    <X size={22} />
+                  </button>
                 </div>
-              </nav>
-            </div>
-          );
-        })()}
-      </>
+
+                <nav className="flex flex-1 flex-col overflow-y-auto">
+                  <div className="px-6 pb-3 pt-5">
+                    <p
+                      className="text-[11px] font-semibold uppercase tracking-[0.18em]"
+                      style={{ color: theme.colors.primary }}
+                    >
+                      {language === 'bg' ? 'Категории' : 'Categories'}
+                    </p>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto px-4 pb-8">
+                    <div
+                      className="overflow-hidden rounded-2xl"
+                      style={{
+                        backgroundColor: theme.colors.secondary,
+                        border: `1px solid ${theme.colors.border}`,
+                      }}
+                    >
+                      {parentCategory.children.map((subcategory, index, arr) => {
+                        const navItem = navItems.find(
+                          item => item.id === selectedSectionForCategories
+                        );
+                        if (!navItem) return null;
+
+                        return (
+                          <button
+                            key={subcategory.producttypeid}
+                            type="button"
+                            onClick={() =>
+                              handleCategorySelect(navItem, subcategory.producttypeid)
+                            }
+                            className="flex w-full items-center gap-3 px-4 py-4 text-left transition-opacity hover:opacity-80"
+                            style={{
+                              borderBottom:
+                                index < arr.length - 1
+                                  ? `1px solid ${theme.colors.border}`
+                                  : 'none',
+                            }}
+                          >
+                            <span
+                              className="flex-1 text-sm leading-snug"
+                              style={{ color: theme.colors.text }}
+                            >
+                              {subcategory.name}
+                            </span>
+                            <ChevronRight size={18} style={{ color: theme.colors.primary }} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </nav>
+              </>
+            );
+          })()
+        )}
+      </div>
     )}
     </>
   );
