@@ -14,7 +14,7 @@ import { ShoppingCart, Heart } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
-  isFavorited?: boolean; // Optional prop to pass favorite status from parent
+  isFavorited?: boolean;
 }
 
 export default function ProductCard({ product, isFavorited: initialIsFavorited }: ProductCardProps) {
@@ -29,23 +29,20 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const bgnPrice = product.price * 1.95;
 
-  // Deduplicate images - only show unique/distinct images
   const getUniqueImages = (images: string[] | undefined): string[] => {
     if (!images || images.length === 0) return ['/image.png'];
-    
-    // Use a Set to track unique image URLs (case-insensitive comparison)
+
     const seen = new Set<string>();
     const unique: string[] = [];
-    
+
     for (const image of images) {
-      // Normalize the URL for comparison (remove query params, trailing slashes, etc.)
       const normalized = image.trim().toLowerCase();
       if (normalized && !seen.has(normalized)) {
         seen.add(normalized);
-        unique.push(image); // Keep original URL format
+        unique.push(image);
       }
     }
-    
+
     return unique.length > 0 ? unique : ['/image.png'];
   };
 
@@ -58,13 +55,12 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
     return '';
   };
 
-  // Check if product is favorited on mount (only if not passed as prop)
   useEffect(() => {
     if (initialIsFavorited !== undefined) {
       setIsFavorited(initialIsFavorited);
-      return; // Skip API call if status was passed as prop
+      return;
     }
-    
+
     if (isAuthenticated && user) {
       const checkFavorite = async () => {
         try {
@@ -75,30 +71,30 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
               userId: user.id,
               productId: String(product.id || product.productid || '')
             })
-          })
-          const data = await response.json()
+          });
+          const data = await response.json();
           if (data.success) {
-            setIsFavorited(data.isFavorited)
+            setIsFavorited(data.isFavorited);
           }
         } catch (error) {
-          console.error('Error checking favorite:', error)
+          console.error('Error checking favorite:', error);
         }
-      }
-      checkFavorite()
+      };
+      checkFavorite();
     }
-  }, [isAuthenticated, user, product.id, product.productid, initialIsFavorited])
+  }, [isAuthenticated, user, product.id, product.productid, initialIsFavorited]);
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+    e.preventDefault();
+    e.stopPropagation();
 
     if (!isAuthenticated || !user) {
-      setShowLoginModal(true)
-      return
+      setShowLoginModal(true);
+      return;
     }
 
-    setIsTogglingFavorite(true)
-    const productId = product.id || product.productid
+    setIsTogglingFavorite(true);
+    const productId = product.id || product.productid;
 
     try {
       const response = await fetch('/api/favorites', {
@@ -108,27 +104,25 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
           userId: user.id,
           productId: String(productId || '')
         })
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
       if (data.success) {
-        setIsFavorited(data.isFavorited)
+        setIsFavorited(data.isFavorited);
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error)
+      console.error('Error toggling favorite:', error);
     } finally {
-      setIsTogglingFavorite(false)
+      setIsTogglingFavorite(false);
     }
-  }
+  };
 
   const handleClick = (e: React.MouseEvent) => {
-    // Don't navigate if modal is open
     if (showAddToCartModal) {
       e.preventDefault();
       e.stopPropagation();
       return;
     }
-    // Don't navigate if clicking on the express checkout button or its container
     const target = e.target as HTMLElement;
     if (target.closest('button') || target.closest('[data-express-checkout]')) {
       e.preventDefault();
@@ -138,150 +132,162 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
     router.push(`/products/${product.id}`);
   };
 
+  const productTitle = `${product.brand} ${product.model}`.trim();
+  const categoryLabel = getCategoryLabel();
+  const showNewBadge = product.isfeatured;
+
   return (
     <>
-    <div
-      className="rounded-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden cursor-pointer"
-      style={{
-        backgroundColor: theme.colors.cardBg,
-        boxShadow: theme.effects.shadow,
-        borderRadius: theme.effects.borderRadius
-      }}
-      onClick={handleClick}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = theme.effects.shadowHover;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = theme.effects.shadow;
-      }}
-    >
-      <div className="relative">
-        <ImageSlider images={uniqueImages} />
-        {/* Heart button overlay */}
-        <button
-          onClick={handleFavoriteClick}
-          disabled={isTogglingFavorite}
-          className="absolute top-2 right-2 z-10 p-2 rounded-full backdrop-blur-sm transition-all duration-200 hover:scale-110 disabled:opacity-50"
-          style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-            color: isFavorited ? '#ef4444' : theme.colors.text
-          }}
-          title={isFavorited ? t.removeFromFavorites : t.addToFavorites}
-        >
-          <Heart 
-            size={20} 
-            fill={isFavorited ? '#ef4444' : 'none'}
-          />
-        </button>
-      </div>
-      
-      <div className="p-4 sm:p-5">
-        <h3 
-          className="text-base sm:text-lg font-semibold mb-2 line-clamp-2 transition-colors duration-300"
-          style={{ color: theme.colors.text }}
-        >
-          {product.brand} {product.model}
-        </h3>
-        
-        <span 
-          className="inline-block px-2.5 py-1 text-xs rounded-full mb-3 transition-colors duration-300"
-          style={{
-            backgroundColor: theme.colors.secondary,
-            color: theme.colors.primary
-          }}
-        >
-          {getCategoryLabel()}
-        </span>
-        
-        <div 
-          className="space-y-1.5 text-xs sm:text-sm mb-4 transition-colors duration-300"
-          style={{ color: theme.colors.textSecondary }}
-        >
-          <div>{t.color}: <span style={{ color: theme.colors.text }}>{product.color}</span></div>
-          {product.size && <div>{t.size}: <span style={{ color: theme.colors.text }}>{product.size}</span></div>}
-          <div>
-            {t.available}: <span 
-              className="font-medium"
-              style={{ color: theme.colors.text }}
+      <div
+        className="rounded-2xl transition-all duration-300 overflow-hidden cursor-pointer border flex flex-col h-full"
+        style={{
+          backgroundColor: theme.colors.cardBg,
+          borderColor: theme.colors.border,
+          boxShadow: theme.effects.shadow,
+        }}
+        onClick={handleClick}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.boxShadow = theme.effects.shadowHover;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.boxShadow = theme.effects.shadow;
+        }}
+      >
+        <div className="relative">
+          <ImageSlider images={uniqueImages} />
+          {showNewBadge && (
+            <span
+              className="absolute bottom-3 left-3 z-10 px-2.5 py-1 text-[10px] sm:text-xs font-semibold rounded-md text-white"
+              style={{ backgroundColor: theme.colors.primary }}
             >
-              {product.quantity} {product.category === 'shoes' ? t.pairs : t.pcs}
+              {language === 'bg' ? 'Нов модел' : 'New'}
             </span>
-          </div>
-        </div>
-        
-        <div 
-          className="pt-4 border-t transition-colors duration-300"
-          style={{ borderColor: theme.colors.border }}
-        >
-          <div 
-            className="text-xl sm:text-2xl font-bold transition-colors duration-300"
-            style={{ color: theme.colors.primary }}
+          )}
+          <button
+            onClick={handleFavoriteClick}
+            disabled={isTogglingFavorite}
+            className="absolute top-3 right-3 z-10 p-2 rounded-full backdrop-blur-sm transition-all duration-200 hover:scale-110 disabled:opacity-50 shadow-sm"
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.92)',
+              color: isFavorited ? '#ef4444' : theme.colors.text
+            }}
+            title={isFavorited ? t.removeFromFavorites : t.addToFavorites}
           >
-            €{product.price.toFixed(2)} / {bgnPrice.toFixed(2)} лв
-          </div>
-          <div
-            className="text-xs mt-0.5 transition-colors duration-300"
+            <Heart size={18} fill={isFavorited ? '#ef4444' : 'none'} />
+          </button>
+        </div>
+
+        <div className="p-3 sm:p-4 flex flex-col flex-1">
+          <h3
+            className="text-sm sm:text-[15px] font-semibold mb-1 line-clamp-2 leading-snug transition-colors duration-300"
+            style={{ color: theme.colors.text }}
+          >
+            {productTitle}
+            {product.color ? ` ${language === 'bg' ? 'цвят' : ''} ${product.color}` : ''}
+          </h3>
+
+          {categoryLabel && (
+            <p
+              className="text-xs mb-2 transition-colors duration-300"
+              style={{ color: theme.colors.textSecondary }}
+            >
+              {product.brand}
+              {categoryLabel ? ` • ${categoryLabel}` : ''}
+            </p>
+          )}
+
+          <p
+            className="text-xs mb-3 transition-colors duration-300 hidden sm:block"
             style={{ color: theme.colors.textSecondary }}
           >
-            {t.inclVAT}
-          </div>
-        </div>
+            {t.available}:{' '}
+            <span style={{ color: theme.colors.text }}>
+              {product.quantity} {product.category === 'shoes' ? t.pairs : t.pcs}
+            </span>
+          </p>
 
-        {/* Express Add Button */}
-        {product.visible && product.quantity > 0 && (
-          <div data-express-checkout className="relative z-10">
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowAddToCartModal(true);
-              }}
-              className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center justify-center gap-2"
+          <p
+            className="text-xs mb-3 transition-colors duration-300 sm:hidden"
+            style={{ color: theme.colors.textSecondary }}
+          >
+            {product.quantity} {product.category === 'shoes' ? t.pairs : t.pcs}{' '}
+            {language === 'bg' ? 'налични' : 'available'}
+          </p>
+
+          <div className="mt-auto">
+            <div
+              className="text-base sm:text-lg font-bold transition-colors duration-300"
+              style={{ color: theme.colors.text }}
             >
-              <ShoppingCart size={16} />
-              {t.expressAdd}
-            </button>
+              €{product.price.toFixed(2)} / {bgnPrice.toFixed(2)} лв
+            </div>
+            <div
+              className="text-[10px] sm:text-xs mt-0.5 transition-colors duration-300"
+              style={{ color: theme.colors.textSecondary }}
+            >
+              {t.inclVAT}
+            </div>
           </div>
-        )}
-      </div>
-    </div>
 
-    <AddToCartModal
-      isOpen={showAddToCartModal}
-      onClose={() => setShowAddToCartModal(false)}
-      product={product}
-    />
-    <QuickLoginModal
-      isOpen={showLoginModal}
-      onClose={() => setShowLoginModal(false)}
-      productId={String(product.id || product.productid || '')}
-      onLoginSuccess={() => {
-        setShowLoginModal(false)
-        // Refresh favorite status after login
-        if (isAuthenticated && user) {
-          const checkFavorite = async () => {
-            try {
-              const response = await fetch('/api/favorites/check', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  userId: user.id,
-                  productId: String(product.id || product.productid || '')
-                })
-              })
-              const data = await response.json()
-              if (data.success) {
-                setIsFavorited(data.isFavorited)
+          {product.visible && product.quantity > 0 && (
+            <div data-express-checkout className="relative z-10 mt-3">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowAddToCartModal(true);
+                }}
+                className="w-full px-4 py-2.5 sm:py-3 text-white rounded-xl transition-colors duration-300 flex items-center justify-center gap-2 text-sm font-medium"
+                style={{ backgroundColor: theme.colors.primary }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '0.92';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
+              >
+                <ShoppingCart size={16} />
+                <span className="hidden sm:inline">{t.expressAdd}</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <AddToCartModal
+        isOpen={showAddToCartModal}
+        onClose={() => setShowAddToCartModal(false)}
+        product={product}
+      />
+      <QuickLoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        productId={String(product.id || product.productid || '')}
+        onLoginSuccess={() => {
+          setShowLoginModal(false);
+          if (isAuthenticated && user) {
+            const checkFavorite = async () => {
+              try {
+                const response = await fetch('/api/favorites/check', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    userId: user.id,
+                    productId: String(product.id || product.productid || '')
+                  })
+                });
+                const data = await response.json();
+                if (data.success) {
+                  setIsFavorited(data.isFavorited);
+                }
+              } catch (error) {
+                console.error('Error checking favorite:', error);
               }
-            } catch (error) {
-              console.error('Error checking favorite:', error)
-            }
+            };
+            checkFavorite();
           }
-          checkFavorite()
-        }
-      }}
-    />
+        }}
+      />
     </>
   );
 }
-

@@ -26,10 +26,9 @@ export default function ImageSlider({ images }: ImageSliderProps) {
 
   return (
     <div 
-      className="relative w-full aspect-square rounded-t-xl overflow-hidden group transition-colors duration-300"
+      className="relative w-full aspect-[4/5] sm:aspect-square rounded-t-2xl overflow-hidden group transition-colors duration-300"
       style={{ 
         backgroundColor: theme.colors.secondary,
-        borderRadius: theme.id === 'gradient' ? '0.75rem 0.75rem 0 0' : `${theme.effects.borderRadius} ${theme.effects.borderRadius} 0 0`
       }}
     >
       <img

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Menu, Settings, LogOut, ShoppingCart, User as UserIcon, ChevronLeft, X } from 'lucide-react';
+import { Menu, Settings, LogOut, ShoppingCart, User as UserIcon, ChevronLeft, X, Search } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -288,16 +288,64 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
   return (
     <>
       <header
-        className="shadow-sm sticky top-0 z-50 transition-colors duration-300"
+        className="sticky top-0 z-50 transition-colors duration-300 border-b"
         style={{
           backgroundColor: theme.colors.headerBg,
           borderBottom: `1px solid ${theme.colors.border}`
         }}
       >
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
-        <div className="flex items-center h-16 relative">
-          {/* Navigation tabs on the left */}
-          <nav className="hidden md:flex items-center gap-4 lg:gap-8 flex-1" ref={dropdownRef}>
+        <div className="flex items-center h-14 sm:h-16 relative">
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 -ml-1 transition-colors duration-300"
+            aria-label="Menu"
+            style={{ color: theme.colors.text }}
+          >
+            <Menu size={22} />
+          </button>
+
+          <Link
+            href="/"
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer flex-1 md:flex-none justify-center md:justify-start md:mr-6"
+            onClick={() => setIsAdmin(false)}
+          >
+            {settings?.logourl ? (
+              <Image
+                src={settings.logourl}
+                alt={`${settings.storename} Logo`}
+                width={120}
+                height={40}
+                className="h-7 sm:h-9 w-auto object-contain"
+                priority
+              />
+            ) : (
+              <>
+                <span
+                  className="hidden sm:flex h-8 w-8 items-center justify-center rounded-sm text-[9px] font-bold tracking-tighter text-white"
+                  style={{ backgroundColor: theme.colors.text }}
+                >
+                  MODA
+                </span>
+                <Image
+                  src="/image.png"
+                  alt={`${settings?.storename || 'Store'} Logo`}
+                  width={120}
+                  height={40}
+                  className="h-7 sm:h-9 w-auto object-contain sm:hidden"
+                  priority
+                />
+              </>
+            )}
+            <span
+              className="text-base sm:text-lg font-bold tracking-[0.12em] uppercase transition-colors duration-300"
+              style={{ color: theme.colors.text }}
+            >
+              {settings?.storename || 'MODABOX'}
+            </span>
+          </Link>
+
+          <nav className="hidden md:flex items-center justify-center gap-6 lg:gap-10 absolute left-1/2 -translate-x-1/2" ref={dropdownRef}>
             {navItems.map(item => {
               const categories = getCategoriesForNavItem(item.id);
               const isHovered = hoveredNavItem === item.id;
@@ -327,20 +375,22 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                   <Link
                     href={item.path}
                     onClick={() => setIsAdmin(false)}
-                    className="text-sm font-medium transition-colors whitespace-nowrap"
+                    className="text-xs font-semibold uppercase tracking-[0.14em] transition-colors whitespace-nowrap"
                     style={{
                       color: currentPage === item.id && !isAdmin 
                         ? theme.colors.primary 
-                        : theme.colors.textSecondary
+                        : theme.colors.text
                     }}
                     onMouseEnter={(e) => {
                       if (currentPage !== item.id || isAdmin) {
-                        e.currentTarget.style.color = theme.colors.text;
+                        e.currentTarget.style.color = theme.colors.primary;
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (currentPage !== item.id || isAdmin) {
-                        e.currentTarget.style.color = theme.colors.textSecondary;
+                        e.currentTarget.style.color = theme.colors.text;
+                      } else {
+                        e.currentTarget.style.color = theme.colors.primary;
                       }
                     }}
                   >
@@ -516,54 +566,33 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
             })}
           </nav>
           
-          {/* Logo - centered on desktop, left on mobile */}
-          <Link
-            href="/"
-            className="flex items-center gap-2 sm:gap-3 cursor-pointer md:absolute md:left-1/2 md:transform md:-translate-x-1/2"
-            onClick={() => setIsAdmin(false)}
-          >
-            {settings?.logourl ? (
-              <Image
-                src={settings.logourl}
-                alt={`${settings.storename} Logo`}
-                width={120}
-                height={40}
-                className="h-8 sm:h-10 w-auto object-contain"
-                priority
-              />
-            ) : (
-              <Image
-                src="/image.png"
-                alt={`${settings?.storename || 'Store'} Logo`}
-                width={120}
-                height={40}
-                className="h-8 sm:h-10 w-auto object-contain"
-                priority
-              />
-            )}
-            <span
-              className="text-lg sm:text-xl font-semibold transition-colors duration-300"
-              style={{ color: theme.colors.text }}
-            >
-              {settings?.storename || 'Store'}
-            </span>
-          </Link>
-          
-          {/* Right side actions */}
-          <div className="flex items-center gap-2 sm:gap-4 flex-1 justify-end">
+          <div className="flex items-center gap-0.5 sm:gap-2 ml-auto shrink-0">
             {!isAdmin && (
               <>
+                <Link
+                  href="/products"
+                  className="p-2 transition-colors duration-300 hidden sm:block"
+                  style={{ color: theme.colors.text }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.text}
+                  aria-label={language === 'bg' ? 'Търсене' : 'Search'}
+                >
+                  <Search size={20} />
+                </Link>
                 <button
                   onClick={openCart}
                   className="relative p-2 transition-colors duration-300"
-                  style={{ color: theme.colors.textSecondary }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}
-                  onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textSecondary}
+                  style={{ color: theme.colors.text }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.text}
                   aria-label="Shopping Cart"
                 >
                   <ShoppingCart size={20} />
                   {totalItems > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    <span
+                      className="absolute -top-0.5 -right-0.5 text-white text-[10px] rounded-full h-[18px] min-w-[18px] px-1 flex items-center justify-center font-semibold"
+                      style={{ backgroundColor: theme.colors.primary }}
+                    >
                       {totalItems > 99 ? '99+' : totalItems}
                     </span>
                   )}
@@ -571,9 +600,9 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                 <Link
                   href={isAuthenticated && user ? "/user/dashboard" : "/user"}
                   className="p-2 transition-colors duration-300"
-                  style={{ color: theme.colors.textSecondary }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}
-                  onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textSecondary}
+                  style={{ color: theme.colors.text }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.text}
                   aria-label={isAuthenticated && user ? "User Dashboard" : "Login"}
                 >
                   <UserIcon size={20} />
@@ -644,16 +673,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                 </button>
               </>
             )}
-            
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden flex flex-col items-center justify-center p-2 transition-colors duration-300"
-              aria-label="Menu"
-              style={{ color: theme.colors.textSecondary }}
-            >
-              <Menu size={24} />
-              <span className="text-[10px] font-medium mt-0.5">МЕНЮ</span>
-            </button>
+
           </div>
         </div>
       </div>

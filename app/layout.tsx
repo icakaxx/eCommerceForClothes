@@ -1,6 +1,20 @@
 import type { Metadata } from 'next'
+import { DM_Serif_Display, Inter } from 'next/font/google'
 import './globals.css'
 import Providers from './providers'
+
+const serifDisplay = DM_Serif_Display({
+  subsets: ['latin', 'latin-ext'],
+  weight: '400',
+  variable: '--font-serif',
+  display: 'swap',
+})
+
+const inter = Inter({
+  subsets: ['latin', 'cyrillic'],
+  variable: '--font-sans',
+  display: 'swap',
+})
 
 const SITE_URL = 'https://modabox.eu';
 const OG_IMAGE = 'https://static-b2c.loropiana.com/cms/resource/image/440282/portrait_ratio3x4/768/1024/fb215413f1cad8636d48b2f0c1eaa1ce/62B14DD519AB6DBA760C9CE121E9F924/lp-assouline-book-1080x1350-14-.jpg';
@@ -98,7 +112,7 @@ export default function RootLayout({
 
   return (
     <html lang="bg" suppressHydrationWarning>
-      <body>
+      <body className={`${serifDisplay.variable} ${inter.variable} antialiased`}>
         {/* In body to avoid head injection from browser extensions; valid for schema.org */}
         <script
           type="application/ld+json"
