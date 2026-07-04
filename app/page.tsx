@@ -202,9 +202,13 @@ export default function Home() {
     localStorage.setItem('isAdmin', value.toString());
   };
 
-  const heroImageUrl = settings?.heroimageurl;
+  const heroImageUrl = '/hero-home.png';
   const heroFocusX = settings?.heroimagefocusx ?? 70;
   const heroFocusY = settings?.heroimagefocusy ?? 50;
+  const heroAlt =
+    language === 'bg'
+      ? 'Добре дошли в нашия магазин – нова колекция дрехи, обувки и аксесоари'
+      : 'Welcome to our store – new collection of clothes, shoes and accessories';
 
   const trustItems = [
     {
@@ -248,73 +252,25 @@ export default function Home() {
       <div className="flex-1 transition-colors duration-300">
         {/* Hero */}
         <section className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pt-4 sm:pt-6 pb-2">
-          <div
-            className="relative overflow-hidden rounded-2xl sm:rounded-3xl min-h-[320px] sm:min-h-[380px] lg:min-h-[420px]"
-            style={{ backgroundColor: theme.colors.secondary }}
+          <Link
+            href="/products"
+            className="group relative block overflow-hidden rounded-2xl sm:rounded-3xl min-h-[280px] sm:min-h-[360px] lg:min-h-[420px] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            style={{
+              backgroundColor: theme.colors.secondary,
+              outlineColor: theme.colors.primary,
+            }}
+            aria-label={t.shopNow || 'Shop Now'}
           >
-            {heroImageUrl ? (
-              heroImageUrl.toLowerCase().endsWith('.gif') ? (
-                <img
-                  src={heroImageUrl}
-                  alt=""
-                  className="absolute inset-0 w-full h-full object-cover"
-                  style={{ objectPosition: `${heroFocusX}% ${heroFocusY}%` }}
-                />
-              ) : (
-                <Image
-                  src={heroImageUrl}
-                  alt=""
-                  fill
-                  sizes="(max-width: 768px) 100vw, 1280px"
-                  className="object-cover"
-                  style={{ objectPosition: `${heroFocusX}% ${heroFocusY}%` }}
-                  priority
-                />
-              )
-            ) : (
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: `linear-gradient(135deg, ${theme.colors.secondary} 0%, ${theme.colors.border} 100%)`,
-                }}
-              />
-            )}
-
-            <div className="absolute inset-0 bg-gradient-to-r from-[#f9f7f2] via-[#f9f7f2]/90 to-transparent sm:from-[#f9f7f2]/95 sm:via-[#f9f7f2]/75 sm:to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent sm:hidden" />
-
-            <div className="relative z-10 flex h-full min-h-[320px] sm:min-h-[380px] lg:min-h-[420px] items-end sm:items-center px-5 sm:px-8 lg:px-12 py-8 sm:py-10 max-w-xl">
-              <div>
-                <p
-                  className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] mb-2 sm:mb-3"
-                  style={{ color: theme.colors.primary }}
-                >
-                  {language === 'bg' ? 'Нова колекция' : 'New collection'}
-                </p>
-                <h1
-                  className="font-serif-display text-3xl sm:text-4xl lg:text-5xl leading-[1.1] mb-3 sm:mb-4 text-white sm:text-[#1a1a1a]"
-                >
-                  {t.welcomeToStore || `Welcome to ${settings?.storename || 'Our Store'}`}
-                </h1>
-                <p
-                  className="text-sm sm:text-base leading-relaxed mb-5 sm:mb-6 max-w-md text-white/90 sm:text-[#6b6b6b]"
-                >
-                  {t.homeDescription || 'Discover our latest collection of fashion and style'}
-                </p>
-                <Link
-                  href="/products"
-                  className="inline-flex items-center gap-2 px-5 sm:px-6 py-3 rounded-full font-medium text-sm sm:text-base transition-all duration-300 hover:opacity-90"
-                  style={{
-                    backgroundColor: theme.colors.buttonPrimary,
-                    color: '#ffffff',
-                  }}
-                >
-                  {t.shopNow || 'Shop Now'}
-                  <ArrowRight size={16} />
-                </Link>
-              </div>
-            </div>
-          </div>
+            <Image
+              src={heroImageUrl}
+              alt={heroAlt}
+              fill
+              sizes="(max-width: 768px) 100vw, 1280px"
+              className="object-cover object-center transition-transform duration-500 group-hover:scale-[1.01]"
+              style={{ objectPosition: `${heroFocusX}% ${heroFocusY}%` }}
+              priority
+            />
+          </Link>
         </section>
 
         {/* Trust bar */}

@@ -299,7 +299,7 @@ export default function ProductView({ product }: ProductViewProps) {
             >
               {t.youMightLike}
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
               {relatedProducts.map((relatedProduct) => {
                 const relatedPrice = relatedProduct.price ?? 0;
                 const relatedPriceBgn = relatedPrice * 1.95;
@@ -350,7 +350,7 @@ export default function ProductView({ product }: ProductViewProps) {
             >
               {t.maybeYouWillLike}
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
               {maybeYouWillLikeProducts.map((suggestedProduct) => (
                 <div key={suggestedProduct.id || suggestedProduct.productid}>
                   <ProductCard product={suggestedProduct} />
