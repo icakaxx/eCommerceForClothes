@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
+import { useTheme } from '@/context/ThemeContext';
 import { useCart } from '@/context/CartContext';
 import { Product } from '@/lib/data';
 import { translations } from '@/lib/translations';
@@ -22,6 +23,7 @@ interface AddToCartModalProps {
 
 const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, product }) => {
   const { language } = useLanguage();
+  const { theme } = useTheme();
   const { addItem, openCart } = useCart();
   const t = translations[language || 'en'];
 
@@ -325,41 +327,48 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
         }}
       >
         <div
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+          className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl"
+          style={{ backgroundColor: theme.colors.surface }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <div className="flex items-center space-x-3">
-              <div className="relative w-12 h-12 rounded-lg overflow-hidden">
+          <div
+            className="flex items-center justify-between p-5 sm:p-6 border-b"
+            style={{ borderColor: theme.colors.border }}
+          >
+            <div className="flex items-center space-x-3 min-w-0">
+              <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0">
                 <Image
                   src={selectedVariant?.imageurl || selectedVariant?.ImageURL || product.images[0] || '/placeholder-image.jpg'}
                   alt={product.model}
                   fill
                   quality={90}
-                  sizes="48px"
+                  sizes="56px"
                   className="object-cover"
                 />
               </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">
+              <div className="min-w-0">
+                <h2
+                  className="text-base sm:text-lg font-semibold leading-snug line-clamp-2"
+                  style={{ color: theme.colors.text }}
+                >
                   {product.brand} {product.model}
                 </h2>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm truncate" style={{ color: theme.colors.textSecondary }}>
                   {product.type} • {product.color}
                 </p>
               </div>
             </div>
             <button
+              type="button"
               onClick={handleClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition"
+              className="p-2 rounded-full transition-opacity hover:opacity-70 shrink-0 ml-2"
+              style={{ color: theme.colors.text }}
             >
               <X size={20} />
             </button>
           </div>
 
-          {/* Content */}
-          <div className="p-6 space-y-6">
+          <div className="p-5 sm:p-6 space-y-6">
             {/* Property Selection - Dynamic for all properties */}
             {Object.keys(availableOptions).length > 0 && (
               <>
@@ -371,7 +380,7 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
                   
                   return (
                     <div key={propertyName}>
-                <label className="block text-sm font-medium text-gray-900 mb-3">
+                <label className="block text-sm font-medium mb-3" style={{ color: theme.colors.text }}>
                         {propertyLabel} <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -391,16 +400,30 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
                             key={value}
                             type="button"
                             onClick={() => handleOptionChange(propertyName, value as string)}
-                      className={`py-2 px-2 border rounded-lg text-xs font-medium transition flex flex-col items-center ${
-                              selectedOptions[propertyName] === value
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : isOut
-                            ? 'border-red-200 text-red-600 opacity-75'
-                            : isLow
-                              ? 'border-amber-300 text-amber-800'
-                              : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
+                            className="py-2.5 px-2 border rounded-xl text-xs font-medium transition flex flex-col items-center"
+                            style={{
+                              borderColor:
+                                selectedOptions[propertyName] === value
+                                  ? theme.colors.primary
+                                  : isOut
+                                    ? '#fecaca'
+                                    : isLow
+                                      ? '#fcd34d'
+                                      : theme.colors.border,
+                              backgroundColor:
+                                selectedOptions[propertyName] === value
+                                  ? theme.colors.secondary
+                                  : 'transparent',
+                              color:
+                                selectedOptions[propertyName] === value
+                                  ? theme.colors.text
+                                  : isOut
+                                    ? '#dc2626'
+                                    : isLow
+                                      ? '#b45309'
+                                      : theme.colors.text,
+                            }}
+                          >
                             <span>{value}</span>
                             {optionStatus !== 'untracked' && (
                               <span className="text-[10px] mt-0.5 font-normal">
@@ -426,13 +449,15 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
 
             {/* Quantity */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-3">
+              <label className="block text-sm font-medium mb-3" style={{ color: theme.colors.text }}>
                 {t.quantity}
               </label>
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center gap-3">
                 <button
+                  type="button"
                   onClick={() => handleQuantityChange(-1)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                  className="p-2 rounded-xl transition-opacity hover:opacity-70 disabled:opacity-40"
+                  style={{ color: theme.colors.text, backgroundColor: theme.colors.secondary }}
                   disabled={quantity <= 1}
                 >
                   <Minus size={16} />
@@ -443,17 +468,24 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
                   onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                   min={1}
                   max={currentQuantity}
-                  className="w-20 text-center border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none"
+                  className="w-20 text-center border rounded-xl px-3 py-2 focus:outline-none"
+                  style={{
+                    borderColor: theme.colors.border,
+                    color: theme.colors.text,
+                    backgroundColor: theme.colors.surface,
+                  }}
                 />
                 <button
+                  type="button"
                   onClick={() => handleQuantityChange(1)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                  className="p-2 rounded-xl transition-opacity hover:opacity-70 disabled:opacity-40"
+                  style={{ color: theme.colors.text, backgroundColor: theme.colors.secondary }}
                   disabled={quantity >= currentQuantity}
                 >
                   <Plus size={16} />
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs mt-2" style={{ color: theme.colors.textSecondary }}>
                 {t.availableItems}: {currentQuantity} {t.pcs}
                 {isLowStock && (
                   <span className="text-amber-600 font-medium ml-1">({t.lowStock})</span>
@@ -468,30 +500,43 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
             </div>
 
             {/* Price Preview */}
-            <div className="bg-gray-50 rounded-lg p-4">
+            <div className="rounded-xl p-4" style={{ backgroundColor: theme.colors.secondary }}>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">
+                <span style={{ color: theme.colors.textSecondary }}>
                   {quantity} × €{(selectedVariant?.price || product.price || 0).toFixed(2)}
                 </span>
-                <span className="text-lg font-bold text-gray-900">
+                <span className="text-lg font-bold" style={{ color: theme.colors.text }}>
                   €{((selectedVariant?.price || product.price || 0) * quantity).toFixed(2)}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="flex space-x-3 p-6 border-t border-gray-200">
+          <div
+            className="flex gap-3 p-5 sm:p-6 border-t"
+            style={{ borderColor: theme.colors.border }}
+          >
             <button
+              type="button"
               onClick={handleClose}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+              className="flex-1 px-4 py-3 rounded-xl font-medium transition-opacity hover:opacity-80"
+              style={{
+                border: `1px solid ${theme.colors.border}`,
+                color: theme.colors.text,
+                backgroundColor: theme.colors.surface,
+              }}
             >
               {t.cancel}
             </button>
             <button
+              type="button"
               onClick={handleAddToCart}
               disabled={isOutOfStock}
-              className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-3 rounded-xl transition-opacity hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              style={{
+                backgroundColor: theme.colors.primary,
+                color: '#ffffff',
+              }}
             >
               <ShoppingCart size={16} />
               <span>{t.addToCart}</span>

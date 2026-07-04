@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import CartDrawer from '@/components/CartDrawer';
+import PublicPageLayout from '@/components/PublicPageLayout';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useCart } from '@/context/CartContext';
@@ -541,13 +539,13 @@ export default function CheckoutPage() {
 
   if (!hasHydrated) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin} />
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-gray-600">{language === 'bg' ? 'Зареждане...' : 'Loading...'}</p>
+      <PublicPageLayout isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin}>
+        <div className="flex-1 flex items-center justify-center py-24">
+          <p style={{ color: theme.colors.textSecondary }}>
+            {language === 'bg' ? 'Зареждане...' : 'Loading...'}
+          </p>
         </div>
-        <Footer />
-      </div>
+      </PublicPageLayout>
     );
   }
 
@@ -611,15 +609,16 @@ export default function CheckoutPage() {
   }, [language]);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin} />
-
-      <div className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          {/* Page Title */}
+    <PublicPageLayout isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin}>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{t.checkout}</h1>
-            <div className="flex items-center gap-2 text-gray-600">
+            <h1
+              className="font-serif-display text-3xl sm:text-4xl mb-2"
+              style={{ color: theme.colors.text }}
+            >
+              {t.checkout}
+            </h1>
+            <div className="flex items-center gap-2" style={{ color: theme.colors.textSecondary }}>
               <ShoppingBag size={20} />
               <span>{totalItems} {t.itemsInCart}</span>
             </div>
@@ -628,15 +627,25 @@ export default function CheckoutPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Left Column - Form (Desktop) / Top (Mobile) */}
             <div className="order-1 lg:order-1">
-              <div className="bg-white rounded-lg shadow-sm border p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">
+              <div
+                className="rounded-2xl border p-5 sm:p-6"
+                style={{
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                  boxShadow: theme.effects.shadow,
+                }}
+              >
+                <h2
+                  className="font-serif-display text-xl sm:text-2xl mb-6"
+                  style={{ color: theme.colors.text }}
+                >
                   {t.customerInformation}
                 </h2>
 
                 <div className="space-y-6">
                   {/* Order Notes */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
                       {t.orderNotes}
                     </label>
                     <textarea
@@ -644,13 +653,13 @@ export default function CheckoutPage() {
                       onChange={(e) => handleInputChange('notes', e.target.value)}
                       placeholder={t.orderNotesPlaceholder}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-[#e8e4dc] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7d8461]/25 focus:border-[#7d8461]"
                     />
                   </div>
 
                   {/* Discount Code */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
                       {t.discountCode}
                     </label>
                     <div className="flex gap-2">
@@ -659,13 +668,14 @@ export default function CheckoutPage() {
                         value={formData.discountCode || ''}
                         onChange={(e) => handleInputChange('discountCode', e.target.value.toUpperCase())}
                         placeholder={t.enterDiscountCode}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="flex-1 px-3 py-2 border border-[#e8e4dc] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7d8461]/25 focus:border-[#7d8461]"
                       />
                       <button
                         type="button"
                         onClick={handleApplyDiscount}
                         disabled={discountValidating || !formData.discountCode?.trim()}
-                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                        className="px-4 py-2.5 rounded-xl font-medium transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                        style={{ backgroundColor: theme.colors.primary }}
                       >
                         {discountValidating ? t.applyingDiscount : t.applyDiscount}
                       </button>
@@ -673,8 +683,14 @@ export default function CheckoutPage() {
 
                     {/* Discount Messages */}
                     {appliedDiscount && (
-                      <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
-                        <p className="text-sm text-green-700">
+                      <div
+                        className="mt-2 p-2 rounded-xl"
+                        style={{
+                          backgroundColor: `${theme.colors.primary}15`,
+                          border: `1px solid ${theme.colors.primary}40`,
+                        }}
+                      >
+                        <p className="text-sm" style={{ color: theme.colors.primary }}>
                           ✓ {appliedDiscount.description || `${appliedDiscount.code} ${t.discountApplied}`}
                           {appliedDiscount.type === 'percentage'
                             ? ` (${appliedDiscount.value}% ${t.amountOff})`
@@ -683,7 +699,8 @@ export default function CheckoutPage() {
                         </p>
                         <button
                           onClick={removeDiscount}
-                          className="text-xs text-green-600 hover:text-green-800 underline mt-1"
+                          className="text-xs underline mt-1 transition-opacity hover:opacity-70"
+                          style={{ color: theme.colors.primary }}
                         >
                           {t.removeDiscount}
                         </button>
@@ -691,7 +708,7 @@ export default function CheckoutPage() {
                     )}
 
                     {discountError && (
-                      <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-md">
+                      <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-xl">
                         <p className="text-sm text-red-700">✗ {
                           discountError === 'Invalid or expired discount code' ? t.invalidDiscountCode :
                           discountError === 'Discount code has expired' ? t.expiredDiscountCode :
@@ -706,26 +723,26 @@ export default function CheckoutPage() {
                   {/* Name Fields */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
                         {t.firstName} *
                       </label>
                       <input
                         type="text"
                         value={formData.firstName}
                         onChange={(e) => handleInputChange('firstName', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-[#e8e4dc] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7d8461]/25 focus:border-[#7d8461]"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
                         {t.lastName} *
                       </label>
                       <input
                         type="text"
                         value={formData.lastName}
                         onChange={(e) => handleInputChange('lastName', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-[#e8e4dc] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7d8461]/25 focus:border-[#7d8461]"
                         required
                       />
                     </div>
@@ -734,7 +751,7 @@ export default function CheckoutPage() {
                   {/* Contact Fields */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
                         {t.telephone} *
                       </label>
                       <input
@@ -742,8 +759,8 @@ export default function CheckoutPage() {
                         value={formData.telephone || ''}
                         onChange={(e) => handleInputChange('telephone', e.target.value)}
                         onBlur={(e) => handleBlur('telephone', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          validationErrors.telephone ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7d8461]/25 focus:border-[#7d8461] ${
+                          validationErrors.telephone ? 'border-red-500' : 'border-[#e8e4dc]'
                         }`}
                         required
                       />
@@ -752,7 +769,7 @@ export default function CheckoutPage() {
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
                         {t.email}
                       </label>
                       <input
@@ -760,8 +777,8 @@ export default function CheckoutPage() {
                         value={formData.email || ''}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         onBlur={(e) => handleBlur('email', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          validationErrors.email ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7d8461]/25 focus:border-[#7d8461] ${
+                          validationErrors.email ? 'border-red-500' : 'border-[#e8e4dc]'
                         }`}
                       />
                       {validationErrors.email && (
@@ -773,19 +790,19 @@ export default function CheckoutPage() {
                   {/* Country and City */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
                         {t.country} *
                       </label>
                       <select
                         value={formData.country}
                         onChange={(e) => handleInputChange('country', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-[#e8e4dc] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7d8461]/25 focus:border-[#7d8461]"
                       >
                         <option value="Bulgaria">{t.bulgaria}</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
                         {t.city} *
                       </label>
                       <div className="relative" ref={cityDropdownRef}>
@@ -802,11 +819,11 @@ export default function CheckoutPage() {
                           }}
                           onFocus={() => setShowCityDropdown(true)}
                           placeholder={t.selectCity}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-[#e8e4dc] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7d8461]/25 focus:border-[#7d8461]"
                           required
                         />
                         {showCityDropdown && (
-                          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                          <div className="absolute z-50 w-full mt-1 bg-white border border-[#e8e4dc] rounded-xl shadow-lg max-h-60 overflow-y-auto">
                             {cities
                               .filter((city) => 
                                 city.name.toLowerCase().includes((formData.city || '').toLowerCase()) ||
@@ -824,7 +841,10 @@ export default function CheckoutPage() {
                                       updateFormData({ econtOfficeId: '' });
                                     }
                                   }}
-                                  className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                  className="w-full text-left px-3 py-2 focus:outline-none transition-colors"
+                                  style={{ color: theme.colors.text }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.colors.secondary; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                                 >
                                   {city.displayName}
                                 </button>
@@ -837,7 +857,7 @@ export default function CheckoutPage() {
 
                   {/* Delivery Type */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-4">
+                    <label className="block text-sm font-medium text-[#1a1a1a] mb-4">
                       {t.deliveryType} *
                     </label>
                     <div className="space-y-3">
@@ -847,15 +867,16 @@ export default function CheckoutPage() {
                         return (
                           <label
                             key={type}
-                            className={`flex items-center p-4 border rounded-lg transition-all ${
+                            className={`flex items-center p-4 border rounded-xl transition-all ${
                               isDisabled
-                                ? 'cursor-not-allowed opacity-50 bg-gray-100'
+                                ? 'cursor-not-allowed opacity-50'
                                 : 'cursor-pointer'
                             } ${
                               formData.deliveryType === type
-                                ? 'border-blue-500 bg-blue-50'
-                                : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-[#7d8461] bg-[#f9f7f2]'
+                                : 'border-[#e8e4dc] hover:border-[#7d8461]/40'
                             }`}
+                            style={isDisabled ? { backgroundColor: theme.colors.secondary } : undefined}
                           >
                             <input
                               type="radio"
@@ -866,12 +887,12 @@ export default function CheckoutPage() {
                               disabled={isDisabled}
                               className="mr-3"
                             />
-                            <Icon size={20} className="mr-3 text-gray-600" />
+                            <Icon size={20} className="mr-3 text-[#6b6b6b]" />
                             <div>
-                              <div className="font-medium text-gray-900">
+                              <div className="font-medium text-[#1a1a1a]">
                                 {deliveryTypeLabels[type]}
                               </div>
-                              <div className="text-sm text-gray-600">
+                              <div className="text-sm text-[#6b6b6b]">
                                 €{getDeliveryCost(type).toFixed(2)}
                               </div>
                             </div>
@@ -884,7 +905,7 @@ export default function CheckoutPage() {
                   {/* Econt Office - free text when office delivery is selected */}
                   {formData.deliveryType === 'office' && formData.city && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
                         {t.econtOffice} *
                       </label>
                       <input
@@ -894,8 +915,8 @@ export default function CheckoutPage() {
                         placeholder={language === 'bg'
                           ? 'Напр. Еконт офис Център, ул. Примерна 10'
                           : 'e.g. Econt office Center, Example St 10'}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          validationErrors.econtOfficeId ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7d8461]/25 focus:border-[#7d8461] ${
+                          validationErrors.econtOfficeId ? 'border-red-500' : 'border-[#e8e4dc]'
                         }`}
                       />
                       {validationErrors.econtOfficeId && (
@@ -907,13 +928,13 @@ export default function CheckoutPage() {
                   {/* Address Fields - Only show if address delivery is selected */}
                   {formData.deliveryType === 'address' && (
                     <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">{t.addressDetails}</h3>
+                      <h3 className="text-lg font-medium text-[#1a1a1a] mb-4">{t.addressDetails}</h3>
                       
                       <div className="space-y-4">
                         {/* Street and Number */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
                               {t.street} *
                             </label>
                             <input
@@ -921,8 +942,8 @@ export default function CheckoutPage() {
                               value={formData.street || ''}
                           onChange={(e) => handleInputChange('street', e.target.value)}
                               placeholder="ул. Васил Левски"
-                              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                                validationErrors.street ? 'border-red-500' : 'border-gray-300'
+                              className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7d8461]/25 focus:border-[#7d8461] ${
+                                validationErrors.street ? 'border-red-500' : 'border-[#e8e4dc]'
                               }`}
                               required
                             />
@@ -931,7 +952,7 @@ export default function CheckoutPage() {
                             )}
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
                               {t.streetNumber} *
                             </label>
                             <input
@@ -939,8 +960,8 @@ export default function CheckoutPage() {
                               value={formData.streetNumber || ''}
                               onChange={(e) => handleInputChange('streetNumber', e.target.value)}
                               placeholder="123"
-                              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                                validationErrors.streetNumber ? 'border-red-500' : 'border-gray-300'
+                              className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7d8461]/25 focus:border-[#7d8461] ${
+                                validationErrors.streetNumber ? 'border-red-500' : 'border-[#e8e4dc]'
                               }`}
                               required
                             />
@@ -953,7 +974,7 @@ export default function CheckoutPage() {
                         {/* Entrance, Floor, Apartment */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
                               {t.entrance}
                             </label>
                             <input
@@ -961,11 +982,11 @@ export default function CheckoutPage() {
                               value={formData.entrance || ''}
                               onChange={(e) => handleInputChange('entrance', e.target.value)}
                               placeholder="A"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full px-3 py-2 border border-[#e8e4dc] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7d8461]/25 focus:border-[#7d8461]"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
                               {t.floor}
                             </label>
                             <input
@@ -973,11 +994,11 @@ export default function CheckoutPage() {
                               value={formData.floor || ''}
                               onChange={(e) => handleInputChange('floor', e.target.value)}
                               placeholder="5"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full px-3 py-2 border border-[#e8e4dc] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7d8461]/25 focus:border-[#7d8461]"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
                               {t.apartment}
                             </label>
                             <input
@@ -985,7 +1006,7 @@ export default function CheckoutPage() {
                               value={formData.apartment || ''}
                               onChange={(e) => handleInputChange('apartment', e.target.value)}
                               placeholder="12"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full px-3 py-2 border border-[#e8e4dc] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7d8461]/25 focus:border-[#7d8461]"
                             />
                           </div>
                         </div>
@@ -998,15 +1019,25 @@ export default function CheckoutPage() {
 
             {/* Right Column - Order Summary (Desktop) / Bottom (Mobile) */}
             <div className="order-2 lg:order-2">
-              <div className="bg-white rounded-lg shadow-sm border p-6 sticky top-4">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">
+              <div
+                className="rounded-2xl border p-5 sm:p-6 sticky top-4"
+                style={{
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                  boxShadow: theme.effects.shadow,
+                }}
+              >
+                <h2
+                  className="font-serif-display text-xl sm:text-2xl mb-6"
+                  style={{ color: theme.colors.text }}
+                >
                   {t.orderSummary}
                 </h2>
 
                 {/* Cart Items */}
                 <div className="space-y-4 mb-6">
                   {items.map((item, index) => (
-                    <div key={`${item.id}-${index}`} className="flex items-start gap-3 py-3 border-b border-gray-100 last:border-b-0">
+                    <div key={`${item.id}-${index}`} className="flex items-start gap-3 py-3 border-b last:border-b-0" style={{ borderColor: theme.colors.border }}>
                       <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
                         <img
                           src={item.imageUrl}
@@ -1015,24 +1046,24 @@ export default function CheckoutPage() {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 truncate">
+                        <h3 className="font-medium text-[#1a1a1a] truncate">
                           {item.brand} {item.model}
                         </h3>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-[#6b6b6b]">
                           {item.color}
                           {item.size && ` • ${item.size}`}
                           {item.type && ` • ${item.type}`}
                         </p>
                         {item.propertyValues && Object.keys(item.propertyValues).length > 0 && (
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs mt-1" style={{ color: theme.colors.textSecondary }}>
                             {Object.entries(item.propertyValues).map(([key, value]) => `${key}: ${value}`).join(', ')}
                           </p>
                         )}
                         <div className="flex justify-between items-center mt-2">
-                          <span className="text-sm text-gray-600">
+                          <span className="text-sm text-[#6b6b6b]">
                             Qty: {item.quantity}
                           </span>
-                          <span className="font-medium text-gray-900">
+                          <span className="font-medium text-[#1a1a1a]">
                             €{(item.price * item.quantity).toFixed(2)}
                           </span>
                         </div>
@@ -1044,17 +1075,17 @@ export default function CheckoutPage() {
                 {/* Order Totals */}
                 <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">{t.total}:</span>
+                    <span className="text-[#6b6b6b]">{t.total}:</span>
                     <span className="font-medium">€{totalPrice.toFixed(2)}</span>
                   </div>
                   {appliedDiscount && (
-                    <div className="flex justify-between text-sm text-green-600">
+                    <div className="flex justify-between text-sm" style={{ color: theme.colors.primary }}>
                       <span>{t.discountOrderSummary} ({appliedDiscount.code}):</span>
                       <span>-€{appliedDiscount.discountAmount.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">{t.delivery} ({deliveryTypeLabels[formData.deliveryType]}):</span>
+                    <span className="text-[#6b6b6b]">{t.delivery} ({deliveryTypeLabels[formData.deliveryType]}):</span>
                     <span className="font-medium">€{deliveryCost.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-lg font-bold pt-2 border-t">
@@ -1065,7 +1096,7 @@ export default function CheckoutPage() {
 
                 {/* Error Message */}
                 {error && (
-                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl">
                     <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
@@ -1076,13 +1107,17 @@ export default function CheckoutPage() {
                   type="button"
                   onClick={handleSubmitOrder}
                   disabled={isSubmitting || isValidatingStock}
-                  className={`w-full mt-6 px-6 py-3 text-white rounded-lg transition-colors font-medium flex items-center justify-center ${
+                  className={`w-full mt-6 px-6 py-3.5 text-white rounded-xl transition-opacity font-medium flex items-center justify-center ${
                     isSubmitting || isValidatingStock
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : isFormValid()
-                        ? 'bg-blue-600 hover:bg-blue-700'
-                        : 'bg-blue-500 hover:bg-blue-600'
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'hover:opacity-90'
                   }`}
+                  style={{
+                    backgroundColor:
+                      isSubmitting || isValidatingStock
+                        ? theme.colors.textSecondary
+                        : theme.colors.buttonPrimary,
+                  }}
                 >
                   {isValidatingStock ? (
                     <>
@@ -1123,10 +1158,6 @@ export default function CheckoutPage() {
             </div>
           </div>
         </div>
-      </div>
-
-      <Footer />
-      <CartDrawer />
-    </div>
+    </PublicPageLayout>
   );
 }

@@ -6,6 +6,7 @@ import { X, Plus, Minus, ShoppingCart, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
+import { useTheme } from '@/context/ThemeContext';
 import { useCart } from '@/context/CartContext';
 import { translations } from '@/lib/translations';
 import Link from 'next/link';
@@ -21,6 +22,7 @@ function unlockBodyScroll(savedScrollY: number) {
 const CartDrawer: React.FC = () => {
   const router = useRouter();
   const { language } = useLanguage();
+  const { theme } = useTheme();
   const {
     items,
     isCartOpen,
@@ -46,7 +48,6 @@ const CartDrawer: React.FC = () => {
     router.push('/checkout');
   }, [closeCart, router]);
 
-  // Prevent body scrolling when cart drawer is open
   useEffect(() => {
     if (isCartOpen) {
       scrollYRef.current = window.scrollY;
@@ -65,184 +66,227 @@ const CartDrawer: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 transition-opacity"
         onClick={closeCart}
       />
 
-      {/* Drawer */}
-      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl transform transition-transform">
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <div className="flex items-center space-x-2">
-              <ShoppingCart size={24} className="text-gray-900" />
-              <h2 className="text-xl font-bold text-gray-900">{t.shoppingCart}</h2>
-              {totalItems > 0 && (
-                <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
-                  {totalItems}
-                </span>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={closeCart}
-              className="p-2 hover:bg-gray-100 rounded-full transition"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto">
-            {items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-                <ShoppingCart size={48} className="text-gray-300 mb-4" />
-                <p className="text-gray-500 text-lg">{t.yourCartIsEmpty}</p>
-                <Link
-                  href="/"
-                  onClick={closeCart}
-                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                >
-                  {t.continueShopping}
-                </Link>
-              </div>
-            ) : (
-              <div className="p-6 space-y-4">
-                {items.map((item, index) => (
-                  <div key={`${item.id}-${item.size}-${index}`} className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-start space-x-3">
-                      <div className="relative w-16 h-16 rounded-lg overflow-hidden">
-                        <Image
-                          src={item.imageUrl}
-                          alt={item.name}
-                          fill
-                          quality={90}
-                          sizes="64px"
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 truncate">
-                          {item.brand} {item.model}
-                        </h3>
-                        <div className="text-sm text-gray-600 space-y-1 mt-1">
-                          {/* Property Values - display all properties */}
-                          {item.propertyValues && Object.keys(item.propertyValues).length > 0 ? (
-                            <div className="space-y-1">
-                              {Object.entries(item.propertyValues).map(([propertyName, propertyValue]) => {
-                                // Format property name (capitalize first letter, replace underscores)
-                                const formattedName = propertyName
-                                  .replace(/_/g, ' ')
-                                  .replace(/\b\w/g, l => l.toUpperCase());
-                                return (
-                                  <div key={propertyName}>
-                                    <span className="font-medium">{formattedName}:</span> {propertyValue}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            // Fallback: show color and size if no propertyValues are available
-                            <>
-                              {item.color && (
-                                <div>
-                                  <span className="font-medium">{t.color}:</span> {item.color}
-                                </div>
-                              )}
-                              {item.size && (
-                                <div>
-                                  <span className="font-medium">{t.size}:</span> {item.size}
-                                </div>
-                              )}
-                            </>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-600 mt-2">
-                          {formatPrice(item.price)} {t.each}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.id, item.size)}
-                        className="p-1 hover:bg-red-100 rounded transition"
-                      >
-                        <Trash2 size={16} className="text-red-500" />
-                      </button>
-                    </div>
-
-                    {/* Quantity Controls */}
-                    <div className="flex items-center justify-between mt-3">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1, item.size)}
-                          className="p-1 hover:bg-gray-200 rounded transition"
-                        >
-                          <Minus size={16} />
-                        </button>
-                        <span className="w-16 text-center font-medium">
-                          {item.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1, item.size)}
-                          className="p-1 hover:bg-gray-200 rounded transition"
-                        >
-                          <Plus size={16} />
-                        </button>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-gray-900">
-                          {formatPrice(item.quantity * item.price)}
-                        </p>
-                        <p className="text-xs text-gray-500">{t.subtotal}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+      <div
+        className="absolute right-0 top-0 h-full w-full max-w-md shadow-xl transform transition-transform flex flex-col"
+        style={{ backgroundColor: theme.colors.surface }}
+      >
+        <div
+          className="flex items-center justify-between p-5 sm:p-6 border-b"
+          style={{ borderColor: theme.colors.border }}
+        >
+          <div className="flex items-center gap-3">
+            <ShoppingCart size={22} style={{ color: theme.colors.text }} />
+            <h2 className="text-xl font-semibold" style={{ color: theme.colors.text }}>
+              {t.shoppingCart}
+            </h2>
+            {totalItems > 0 && (
+              <span
+                className="text-white text-xs px-2.5 py-1 rounded-full font-semibold min-w-[24px] text-center"
+                style={{ backgroundColor: theme.colors.primary }}
+              >
+                {totalItems}
+              </span>
             )}
           </div>
+          <button
+            type="button"
+            onClick={closeCart}
+            className="p-2 rounded-full transition-opacity hover:opacity-70"
+            style={{ color: theme.colors.text }}
+          >
+            <X size={20} />
+          </button>
+        </div>
 
-          {/* Footer */}
-          {items.length > 0 && (
-            <div className="border-t border-gray-200 p-6 space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-lg font-medium">{t.total}:</span>
-                <span className="text-xl font-bold text-gray-900">
-                  {formatPrice(totalPrice)}
-                </span>
-              </div>
-
-              <div className="flex space-x-3">
-                <button
-                  type="button"
-                  onClick={clearCart}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-                >
-                  {t.clearCart}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCheckout}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-center"
-                >
-                  {t.checkout}
-                </button>
-              </div>
-
-              <button
-                type="button"
+        <div className="flex-1 overflow-y-auto">
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+              <ShoppingCart size={48} className="mb-4" style={{ color: theme.colors.border }} />
+              <p className="text-lg" style={{ color: theme.colors.textSecondary }}>
+                {t.yourCartIsEmpty}
+              </p>
+              <Link
+                href="/"
                 onClick={closeCart}
-                className="w-full px-4 py-2 border border-gray-900 text-gray-900 rounded-lg hover:bg-gray-900 hover:text-white transition"
+                className="mt-4 px-5 py-2.5 rounded-xl font-medium transition-opacity hover:opacity-90"
+                style={{
+                  backgroundColor: theme.colors.primary,
+                  color: '#ffffff',
+                }}
               >
                 {t.continueShopping}
-              </button>
+              </Link>
+            </div>
+          ) : (
+            <div className="p-4 sm:p-5 space-y-3">
+              {items.map((item, index) => (
+                <div
+                  key={`${item.id}-${item.size}-${index}`}
+                  className="rounded-2xl p-4"
+                  style={{
+                    backgroundColor: theme.colors.secondary,
+                    border: `1px solid ${theme.colors.border}`,
+                  }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0">
+                      <Image
+                        src={item.imageUrl}
+                        alt={item.name}
+                        fill
+                        quality={90}
+                        sizes="64px"
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3
+                        className="font-medium truncate text-sm sm:text-base"
+                        style={{ color: theme.colors.text }}
+                      >
+                        {item.brand} {item.model}
+                      </h3>
+                      <div className="text-xs sm:text-sm space-y-1 mt-1" style={{ color: theme.colors.textSecondary }}>
+                        {item.propertyValues && Object.keys(item.propertyValues).length > 0 ? (
+                          <div className="space-y-0.5">
+                            {Object.entries(item.propertyValues).map(([propertyName, propertyValue]) => {
+                              const formattedName = propertyName
+                                .replace(/_/g, ' ')
+                                .replace(/\b\w/g, l => l.toUpperCase());
+                              return (
+                                <div key={propertyName}>
+                                  <span className="font-medium">{formattedName}:</span> {propertyValue}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <>
+                            {item.color && (
+                              <div>
+                                <span className="font-medium">{t.color}:</span> {item.color}
+                              </div>
+                            )}
+                            {item.size && (
+                              <div>
+                                <span className="font-medium">{t.size}:</span> {item.size}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                      <p className="text-sm mt-2" style={{ color: theme.colors.textSecondary }}>
+                        {formatPrice(item.price)} {t.each}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(item.id, item.size)}
+                      className="p-1.5 rounded-lg transition-opacity hover:opacity-70 shrink-0"
+                    >
+                      <Trash2 size={16} className="text-red-500" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t" style={{ borderColor: theme.colors.border }}>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.id, item.quantity - 1, item.size)}
+                        className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
+                        style={{ backgroundColor: theme.colors.surface, color: theme.colors.text }}
+                      >
+                        <Minus size={16} />
+                      </button>
+                      <span
+                        className="w-10 text-center font-medium text-sm"
+                        style={{ color: theme.colors.text }}
+                      >
+                        {item.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.id, item.quantity + 1, item.size)}
+                        className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
+                        style={{ backgroundColor: theme.colors.surface, color: theme.colors.text }}
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold" style={{ color: theme.colors.text }}>
+                        {formatPrice(item.quantity * item.price)}
+                      </p>
+                      <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                        {t.subtotal}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
+
+        {items.length > 0 && (
+          <div
+            className="border-t p-5 sm:p-6 space-y-4"
+            style={{ borderColor: theme.colors.border }}
+          >
+            <div className="flex justify-between items-center">
+              <span className="text-lg font-medium" style={{ color: theme.colors.text }}>
+                {t.total}:
+              </span>
+              <span className="text-xl font-bold" style={{ color: theme.colors.text }}>
+                {formatPrice(totalPrice)}
+              </span>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={clearCart}
+                className="flex-1 px-4 py-3 rounded-xl font-medium transition-opacity hover:opacity-80"
+                style={{
+                  border: `1px solid ${theme.colors.border}`,
+                  color: theme.colors.text,
+                  backgroundColor: theme.colors.surface,
+                }}
+              >
+                {t.clearCart}
+              </button>
+              <button
+                type="button"
+                onClick={handleCheckout}
+                className="flex-1 px-4 py-3 rounded-xl font-medium transition-opacity hover:opacity-90"
+                style={{
+                  backgroundColor: theme.colors.primary,
+                  color: '#ffffff',
+                }}
+              >
+                {t.checkout}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={closeCart}
+              className="w-full px-4 py-3 rounded-xl font-medium transition-opacity hover:opacity-80"
+              style={{
+                border: `1px solid ${theme.colors.text}`,
+                color: theme.colors.text,
+                backgroundColor: theme.colors.surface,
+              }}
+            >
+              {t.continueShopping}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
