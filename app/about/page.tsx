@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import CartDrawer from '@/components/CartDrawer';
+import PublicPageLayout from '@/components/PublicPageLayout';
 import LoadingScreen from '@/components/LoadingScreen';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -45,19 +43,17 @@ export default function AboutPage() {
   const isGradientTheme = theme.id === 'gradient';
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin} />
-      <div 
+    <PublicPageLayout isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin}>
+      <div
         className="flex-1 transition-colors duration-300"
-        style={{ 
+        style={{
           background: isGradientTheme ? theme.colors.background : theme.colors.background
         }}
       >
         <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-8 py-12 sm:py-16 lg:py-24">
-          {/* Header Section */}
           <div className="text-center mb-12 sm:mb-16">
-            <h1 
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 transition-colors duration-300"
+            <h1
+              className="font-serif-display text-4xl sm:text-5xl lg:text-6xl mb-4 sm:mb-6 transition-colors duration-300"
               style={{ color: theme.colors.text }}
             >
               {t.aboutUs || 'About Us'}
@@ -288,9 +284,7 @@ export default function AboutPage() {
           )}
         </div>
       </div>
-      <Footer />
-      <CartDrawer />
-    </div>
+    </PublicPageLayout>
   );
 }
 

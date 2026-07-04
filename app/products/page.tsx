@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import PublicPageLayout from '@/components/PublicPageLayout';
 import StorePage from '@/components/StorePage';
-import CartDrawer from '@/components/CartDrawer';
 import LoadingScreen from '@/components/LoadingScreen';
 import { useProducts } from '@/context/ProductContext';
 import { useStoreSettings } from '@/context/StoreSettingsContext';
@@ -31,7 +29,6 @@ export default function ProductsPage() {
     }
   }, []);
 
-  // Show loading screen while StoreSettings is loading (prevents showing backup content)
   if (settingsLoading) {
     return <LoadingScreen />;
   }
@@ -42,21 +39,8 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin} />
-      <div className="flex-1">
-        <StorePage products={products} currentPage="home" />
-      </div>
-      <Footer />
-      <CartDrawer />
-    </div>
+    <PublicPageLayout isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin}>
+      <StorePage products={products} currentPage="home" />
+    </PublicPageLayout>
   );
 }
-
-
-
-
-
-
-
-

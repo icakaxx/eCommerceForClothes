@@ -1,15 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import PublicPageLayout from '@/components/PublicPageLayout';
 import StorePage from '@/components/StorePage';
-import CartDrawer from '@/components/CartDrawer';
 import LoadingScreen from '@/components/LoadingScreen';
 import { Product } from '@/lib/data';
 import { useStoreSettings } from '@/context/StoreSettingsContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { translations } from '@/lib/translations';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function ForHimPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -17,7 +15,7 @@ export default function ForHimPage() {
   const [loading, setLoading] = useState(true);
   const { isLoading: settingsLoading, settings } = useStoreSettings();
   const { language } = useLanguage();
-  const t = translations[language];
+  const { theme } = useTheme();
 
   useEffect(() => {
     const pageTitle = language === 'bg' ? 'За Него' : 'For Him';
@@ -56,38 +54,22 @@ export default function ForHimPage() {
     localStorage.setItem('isAdmin', value.toString());
   };
 
-  // Show loading screen while StoreSettings is loading (prevents showing backup content)
   if (settingsLoading) {
     return <LoadingScreen />;
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Header isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin} />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin} />
-      <div className="flex-1">
+    <PublicPageLayout isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin}>
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center py-24">
+          <div
+            className="animate-spin rounded-full h-8 w-8 border-b-2"
+            style={{ borderColor: theme.colors.primary }}
+          />
+        </div>
+      ) : (
         <StorePage products={products} currentPage="for-him" />
-      </div>
-      <Footer />
-      <CartDrawer />
-    </div>
+      )}
+    </PublicPageLayout>
   );
 }
-
-
-
-
-
-
-

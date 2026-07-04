@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import ProductCard from './ProductCard';
 import ProductFilters from './ProductFilters';
 import FilterDrawer from './FilterDrawer';
+import TrustBar from './TrustBar';
+import CategoryPillsNav from './CategoryPillsNav';
 import { Product } from '@/lib/data';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -266,27 +268,29 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
   const isGradientTheme = theme.id === 'gradient';
 
   return (
-    <div 
+    <div
       className="min-h-screen transition-colors duration-300"
-      style={{ 
-        background: isGradientTheme ? theme.colors.background : theme.colors.background
+      style={{
+        background: isGradientTheme ? theme.colors.background : theme.colors.background,
       }}
     >
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-8 lg:py-12">
-        {/* Breadcrumb Navigation */}
+      <TrustBar />
+
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-5 sm:py-8">
         {activeCategoryFilter !== 'all' && (() => {
           const categoryPath = getCategoryPath(activeCategoryFilter);
           if (categoryPath.length > 0) {
             return (
               <div className="mb-4 text-sm" style={{ color: theme.colors.textSecondary }}>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span 
+                  <span
                     className="cursor-pointer hover:underline"
-                    onClick={() => window.location.href = `/${currentPage}`}
+                    onClick={() => { window.location.href = `/${currentPage}`; }}
                   >
                     {currentPage === 'for-him' ? (language === 'bg' ? 'За него' : 'For Him') :
                      currentPage === 'for-her' ? (language === 'bg' ? 'За нея' : 'For Her') :
-                     currentPage === 'accessories' ? (language === 'bg' ? 'Аксесоари' : 'Accessories') : ''}
+                     currentPage === 'accessories' ? (language === 'bg' ? 'Аксесоари' : 'Accessories') :
+                     language === 'bg' ? 'Продукти' : 'Products'}
                   </span>
                   {categoryPath.map((cat, index) => (
                     <span key={cat.producttypeid} className="flex items-center gap-2">
@@ -294,9 +298,9 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
                       {index === categoryPath.length - 1 ? (
                         <span style={{ color: theme.colors.text }} className="font-medium">{cat.name}</span>
                       ) : (
-                        <span 
+                        <span
                           className="cursor-pointer hover:underline"
-                          onClick={() => window.location.href = `/${currentPage}?producttypeid=${cat.producttypeid}`}
+                          onClick={() => { window.location.href = `/${currentPage}?producttypeid=${cat.producttypeid}`; }}
                         >
                           {cat.name}
                         </span>
@@ -309,30 +313,37 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
           }
           return null;
         })()}
-        <div className="text-center mb-8 sm:mb-12">
-          <h1 
-            className="text-2xl sm:text-3xl lg:text-4xl font-semibold mb-2 sm:mb-3 px-2 transition-colors duration-300"
+
+        <div className="mb-5 sm:mb-6">
+          <h1
+            className="font-serif-display text-2xl sm:text-3xl lg:text-4xl mb-2 transition-colors duration-300"
             style={{ color: theme.colors.text }}
           >
             {getPageTitle()}
           </h1>
-          <p 
-            className="text-base sm:text-lg mb-1 px-2 transition-colors duration-300"
+          <p
+            className="text-sm sm:text-base transition-colors duration-300"
             style={{ color: theme.colors.textSecondary }}
           >
             {t.browseDescription}
           </p>
-          <p 
-            className="text-xs sm:text-sm px-2 transition-colors duration-300"
-            style={{ color: theme.colors.textSecondary }}
-          >
-            {t.allItemsInStock}
-          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <CategoryPillsNav />
+          <ProductFilters
+            selectedFilters={selectedFilters}
+            onToggleVisibility={() => setShowFilters(!showFilters)}
+            layout="bar"
+            placement="desktop"
+          />
         </div>
 
         <ProductFilters
           selectedFilters={selectedFilters}
           onToggleVisibility={() => setShowFilters(!showFilters)}
+          layout="bar"
+          placement="mobile"
         />
 
         <FilterDrawer

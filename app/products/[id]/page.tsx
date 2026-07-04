@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import PublicPageLayout from '@/components/PublicPageLayout';
 import ProductView from '@/components/ProductView';
-import CartDrawer from '@/components/CartDrawer';
 import LoadingScreen from '@/components/LoadingScreen';
 import { Product } from '@/lib/data';
 import { useLanguage } from '@/context/LanguageContext';
@@ -85,16 +83,14 @@ export default function ProductDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin} />
-        <div className="flex-1 flex items-center justify-center">
+      <PublicPageLayout isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin}>
+        <div className="flex-1 flex items-center justify-center py-24">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">{t.loadingProduct}</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7d8461] mx-auto mb-4" />
+            <p style={{ color: '#6b6b6b' }}>{t.loadingProduct}</p>
           </div>
         </div>
-        <Footer />
-      </div>
+      </PublicPageLayout>
     );
   }
 
@@ -103,14 +99,9 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin} />
-      <div className="flex-1">
-        <ProductView product={product} />
-      </div>
-      <Footer />
-      <CartDrawer />
-    </div>
+    <PublicPageLayout isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin}>
+      <ProductView product={product} />
+    </PublicPageLayout>
   );
 }
 
