@@ -16,6 +16,7 @@ import ProductCard from '@/components/ProductCard';
 import { Product } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import TestimonialsCarousel from '@/components/TestimonialsCarousel';
+import { isListedOnStorefront } from '@/lib/product-availability';
 
 const MOBILE_INITIAL_VISIBLE = 4;
 const DESKTOP_INITIAL_VISIBLE = 8;
@@ -72,7 +73,7 @@ export default function Home() {
         setLoadingFeatured(true);
         const filterVisible = (list: Product[]) =>
           list
-            .filter((p: Product) => p.visible && (p.quantity > 0 || !p.variants || p.variants.length === 0))
+            .filter((p: Product) => isListedOnStorefront(p))
             .slice(0, 12);
 
         let res = await fetch('/api/products?isfeatured=true&limit=24');
@@ -112,7 +113,7 @@ export default function Home() {
           if (productsData.success && productsData.products) {
             const favorites = productsData.products
               .filter((p: Product) => data.productIds.includes(p.id || p.productid))
-              .filter((p: Product) => p.visible && (p.quantity > 0 || !p.variants || p.variants.length === 0))
+              .filter((p: Product) => isListedOnStorefront(p))
               .slice(0, 6);
             setFavoriteProducts(favorites);
           }

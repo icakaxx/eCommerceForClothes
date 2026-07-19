@@ -578,6 +578,8 @@ export interface Translations {
   notAvailable: string;
   inStock: string;
   outOfStock: string;
+  outOfStockTitle: string;
+  restockComingSoon: string;
   lowStock: string;
   lowStockForOption: string;
   outOfStockForOption: string;
@@ -1303,6 +1305,8 @@ export const translations: Record<Language, Translations> = {
     notAvailable: 'N/A',
     inStock: 'In Stock',
     outOfStock: 'Out of Stock',
+    outOfStockTitle: 'Out of stock',
+    restockComingSoon: 'Restock coming soon',
     lowStock: 'Low stock',
     lowStockForOption: 'Only {n} left',
     outOfStockForOption: 'Out of stock',
@@ -2021,6 +2025,8 @@ export const translations: Record<Language, Translations> = {
   notAvailable: 'Н/Д',
   inStock: 'В наличност',
   outOfStock: 'Изчерпан',
+  outOfStockTitle: 'Изчерпана наличност',
+  restockComingSoon: 'Очакваме зареждане скоро',
   lowStock: 'Малко на брой',
   lowStockForOption: 'Остават {n} бр.',
   outOfStockForOption: 'Изчерпан',

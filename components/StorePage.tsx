@@ -14,6 +14,7 @@ import { useProductTypes } from '@/context/ProductTypeContext';
 import { useProperties } from '@/context/PropertiesContext';
 import { useAuth } from '@/context/AuthContext';
 import { translations } from '@/lib/translations';
+import { isListedOnStorefront } from '@/lib/product-availability';
 
 interface StorePageProps {
   products: Product[];
@@ -59,9 +60,7 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
   const activeCategoryFilter = selectedCategoryFromUrl;
 
   const filteredProducts = products.filter(p => {
-    if (!p.visible) return false;
-    // Show products with quantity > 0 OR products with no variants (newly created products)
-    if (p.quantity <= 0 && p.variants && p.variants.length > 0) return false;
+    if (!isListedOnStorefront(p)) return false;
 
     // Category/Product Type filtering with hierarchy support
     if (activeCategoryFilter === 'all') {

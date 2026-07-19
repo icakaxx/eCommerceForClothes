@@ -256,6 +256,7 @@ export async function GET(request: NextRequest) {
           variants: variants || [],
           productTypeID: product.producttypeid,
           isfeatured: product.isfeatured || false,
+          awaitingrestock: !!product.awaitingrestock,
 
           // Legacy fields for backwards compatibility
           id: product.productid,
@@ -309,6 +310,7 @@ export async function POST(request: NextRequest) {
       rfproducttypeid,
       isfeatured,
       isdisabled,
+      awaitingrestock,
       Variants = [],
     } = body;
     const productImages = Array.isArray(body.productImages) ? body.productImages.filter(Boolean) : [];
@@ -367,6 +369,7 @@ export async function POST(request: NextRequest) {
         rfproducttypeid: rfproducttypeid || 1, // Default to 1 (For Him) if not provided
         isfeatured: isfeatured || false,
         isdisabled: !!isdisabled,
+        awaitingrestock: !!awaitingrestock,
         updatedat: new Date().toISOString()
       })
       .select()

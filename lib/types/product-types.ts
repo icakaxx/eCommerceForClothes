@@ -54,6 +54,8 @@ export interface Product {
   isfeatured?: boolean;
   /** When true, product is hidden from the customer-facing storefront. */
   isdisabled?: boolean;
+  /** When true, product is shown greyed out as out of stock / awaiting restock. */
+  awaitingrestock?: boolean;
   createdat: string;
   updatedat: string;
 }

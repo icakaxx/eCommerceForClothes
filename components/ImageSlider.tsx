@@ -40,42 +40,35 @@ export default function ImageSlider({ images }: ImageSliderProps) {
       {images.length > 1 && (
         <>
           <button
+            type="button"
             onClick={prev}
-            className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300"
             style={{
               backgroundColor: theme.colors.surface + 'CC',
               color: theme.colors.text
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.surface;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.surface + 'CC';
-            }}
+            aria-label="Previous image"
           >
             <ChevronLeft size={20} />
           </button>
           <button
+            type="button"
             onClick={next}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300"
             style={{
               backgroundColor: theme.colors.surface + 'CC',
               color: theme.colors.text
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.surface;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.surface + 'CC';
-            }}
+            aria-label="Next image"
           >
             <ChevronRight size={20} />
           </button>
-          
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-[1]">
             {images.map((_, idx) => (
               <button
                 key={idx}
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   setCurrentIndex(idx);
@@ -86,6 +79,7 @@ export default function ImageSlider({ images }: ImageSliderProps) {
                   height: '0.5rem',
                   backgroundColor: idx === currentIndex ? theme.colors.surface : theme.colors.surface + '99'
                 }}
+                aria-label={`Image ${idx + 1}`}
               />
             ))}
           </div>

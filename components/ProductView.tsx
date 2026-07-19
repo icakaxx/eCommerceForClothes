@@ -10,6 +10,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
+import { normalizeProductImages } from '@/lib/product-images';
 
 interface ProductViewProps {
   product: Product;
@@ -27,7 +28,7 @@ export default function ProductView({ product }: ProductViewProps) {
   const [maybeYouWillLikeProducts, setMaybeYouWillLikeProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    const productImageUrls = Array.isArray(product.images) && product.images.length > 0
+    const rawProductImages = Array.isArray(product.images) && product.images.length > 0
       ? product.images
       : Array.isArray(product.Images) && product.Images.length > 0
         ? product.Images.map((img: any) =>
@@ -35,7 +36,11 @@ export default function ProductView({ product }: ProductViewProps) {
           ).filter(Boolean)
         : [];
 
-    const nextGalleryImages = productImageUrls.length > 0 ? productImageUrls : [];
+    // Prefer product photos (up to 4). Fall back to a variant image only if none exist.
+    let nextGalleryImages = normalizeProductImages(rawProductImages, '');
+    if (nextGalleryImages.length === 1 && nextGalleryImages[0] === '') {
+      nextGalleryImages = [];
+    }
 
     const variants = product.variants || product.Variants || [];
     const primaryVariant = variants.find((v: any) => v.IsPrimaryImage && (v.images || v.imageurl || v.ImageURL));
@@ -49,12 +54,12 @@ export default function ProductView({ product }: ProductViewProps) {
       (Array.isArray(firstVariant?.images) && firstVariant.images.length > 0 ? firstVariant.images[0] : null) ||
       null;
 
-    if (initialVariantImage && !nextGalleryImages.includes(initialVariantImage)) {
-      setGalleryImages([initialVariantImage, ...nextGalleryImages]);
-    } else {
-      setGalleryImages(nextGalleryImages);
+    if (nextGalleryImages.length === 0 && initialVariantImage) {
+      nextGalleryImages = [initialVariantImage];
     }
-    setFocusImage(initialVariantImage);
+
+    setGalleryImages(nextGalleryImages);
+    setFocusImage(initialVariantImage || nextGalleryImages[0] || null);
   }, [product.variants, product.Variants, product.images, product.Images]);
 
   useEffect(() => {
@@ -171,16 +176,11 @@ export default function ProductView({ product }: ProductViewProps) {
   }, [product.id, product.productid, product.propertyValues, product.productTypeID]);
 
   const handleVariantImageChange = useCallback((images: string[] | string | undefined) => {
+    // Only update focus; keep the product photo gallery (1–4) intact.
     if (images) {
-      // Handle both array and single string
       if (Array.isArray(images)) {
-        const nextFocus = images.length > 0 ? images[0] : null;
-        if (nextFocus) {
-          setGalleryImages((prev) => (prev.includes(nextFocus) ? prev : [nextFocus, ...prev]));
-        }
-        setFocusImage(nextFocus);
+        setFocusImage(images.length > 0 ? images[0] : null);
       } else {
-        setGalleryImages((prev) => (prev.includes(images) ? prev : [images, ...prev]));
         setFocusImage(images);
       }
     } else {

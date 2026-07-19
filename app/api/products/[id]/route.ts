@@ -311,6 +311,7 @@ export async function GET(
       subtitle: product.subtitle || '', // Add subtitle field
       producttypeid: product.producttypeid,
       isdisabled: !!(product as { isdisabled?: boolean }).isdisabled,
+      awaitingrestock: !!(product as { awaitingrestock?: boolean }).awaitingrestock,
       ProductType: product.ProductType,
       Variants: variantsWithImages || [],
       variants: variantsWithImages || [], // Add lowercase version for compatibility
@@ -368,6 +369,7 @@ export async function PUT(
       rfproducttypeid,
       isfeatured,
       isdisabled,
+      awaitingrestock,
       Variants = [],
     } = body;
     const productImages = Array.isArray(body.productImages) ? body.productImages.filter(Boolean) : [];
@@ -412,6 +414,7 @@ export async function PUT(
         rfproducttypeid: rfproducttypeid || 1, // Default to 1 (For Him) if not provided
         isfeatured: isfeatured || false,
         isdisabled: !!isdisabled,
+        awaitingrestock: !!awaitingrestock,
         updatedat: new Date().toISOString()
       })
       .eq('productid', id)

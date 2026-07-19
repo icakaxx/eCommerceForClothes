@@ -10,7 +10,9 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { translations } from '@/lib/translations';
-import { ShoppingCart, Heart } from 'lucide-react';
+import { ShoppingCart, Heart, ShoppingBag } from 'lucide-react';
+import { isAwaitingRestock } from '@/lib/product-availability';
+import { normalizeProductImages } from '@/lib/product-images';
 
 interface ProductCardProps {
   product: Product;
@@ -28,25 +30,9 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
   const [isFavorited, setIsFavorited] = useState(initialIsFavorited || false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const bgnPrice = product.price * 1.95;
+  const showOutOfStockOverlay = isAwaitingRestock(product);
 
-  const getUniqueImages = (images: string[] | undefined): string[] => {
-    if (!images || images.length === 0) return ['/image.png'];
-
-    const seen = new Set<string>();
-    const unique: string[] = [];
-
-    for (const image of images) {
-      const normalized = image.trim().toLowerCase();
-      if (normalized && !seen.has(normalized)) {
-        seen.add(normalized);
-        unique.push(image);
-      }
-    }
-
-    return unique.length > 0 ? unique : ['/image.png'];
-  };
-
-  const uniqueImages = getUniqueImages(product.images);
+  const uniqueImages = normalizeProductImages(product.images);
 
   const getCategoryLabel = () => {
     if (product.category === 'clothes') return product.type || t.clothes;
@@ -154,8 +140,50 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
         }}
       >
         <div className="relative">
-          <ImageSlider images={uniqueImages} />
-          {showNewBadge && (
+          <div className={showOutOfStockOverlay ? 'opacity-55 grayscale-[35%]' : undefined}>
+            <ImageSlider images={uniqueImages} />
+          </div>
+          {showOutOfStockOverlay && (
+            <div className="absolute inset-0 z-[5] flex items-center justify-center p-3 pointer-events-none">
+              <div
+                className="w-[85%] max-w-[200px] rounded-xl px-3 py-3.5 sm:px-4 sm:py-4 text-center shadow-lg"
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.96)',
+                  border: `1px solid ${theme.colors.border}`,
+                }}
+              >
+                <div className="relative mx-auto mb-2 flex h-8 w-8 items-center justify-center">
+                  <ShoppingBag size={26} strokeWidth={1.5} style={{ color: theme.colors.text }} />
+                  <span
+                    className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px] font-bold leading-none"
+                    style={{
+                      backgroundColor: theme.colors.text,
+                      color: '#ffffff',
+                    }}
+                  >
+                    ×
+                  </span>
+                </div>
+                <p
+                  className="text-xs sm:text-sm font-semibold leading-snug"
+                  style={{ color: theme.colors.text }}
+                >
+                  {t.outOfStockTitle}
+                </p>
+                <div
+                  className="my-2 h-px w-full"
+                  style={{ backgroundColor: theme.colors.border }}
+                />
+                <p
+                  className="text-[10px] sm:text-xs leading-snug"
+                  style={{ color: theme.colors.textSecondary }}
+                >
+                  {t.restockComingSoon}
+                </p>
+              </div>
+            </div>
+          )}
+          {showNewBadge && !showOutOfStockOverlay && (
             <span
               className="absolute bottom-3 left-3 z-10 px-2.5 py-1 text-[10px] sm:text-xs font-semibold rounded-md text-white"
               style={{ backgroundColor: theme.colors.primary }}
@@ -229,7 +257,7 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
             </div>
           </div>
 
-          {product.visible && product.quantity > 0 && (
+          {product.visible && product.quantity > 0 && !showOutOfStockOverlay && (
             <div data-express-checkout className="relative z-10 mt-3">
               <button
                 onClick={(e) => {

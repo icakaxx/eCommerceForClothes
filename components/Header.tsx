@@ -13,6 +13,7 @@ import { useStoreSettings } from '@/context/StoreSettingsContext';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useProducts } from '@/context/ProductContext';
+import { isAwaitingRestock, isListedOnStorefront } from '@/lib/product-availability';
 
 interface HeaderProps {
   isAdmin: boolean;
@@ -80,8 +81,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
       const checkCategoryHasProducts = (categoryId: string): boolean => {
         // Check direct products
         const hasDirectProducts = products.some(p => {
-          if (!p.visible) return false;
-          if (p.quantity <= 0 && p.variants && p.variants.length > 0) return false;
+          if (!isListedOnStorefront(p)) return false;
           
           const productRfProductTypeId = (p as any).rfproducttypeid;
           if (productRfProductTypeId === null || productRfProductTypeId === undefined) return false;
@@ -166,8 +166,8 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
     
     // Get all products that match the section's rfproducttypeid
     let sectionProducts = products.filter(p => {
-      if (!p.visible) return false;
-      if (p.quantity <= 0 && p.variants && p.variants.length > 0) return false;
+      if (!isListedOnStorefront(p)) return false;
+      if (isAwaitingRestock(p)) return false;
       
       const productRfProductTypeId = (p as any).rfproducttypeid;
       if (productRfProductTypeId === null || productRfProductTypeId === undefined) return false;

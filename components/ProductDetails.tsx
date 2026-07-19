@@ -429,6 +429,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   };
 
   const handleAddToCart = () => {
+    if (product.awaitingrestock) return;
     if (!tracksStock || currentQuantity <= 0) return;
 
     // Use selectedOptions to get only the selected property values (not all available options)
@@ -946,7 +947,24 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
       )}
 
       {/* Add to Cart Button - order 8 */}
-      {product.visible && tracksStock && currentQuantity > 0 && (
+      {product.awaitingrestock ? (
+        <div className="mb-6 order-8">
+          <div
+            className="w-full px-6 py-4 rounded-xl text-center"
+            style={{
+              backgroundColor: theme.colors.secondary,
+              border: `1px solid ${theme.colors.border}`,
+            }}
+          >
+            <p className="font-semibold mb-1" style={{ color: theme.colors.text }}>
+              {t.outOfStockTitle}
+            </p>
+            <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
+              {t.restockComingSoon}
+            </p>
+          </div>
+        </div>
+      ) : product.visible && tracksStock && currentQuantity > 0 ? (
         <div className="mb-6 order-8">
           <button
             onClick={handleAddToCart}
@@ -956,7 +974,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
             {t.addToCart}
           </button>
         </div>
-      )}
+      ) : null}
 
       {/* Quick Login Modal */}
       <QuickLoginModal

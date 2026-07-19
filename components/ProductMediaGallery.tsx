@@ -99,10 +99,21 @@ export default function ProductMediaGallery({ images, productName, focusImage }:
   const modalSliderRef = useRef<any>(null);
   const [backgroundColors, setBackgroundColors] = useState<Record<number, string>>({});
 
-  // Safety check: ensure images is an array with at least one item
-  const safeImages = images && Array.isArray(images) && images.length > 0 
-    ? images 
-    : ['/image.png'];
+  // Cap at 4 product photos; show exactly how many were uploaded (1–4)
+  const safeImages = (() => {
+    if (!images || !Array.isArray(images) || images.length === 0) return ['/image.png'];
+    const seen = new Set<string>();
+    const unique: string[] = [];
+    for (const image of images) {
+      if (!image) continue;
+      const key = image.trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      unique.push(image);
+      if (unique.length >= 4) break;
+    }
+    return unique.length > 0 ? unique : ['/image.png'];
+  })();
 
   const mainSliderSettings = {
     dots: false,

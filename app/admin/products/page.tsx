@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit2, Trash2, X, Image as ImageIcon, ChevronDown, Upload, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Image as ImageIcon, ChevronDown, Upload, Eye, EyeOff, PackageX, PackageCheck } from 'lucide-react';
 import { ProductType, Property } from '@/lib/types/product-types';
 import AdminLayout from '../components/AdminLayout';
 import AdminModal from '../components/AdminModal';
@@ -12,6 +12,7 @@ import { AdminPage, PageHeader, Section, SectionSurface, EmptyState, DataTableSh
 import { Package } from 'lucide-react';
 import CompleteAnimation from '@/components/CompleteAnimation';
 import { adminAuthHeaders } from '@/lib/admin-auth-headers';
+import { MAX_PRODUCT_IMAGES } from '@/lib/product-images';
 
 // Select All Checkbox Component for Variant Characteristics
 function VariantSelectAllCheckbox({
@@ -60,6 +61,8 @@ interface Product {
   producttypeid: string;
   /** Hidden from storefront (out of stock / temporarily unavailable). */
   isdisabled?: boolean;
+  /** Shown greyed out on shop as awaiting restock. */
+  awaitingrestock?: boolean;
   ProductType?: ProductType;
   propertyvalues?: Record<string, string>;
 }
@@ -103,6 +106,7 @@ export default function ProductsPage() {
     producttypeid: '',
     isfeatured: false,
     isdisabled: false,
+    awaitingrestock: false,
     propertyvalues: {} as Record<string, string>
   });
   const [availableProperties, setAvailableProperties] = useState<Property[]>([]);
@@ -129,6 +133,9 @@ export default function ProductsPage() {
   const [bulkVisibilityModal, setBulkVisibilityModal] = useState<'hide' | 'show' | null>(null);
   const [bulkUpdatingVisibility, setBulkUpdatingVisibility] = useState(false);
   const [showBulkVisibilityCompleteAnimation, setShowBulkVisibilityCompleteAnimation] = useState(false);
+  const [bulkRestockModal, setBulkRestockModal] = useState<'mark' | 'clear' | null>(null);
+  const [bulkUpdatingRestock, setBulkUpdatingRestock] = useState(false);
+  const [showBulkRestockCompleteAnimation, setShowBulkRestockCompleteAnimation] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<number, { price?: boolean; quantity?: boolean }>>({});
   const [showCompleteAnimation, setShowCompleteAnimation] = useState(false);
   const [showDeleteCompleteAnimation, setShowDeleteCompleteAnimation] = useState(false);
@@ -217,11 +224,29 @@ export default function ProductsPage() {
 
   const addProductImages = (urls: string[]) => {
     setProductImages((prev) => {
-      const next = new Set(prev);
-      urls.forEach((url) => {
-        if (url) next.add(url);
-      });
-      return Array.from(next);
+      if (prev.length >= MAX_PRODUCT_IMAGES) {
+        alert(
+          language === 'bg'
+            ? `Можете да добавите максимум ${MAX_PRODUCT_IMAGES} изображения.`
+            : `You can add at most ${MAX_PRODUCT_IMAGES} images.`
+        );
+        return prev;
+      }
+
+      const next = [...prev];
+      for (const url of urls) {
+        if (!url || next.includes(url)) continue;
+        if (next.length >= MAX_PRODUCT_IMAGES) {
+          alert(
+            language === 'bg'
+              ? `Добавени са само първите ${MAX_PRODUCT_IMAGES} изображения.`
+              : `Only the first ${MAX_PRODUCT_IMAGES} images were added.`
+          );
+          break;
+        }
+        next.push(url);
+      }
+      return next;
     });
   };
 
@@ -296,6 +321,7 @@ export default function ProductsPage() {
           description: p.description || '',
           producttypeid: p.producttypeid || '',
           isdisabled: p.isdisabled === true,
+          awaitingrestock: p.awaitingrestock === true,
           ProductType: p.producttype,
           propertyvalues: p.propertyvalues || {}
         }));
@@ -491,8 +517,9 @@ export default function ProductsPage() {
         producttypeid: formData.producttypeid,
         isfeatured: formData.isfeatured || false,
         isdisabled: formData.isdisabled === true,
+        awaitingrestock: formData.awaitingrestock === true,
         Variants: variants,
-        productImages
+        productImages: productImages.slice(0, MAX_PRODUCT_IMAGES),
       };
 
 
@@ -513,7 +540,7 @@ export default function ProductsPage() {
         setTimeout(() => {
           setShowModal(false);
           setShowCompleteAnimation(false);
-          setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, propertyvalues: {} });
+          setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, awaitingrestock: false, propertyvalues: {} });
           setEditingProduct(null);
           setVariants([]);
           setVariantDisplayValues({});
@@ -557,6 +584,7 @@ export default function ProductsPage() {
           producttypeid: fullProduct.producttypeid,
           isfeatured: fullProduct.isfeatured || false,
           isdisabled: fullProduct.isdisabled === true,
+          awaitingrestock: fullProduct.awaitingrestock === true,
           propertyvalues: {}
         });
 
@@ -727,6 +755,55 @@ export default function ProductsPage() {
       );
     } finally {
       setBulkUpdatingVisibility(false);
+    }
+  };
+
+  const handleBulkRestockConfirm = async () => {
+    if (!bulkRestockModal || selectedProductIds.length === 0) return;
+
+    const awaitingrestock = bulkRestockModal === 'mark';
+
+    try {
+      setBulkUpdatingRestock(true);
+      const authHeaders = await adminAuthHeaders();
+      const response = await fetch('/api/admin/products/bulk-awaiting-restock', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders,
+        },
+        body: JSON.stringify({
+          productIds: selectedProductIds,
+          awaitingrestock,
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        alert(
+          language === 'bg'
+            ? `Грешка: ${result.error || 'Неуспешна промяна'}`
+            : `Error: ${result.error || 'Update failed'}`
+        );
+        return;
+      }
+
+      setShowBulkRestockCompleteAnimation(true);
+      setTimeout(() => {
+        setSelectedProductIds([]);
+        setBulkRestockModal(null);
+        setShowBulkRestockCompleteAnimation(false);
+        loadProducts();
+      }, 1200);
+    } catch (error) {
+      console.error('Failed to bulk update awaiting restock:', error);
+      alert(
+        language === 'bg'
+          ? 'Неуспешна промяна на статуса „изчерпана наличност“'
+          : 'Failed to update out-of-stock display status'
+      );
+    } finally {
+      setBulkUpdatingRestock(false);
     }
   };
 
@@ -1035,6 +1112,26 @@ export default function ProductsPage() {
                 </button>
                 <button
                   type="button"
+                  onClick={() => setBulkRestockModal('mark')}
+                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-slate-600 text-white rounded hover:bg-slate-700 active:bg-slate-800 transition-colors touch-manipulation text-sm sm:text-base"
+                >
+                  <PackageX className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {language === 'bg'
+                    ? `Изчерпана наличност (${selectedProductIds.length})`
+                    : `Mark out of stock (${selectedProductIds.length})`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBulkRestockModal('clear')}
+                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 active:bg-teal-800 transition-colors touch-manipulation text-sm sm:text-base"
+                >
+                  <PackageCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {language === 'bg'
+                    ? `Премахни „изчерпан“ (${selectedProductIds.length})`
+                    : `Clear out of stock (${selectedProductIds.length})`}
+                </button>
+                <button
+                  type="button"
                   onClick={() => setShowBulkDeleteModal(true)}
                   className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 active:bg-red-800 transition-colors touch-manipulation text-sm sm:text-base"
                 >
@@ -1048,7 +1145,7 @@ export default function ProductsPage() {
             <button
               onClick={() => {
                 setEditingProduct(null);
-                setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, propertyvalues: {} });
+                setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, awaitingrestock: false, propertyvalues: {} });
                 setProductTypeProperties([]);
                 setSelectedPropertyValues({});
                 setVariants([]);
@@ -1111,7 +1208,7 @@ export default function ProductsPage() {
                   <button
                     onClick={() => {
                       setEditingProduct(null);
-                      setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, propertyvalues: {} });
+                      setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, awaitingrestock: false, propertyvalues: {} });
                       setProductTypeProperties([]);
                       setSelectedPropertyValues({});
                       setVariants([]);
@@ -1171,15 +1268,22 @@ export default function ProductsPage() {
                             {productTypes.find(pt => pt.producttypeid === product.producttypeid)?.name || '-'}
                           </TableCell>
                           <TableCell align="center">
-                            {product.isdisabled ? (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900 border border-amber-200">
-                                {language === 'bg' ? 'Скрит' : 'Hidden'}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-100">
-                                {language === 'bg' ? 'Видим' : 'Live'}
-                              </span>
-                            )}
+                            <div className="flex flex-col items-center gap-1">
+                              {product.isdisabled ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900 border border-amber-200">
+                                  {language === 'bg' ? 'Скрит' : 'Hidden'}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-100">
+                                  {language === 'bg' ? 'Видим' : 'Live'}
+                                </span>
+                              )}
+                              {product.awaitingrestock && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800 border border-slate-200">
+                                  {language === 'bg' ? 'Изчерпан' : 'OOS'}
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell align="right">
                             <div className="flex justify-end gap-2">
@@ -1256,6 +1360,14 @@ export default function ProductsPage() {
                             <span className="text-emerald-800">{language === 'bg' ? 'Видим' : 'Visible'}</span>
                           )}
                         </p>
+                        {product.awaitingrestock && (
+                          <p>
+                            <span className="font-medium">{language === 'bg' ? 'Статус:' : 'Status:'}</span>{' '}
+                            <span className="text-slate-700">
+                              {language === 'bg' ? 'Изчерпана наличност' : 'Out of stock display'}
+                            </span>
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
@@ -1485,11 +1597,14 @@ export default function ProductsPage() {
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                       {language === 'bg' ? 'Изображения на продукта' : 'Product Images'}
+                      <span className="ml-2 font-normal text-gray-500">
+                        ({productImages.length}/{MAX_PRODUCT_IMAGES})
+                      </span>
                     </label>
                     <p className="text-xs text-gray-500 mb-2">
                       {language === 'bg'
-                        ? 'Добавете няколко изображения за продукта. След това можете да изберете конкретно изображение за всеки вариант. Добавете изображения с еднакви размери за да се показват правилно'
-                        : 'Add multiple images for the product. Then choose a specific image for each variant. Add images with the same size to display properly'}
+                        ? `Качете до ${MAX_PRODUCT_IMAGES} изображения. Колкото качите (1–${MAX_PRODUCT_IMAGES}), толкова ще вижда клиентът в картата и галерията. Добавете изображения с еднакви размери за да се показват правилно.`
+                        : `Upload up to ${MAX_PRODUCT_IMAGES} images. Customers see exactly how many you upload (1–${MAX_PRODUCT_IMAGES}) on the card and gallery. Use matching sizes for best display.`}
                     </p>
                     {productImages.length === 0 ? (
                       <p className="text-xs text-gray-400 mb-2">
@@ -1517,13 +1632,17 @@ export default function ProductsPage() {
                       </div>
                     )}
                     <div className="flex flex-wrap items-center gap-2">
-                      <label className="cursor-pointer">
+                      <label className={`cursor-pointer ${productImages.length >= MAX_PRODUCT_IMAGES ? 'opacity-50 pointer-events-none' : ''}`}>
                         <input
                           type="file"
                           accept="image/*,.heic,.heif,.avif"
                           multiple
+                          disabled={productImages.length >= MAX_PRODUCT_IMAGES}
                           className="hidden"
-                          onChange={(e) => handleProductImageUpload(e.target.files)}
+                          onChange={(e) => {
+                            handleProductImageUpload(e.target.files);
+                            e.target.value = '';
+                          }}
                         />
                         <span className="inline-flex items-center gap-2 px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors">
                           <Upload className="w-4 h-4" />
@@ -1533,7 +1652,8 @@ export default function ProductsPage() {
                       <button
                         type="button"
                         onClick={openMediaModalForProduct}
-                        className="inline-flex items-center gap-2 px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                        disabled={productImages.length >= MAX_PRODUCT_IMAGES}
+                        className="inline-flex items-center gap-2 px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <ImageIcon className="w-4 h-4" />
                         {language === 'bg' ? 'Избери от медия' : 'Select from media'}
@@ -1577,6 +1697,29 @@ export default function ProductsPage() {
                           {language === 'bg'
                             ? 'Когато е отметнато, клиентите не виждат този артикул в магазина. Можете да го включите отново по всяко време.'
                             : 'When checked, customers will not see this product in the shop. You can turn it back on anytime.'}
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.awaitingrestock === true}
+                        onChange={(e) => setFormData({ ...formData, awaitingrestock: e.target.checked })}
+                        className="mt-0.5 w-4 h-4 text-primary border-border rounded focus:ring-primary"
+                      />
+                      <div>
+                        <span className="text-xs sm:text-sm font-medium text-gray-700 block">
+                          {language === 'bg'
+                            ? 'Покажи като „Изчерпана наличност“ (очакваме зареждане)'
+                            : 'Show as “Out of stock” (restock coming soon)'}
+                        </span>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {language === 'bg'
+                            ? 'Артикулът остава видим в магазина, но картата е посивена с надпис „Изчерпана наличност / Очакваме зареждане скоро“. Бутонът „Добави в количката“ се скрива.'
+                            : 'Product stays visible in the shop, but the card is greyed out with “Out of stock / Restock coming soon”. Add to cart is hidden.'}
                         </p>
                       </div>
                     </label>
@@ -2506,6 +2649,95 @@ export default function ProductsPage() {
             
             {/* Complete Animation Overlay */}
             {showDeleteCompleteAnimation && (
+              <div className="absolute inset-0 flex items-center justify-center z-50">
+                <CompleteAnimation size={120} />
+              </div>
+            )}
+          </div>
+        </AdminModal>
+
+        <AdminModal
+          isOpen={bulkRestockModal !== null}
+          onClose={() => {
+            if (!showBulkRestockCompleteAnimation) {
+              setBulkRestockModal(null);
+              setShowBulkRestockCompleteAnimation(false);
+            }
+          }}
+          title={
+            bulkRestockModal === 'mark'
+              ? language === 'bg'
+                ? 'Маркирай като изчерпана наличност'
+                : 'Mark as out of stock'
+              : language === 'bg'
+                ? 'Премахни статуса „изчерпана наличност“'
+                : 'Clear out-of-stock display'
+          }
+          subheader={
+            bulkRestockModal === 'mark'
+              ? language === 'bg'
+                ? 'Избраните артикули ще се показват посивени с надпис „Изчерпана наличност / Очакваме зареждане скоро“.'
+                : 'Selected products will appear greyed out with “Out of stock / Restock coming soon”.'
+              : language === 'bg'
+                ? 'Избраните артикули ще се показват нормално (ако имат наличност).'
+                : 'Selected products will display normally (if they have stock).'
+          }
+          maxWidth="max-w-md"
+          minWidth={400}
+          minHeight={200}
+        >
+          <div className="relative">
+            <div
+              className={`space-y-4 transition-all duration-300 ${
+                showBulkRestockCompleteAnimation ? 'blur-sm pointer-events-none' : ''
+              }`}
+            >
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm font-medium text-gray-900 mb-1">
+                  {language === 'bg' ? 'Избрани артикули:' : 'Selected items:'}
+                </p>
+                <p className="text-sm text-gray-700">{selectedProductIds.length}</p>
+              </div>
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!showBulkRestockCompleteAnimation) {
+                      setBulkRestockModal(null);
+                      setShowBulkRestockCompleteAnimation(false);
+                    }
+                  }}
+                  disabled={bulkUpdatingRestock || showBulkRestockCompleteAnimation}
+                  className="w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation disabled:opacity-50"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkRestockConfirm}
+                  disabled={bulkUpdatingRestock || showBulkRestockCompleteAnimation}
+                  className={`w-full sm:w-auto px-4 py-2.5 text-sm sm:text-base text-white rounded transition-opacity touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed ${
+                    bulkRestockModal === 'mark'
+                      ? 'bg-slate-600 hover:bg-slate-700'
+                      : 'bg-teal-600 hover:bg-teal-700'
+                  }`}
+                >
+                  {bulkUpdatingRestock
+                    ? language === 'bg'
+                      ? 'Запазване...'
+                      : 'Saving...'
+                    : bulkRestockModal === 'mark'
+                      ? language === 'bg'
+                        ? 'Маркирай'
+                        : 'Mark selected'
+                      : language === 'bg'
+                        ? 'Премахни статуса'
+                        : 'Clear status'}
+                </button>
+              </div>
+            </div>
+
+            {showBulkRestockCompleteAnimation && (
               <div className="absolute inset-0 flex items-center justify-center z-50">
                 <CompleteAnimation size={120} />
               </div>
