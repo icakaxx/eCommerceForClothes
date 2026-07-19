@@ -71,22 +71,13 @@ export default function Home() {
     const loadHomeProducts = async () => {
       try {
         setLoadingFeatured(true);
-        const filterVisible = (list: Product[]) =>
-          list
-            .filter((p: Product) => isListedOnStorefront(p))
-            .slice(0, 12);
-
-        let res = await fetch('/api/products?isfeatured=true&limit=24');
-        let result = await res.json();
-        let visible: Product[] = result.success ? filterVisible(result.products || []) : [];
-
-        if (visible.length === 0) {
-          res = await fetch('/api/products?limit=24');
-          result = await res.json();
-          if (result.success) {
-            visible = filterVisible(result.products || []);
-          }
-        }
+        // Homepage shows the full storefront catalog (same pool as /products),
+        // not only items marked isfeatured.
+        const res = await fetch('/api/products');
+        const result = await res.json();
+        const visible: Product[] = result.success
+          ? (result.products || []).filter((p: Product) => isListedOnStorefront(p))
+          : [];
         setFeaturedProducts(visible);
       } catch (error) {
         console.error('Failed to load home products:', error);
