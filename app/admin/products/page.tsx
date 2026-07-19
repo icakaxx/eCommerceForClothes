@@ -1603,8 +1603,8 @@ export default function ProductsPage() {
                     </label>
                     <p className="text-xs text-gray-500 mb-2">
                       {language === 'bg'
-                        ? `Качете до ${MAX_PRODUCT_IMAGES} изображения. Колкото качите (1–${MAX_PRODUCT_IMAGES}), толкова ще вижда клиентът в картата и галерията. Добавете изображения с еднакви размери за да се показват правилно.`
-                        : `Upload up to ${MAX_PRODUCT_IMAGES} images. Customers see exactly how many you upload (1–${MAX_PRODUCT_IMAGES}) on the card and gallery. Use matching sizes for best display.`}
+                        ? `Качете до ${MAX_PRODUCT_IMAGES} изображения. Колкото качите (1–${MAX_PRODUCT_IMAGES}), толкова ще вижда клиентът. Снимките се компресират автоматично при качване. Добавете изображения с еднакви размери за да се показват правилно.`
+                        : `Upload up to ${MAX_PRODUCT_IMAGES} images. Customers see exactly how many you upload (1–${MAX_PRODUCT_IMAGES}). Photos are compressed automatically on upload. Use matching sizes for best display.`}
                     </p>
                     {productImages.length === 0 ? (
                       <p className="text-xs text-gray-400 mb-2">
