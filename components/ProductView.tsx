@@ -196,16 +196,13 @@ export default function ProductView({ product }: ProductViewProps) {
       <div className="product__page__middle max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Two-column layout - reordered for mobile */}
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:gap-16">
-          {/* Left column - Product Images (hidden on mobile, shown on desktop) */}
-          <div className="product__detail__left order-3 md:order-1">
-            {/* Gallery - hidden on mobile, shown on desktop */}
-            <div className="hidden md:block">
-              <ProductMediaGallery 
-                images={galleryImages} 
-                productName={`${product.brand} ${product.model}`}
-                focusImage={focusImage}
-              />
-            </div>
+          {/* Left column - Product Images (all breakpoints, up to 4 photos) */}
+          <div className="product__detail__left order-1 md:order-1">
+            <ProductMediaGallery
+              images={galleryImages}
+              productName={`${product.brand} ${product.model}`}
+              focusImage={focusImage}
+            />
             
             {/* Expandable Product Description Section (order 8 on mobile) */}
             {product.description && (
@@ -281,8 +278,8 @@ export default function ProductView({ product }: ProductViewProps) {
             </div>
           </div>
 
-          {/* Right column - Product Info (order 1-7 on mobile, 2 on desktop) */}
-          <div className="product__detail__right order-1 md:order-2">
+          {/* Right column - Product Info */}
+          <div className="product__detail__right order-2 md:order-2">
             <ProductDetails
               product={product}
               onVariantChange={handleVariantImageChange}

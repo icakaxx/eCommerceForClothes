@@ -116,13 +116,14 @@ export default function ProductMediaGallery({ images, productName, focusImage }:
   })();
 
   const mainSliderSettings = {
-    dots: false,
+    dots: safeImages.length > 1,
     infinite: safeImages.length > 1,
     speed: 500,
     slidesToShow: 1,
     slidesToScroll: 1,
     arrows: safeImages.length > 1,
     fade: false,
+    swipe: true,
     prevArrow: <PrevArrow />,
     nextArrow: <NextArrow />,
     beforeChange: (_: number, next: number) => {
@@ -133,13 +134,13 @@ export default function ProductMediaGallery({ images, productName, focusImage }:
     },
     customPaging: function (i: number) {
       return (
-        <div className="thumbnail-wrapper" style={{ padding: '4px' }}>
+        <div className="thumbnail-wrapper" style={{ padding: '2px' }}>
           <Image
             src={safeImages[i]}
             alt={`Thumbnail ${i + 1}`}
-            width={80}
-            height={80}
-            style={{ objectFit: 'cover', borderRadius: '4px' }}
+            width={64}
+            height={64}
+            style={{ objectFit: 'cover', borderRadius: '6px', width: '100%', height: '100%' }}
           />
         </div>
       );
@@ -270,6 +271,17 @@ export default function ProductMediaGallery({ images, productName, focusImage }:
           boxShadow: theme.effects.shadow
         }}
       >
+        {safeImages.length > 1 && (
+          <div
+            className="absolute top-3 right-3 z-20 rounded-full px-2.5 py-1 text-xs font-medium"
+            style={{
+              backgroundColor: 'rgba(15, 23, 42, 0.75)',
+              color: '#ffffff',
+            }}
+          >
+            {activeSlide + 1} / {safeImages.length}
+          </div>
+        )}
         <Slider
           ref={mainSliderRef}
           {...mainSliderSettings}
@@ -364,17 +376,57 @@ export default function ProductMediaGallery({ images, productName, focusImage }:
       )}
 
       <style jsx global>{`
+        .product-media-container {
+          padding-bottom: ${safeImages.length > 1 ? '72px' : '0'};
+        }
+        .product-slider .slick-list,
+        .product-slider .slick-track {
+          height: 100%;
+        }
+        .product-slider .slick-slide > div {
+          height: 100%;
+        }
+        .product-slider .product-image {
+          min-height: 320px;
+          height: min(70vw, 520px) !important;
+        }
+        @media (min-width: 768px) {
+          .product-slider .product-image {
+            height: 600px !important;
+          }
+        }
         .product-slider .slick-dots {
-          bottom: -60px;
+          bottom: -68px;
+          display: flex !important;
+          justify-content: center;
+          align-items: center;
+          gap: 4px;
         }
         .product-slider .slick-dots li {
-          width: 80px;
-          height: 80px;
-          margin: 0 8px;
+          width: 52px;
+          height: 52px;
+          margin: 0 4px;
+        }
+        .product-slider .slick-dots li button:before {
+          display: none;
+        }
+        .product-slider .slick-dots li .thumbnail-wrapper {
+          width: 52px;
+          height: 52px;
+          border: 2px solid transparent;
+          border-radius: 8px;
+          overflow: hidden;
+          opacity: 0.75;
         }
         .product-slider .slick-dots li.slick-active .thumbnail-wrapper {
-          border: 2px solid ${theme.colors.primary};
-          border-radius: 6px;
+          border-color: ${theme.colors.primary};
+          opacity: 1;
+        }
+        .product-slider .slick-prev,
+        .product-slider .slick-next {
+          z-index: 3;
+          width: 40px;
+          height: 40px;
         }
         .custom-arrow:before {
           display: none;
@@ -383,9 +435,9 @@ export default function ProductMediaGallery({ images, productName, focusImage }:
           bottom: 20px;
         }
         .product-image-modal .slick-dots li {
-          width: 80px;
-          height: 80px;
-          margin: 0 8px;
+          width: 64px;
+          height: 64px;
+          margin: 0 6px;
         }
         .product-image-modal .slick-dots li.slick-active .thumbnail-wrapper {
           border: 2px solid ${theme.colors.primary};

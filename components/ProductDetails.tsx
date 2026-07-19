@@ -9,7 +9,6 @@ import { useAuth } from '@/context/AuthContext';
 import { translations } from '@/lib/translations';
 import { useRouter } from 'next/navigation';
 import { ShoppingCart, Heart, Share2 } from 'lucide-react';
-import Image from 'next/image';
 import QuickLoginModal from './QuickLoginModal';
 import FomoBadge, { type FomoMessage } from './FomoBadge';
 import ProductCard from './ProductCard';
@@ -522,13 +521,6 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
     }
   };
 
-  // Get product image for mobile display
-  const productImage = selectedVariant?.imageurl || 
-    (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : 
-    (Array.isArray(product.Images) && product.Images.length > 0 ? 
-      (typeof product.Images[0] === 'string' ? product.Images[0] : product.Images[0].imageurl || product.Images[0].url) : 
-    '/image.png'));
-
   return (
     <div className="product-details flex flex-col">
       {/* Back button - order 1 */}
@@ -591,20 +583,6 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
               fill={isFavorited ? '#ef4444' : 'none'}
             />
           </button>
-        </div>
-      </div>
-
-      {/* Mobile Image - order 3 (only visible on mobile) */}
-      <div className="mb-6 order-3 md:hidden">
-        <div className="relative w-full aspect-square rounded-lg overflow-hidden" style={{ backgroundColor: theme.colors.cardBg }}>
-          <Image
-            src={productImage}
-            alt={`${product.brand} ${product.model}`}
-            fill
-            className="object-cover"
-            sizes="100vw"
-            priority
-          />
         </div>
       </div>
 
