@@ -10,20 +10,16 @@ export default function CategoryPillsNav() {
   const { language } = useLanguage();
   const { theme } = useTheme();
 
+  // "Всички" = full catalog (/products). Homepage (/) only shows featured items.
   const pills = [
-    { id: 'all', label: language === 'bg' ? 'Всички' : 'All', href: '/' },
+    { id: 'all', label: language === 'bg' ? 'Всички' : 'All', href: '/products' },
     { id: 'for-him', label: language === 'bg' ? 'За него' : 'For Him', href: '/for-him' },
     { id: 'for-her', label: language === 'bg' ? 'За нея' : 'For Her', href: '/for-her' },
     { id: 'accessories', label: language === 'bg' ? 'Аксесоари' : 'Accessories', href: '/accessories' },
-    {
-      id: 'products',
-      label: language === 'bg' ? 'Всички продукти' : 'All products',
-      href: '/products',
-    },
   ];
 
   const activeId =
-    pathname === '/'
+    pathname === '/products'
       ? 'all'
       : pathname === '/for-him'
         ? 'for-him'
@@ -31,9 +27,7 @@ export default function CategoryPillsNav() {
           ? 'for-her'
           : pathname === '/accessories'
             ? 'accessories'
-            : pathname === '/products'
-              ? 'products'
-              : '';
+            : '';
 
   return (
     <div className="flex-1 overflow-x-auto scrollbar-hide -mx-1 px-1">
