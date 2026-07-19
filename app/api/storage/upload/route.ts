@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
 import { DEFAULT_BUCKET } from '@/lib/supabaseStorage';
-import { compressImageForUpload } from '@/lib/compress-image';
+import { compressImageForUpload, toPlainUint8Array } from '@/lib/compress-image';
 
 export const runtime = 'nodejs';
 
@@ -45,13 +45,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const originalBuffer = Buffer.from(arrayBuffer);
+    // Copy into a plain Uint8Array — avoids SharedArrayBuffer errors with Supabase/fetch
+    const originalBytes = toPlainUint8Array(await file.arrayBuffer());
 
-    const compressed = await compressImageForUpload(originalBuffer, file.type);
+    const compressed = await compressImageForUpload(originalBytes, file.type);
 
-    const uploadBuffer = compressed?.buffer ?? originalBuffer;
-    const contentType = compressed?.contentType ?? file.type;
+    const uploadBytes = compressed?.bytes ?? originalBytes;
+    const contentType = compressed?.contentType ?? (file.type || 'application/octet-stream');
     const originalExt = file.name.split('.').pop() || 'jpg';
     const fileExt = compressed?.extension ?? originalExt;
 
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await supabase.storage
       .from(DEFAULT_BUCKET)
-      .upload(fileName, uploadBuffer, {
+      .upload(fileName, uploadBytes, {
         contentType,
         upsert: false,
       });

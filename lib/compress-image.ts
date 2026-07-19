@@ -6,12 +6,23 @@ const MAX_DIMENSION = 1600;
 const WEBP_QUALITY = 80;
 
 export type CompressedImage = {
-  buffer: Buffer;
+  /** Plain transferable bytes (never SharedArrayBuffer-backed). */
+  bytes: Uint8Array;
   contentType: string;
   extension: string;
   originalBytes: number;
   compressedBytes: number;
 };
+
+/** Copy into a standalone Uint8Array so uploads never use SharedArrayBuffer. */
+export function toPlainUint8Array(data: ArrayBuffer | Uint8Array): Uint8Array {
+  const source = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+
+  // Fresh allocation — never share the underlying buffer with Node/native pools
+  const copy = new Uint8Array(source.byteLength);
+  copy.set(source);
+  return copy;
+}
 
 /**
  * Compress and normalize an uploaded image for storage.
@@ -21,7 +32,7 @@ export type CompressedImage = {
  * Returns null to keep the original file (SVG, failed decode, or no size win).
  */
 export async function compressImageForUpload(
-  input: Buffer,
+  input: Uint8Array,
   mimeType: string
 ): Promise<CompressedImage | null> {
   const type = (mimeType || '').toLowerCase();
@@ -32,10 +43,13 @@ export async function compressImageForUpload(
   }
 
   try {
-    const image = sharp(input, { failOn: 'none', animated: false }).rotate();
-    const meta = await image.metadata();
+    // sharp accepts Uint8Array; keep a plain copy for safety across Node/Next runtimes
+    const source = toPlainUint8Array(input);
+    const meta = await sharp(source, { failOn: 'none', animated: false })
+      .rotate()
+      .metadata();
 
-    let pipeline = sharp(input, { failOn: 'none', animated: false }).rotate();
+    let pipeline = sharp(source, { failOn: 'none', animated: false }).rotate();
 
     const width = meta.width ?? 0;
     const height = meta.height ?? 0;
@@ -46,21 +60,23 @@ export async function compressImageForUpload(
       });
     }
 
-    const compressed = await pipeline
+    const compressedBuffer = await pipeline
       .webp({ quality: WEBP_QUALITY, effort: 4 })
       .toBuffer();
 
+    const compressed = toPlainUint8Array(compressedBuffer);
+
     // Prefer original only if compression made the file larger
-    if (compressed.length >= input.length) {
+    if (compressed.byteLength >= source.byteLength) {
       return null;
     }
 
     return {
-      buffer: compressed,
+      bytes: compressed,
       contentType: 'image/webp',
       extension: 'webp',
-      originalBytes: input.length,
-      compressedBytes: compressed.length,
+      originalBytes: source.byteLength,
+      compressedBytes: compressed.byteLength,
     };
   } catch (error) {
     console.warn('Image compression skipped, uploading original:', error);
