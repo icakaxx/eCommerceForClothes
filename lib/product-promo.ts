@@ -4,12 +4,24 @@ export type PromoDiscountSource = {
   promoDiscountPercent?: number | null;
 };
 
+/** Parse admin/API values like 20, "20", "20%", "20,5". */
+function parsePromoNumber(raw: unknown): number {
+  if (raw === null || raw === undefined || raw === '') return NaN;
+  if (typeof raw === 'number') return raw;
+  const normalized = String(raw)
+    .trim()
+    .replace('%', '')
+    .replace(',', '.')
+    .replace(/[^\d.-]/g, '');
+  return parseFloat(normalized);
+}
+
 export function getPromoDiscountPercent(source: PromoDiscountSource | null | undefined): number {
   if (!source) return 0;
-  const raw = source.promodiscountpercent ?? source.promoDiscountPercent;
-  const value = typeof raw === 'string' ? parseFloat(raw) : Number(raw);
+  const value = parsePromoNumber(source.promodiscountpercent ?? source.promoDiscountPercent);
   if (!Number.isFinite(value) || value <= 0) return 0;
-  return Math.min(99, Math.round(value * 100) / 100);
+  // Whole-percent discounts only (avoids float drift like 19.999 → odd UI).
+  return Math.min(99, Math.max(1, Math.round(value)));
 }
 
 export function hasActivePromo(source: PromoDiscountSource | null | undefined): boolean {
@@ -28,8 +40,7 @@ export function getPromoSalePrice(originalPrice: number, source: PromoDiscountSo
 }
 
 export function normalizePromoDiscountPercent(input: unknown): number | null {
-  if (input === null || input === undefined || input === '') return null;
-  const value = typeof input === 'string' ? parseFloat(input) : Number(input);
+  const value = parsePromoNumber(input);
   if (!Number.isFinite(value) || value <= 0) return null;
-  return Math.min(99, Math.round(value * 100) / 100);
+  return Math.min(99, Math.max(1, Math.round(value)));
 }
