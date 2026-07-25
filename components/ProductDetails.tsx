@@ -19,6 +19,11 @@ import {
   getOptionStockQuantity,
   getOptionStockStatus,
 } from '@/lib/variant-stock';
+import {
+  getPromoDiscountPercent,
+  getPromoSalePrice,
+  hasActivePromo,
+} from '@/lib/product-promo';
 
 interface ProductDetailsProps {
   product: Product;
@@ -285,13 +290,17 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   };
 
   // Get current price and quantity
-  const currentPrice = selectedVariant?.price || product.price || 0;
+  const originalPrice = selectedVariant?.price || product.price || 0;
+  const promoActive = hasActivePromo(product);
+  const promoPercent = getPromoDiscountPercent(product);
+  const currentPrice = getPromoSalePrice(originalPrice, product);
   const rawQuantity = selectedVariant?.quantity ?? product.quantity ?? 0;
   const tracksStock =
     selectedVariant == null ||
     (selectedVariant.trackquantity !== false && selectedVariant.trackquantity !== null);
   const currentQuantity = tracksStock ? Math.max(0, Number(rawQuantity) || 0) : rawQuantity;
   const currentPriceBgn = currentPrice * 1.95;
+  const originalPriceBgn = originalPrice * 1.95;
 
   const selectedSizeKey = findSizePropertyKey(selectedOptions, propertyNameMap);
   const selectedSizeValue = selectedSizeKey ? selectedOptions[selectedSizeKey] : null;
@@ -614,9 +623,27 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         className="mb-8 pb-6 border-b order-4"
         style={{ borderColor: theme.colors.border }}
       >
+        {promoActive && (
+          <div className="mb-2">
+            <span
+              className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-md text-white tracking-wide"
+              style={{ backgroundColor: '#b91c1c' }}
+            >
+              ПРОМОЦИЯ −{promoPercent}%
+            </span>
+          </div>
+        )}
+        {promoActive && (
+          <div
+            className="text-lg line-through mb-1 transition-colors duration-300"
+            style={{ color: theme.colors.textSecondary }}
+          >
+            €{originalPrice.toFixed(2)} / {originalPriceBgn.toFixed(2)} лв
+          </div>
+        )}
         <div 
           className="text-4xl font-bold transition-colors duration-300"
-          style={{ color: theme.colors.primary }}
+          style={{ color: promoActive ? '#b91c1c' : theme.colors.primary }}
         >
           €{currentPrice.toFixed(2)} / {currentPriceBgn.toFixed(2)} лв
         </div>

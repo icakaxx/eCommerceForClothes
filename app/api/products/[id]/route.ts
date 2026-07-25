@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
 import { ProductVariantPropertyValue } from '@/lib/types/product-types';
 import { isVerifiedAdminRequest } from '@/lib/api/is-verified-admin-request';
+import { normalizePromoDiscountPercent } from '@/lib/product-promo';
 
 // Ensure SKUs are unique by checking database and generating alternatives if needed
 async function ensureUniqueSKUs(variants: any[], supabase: any) {
@@ -302,6 +303,7 @@ export async function GET(
       });
     }
 
+    const promoRaw = (product as { promodiscountpercent?: number | null }).promodiscountpercent;
     const legacyProduct = {
       // New schema fields
       productid: product.productid,
@@ -310,8 +312,12 @@ export async function GET(
       description: product.description,
       subtitle: product.subtitle || '', // Add subtitle field
       producttypeid: product.producttypeid,
+      rfproducttypeid: (product as { rfproducttypeid?: number }).rfproducttypeid || 1,
+      isfeatured: !!(product as { isfeatured?: boolean }).isfeatured,
       isdisabled: !!(product as { isdisabled?: boolean }).isdisabled,
       awaitingrestock: !!(product as { awaitingrestock?: boolean }).awaitingrestock,
+      promodiscountpercent:
+        promoRaw != null && Number(promoRaw) > 0 ? Number(promoRaw) : null,
       ProductType: product.ProductType,
       Variants: variantsWithImages || [],
       variants: variantsWithImages || [], // Add lowercase version for compatibility
@@ -370,6 +376,7 @@ export async function PUT(
       isfeatured,
       isdisabled,
       awaitingrestock,
+      promodiscountpercent,
       Variants = [],
     } = body;
     const productImages = Array.isArray(body.productImages) ? body.productImages.filter(Boolean) : [];
@@ -415,6 +422,7 @@ export async function PUT(
         isfeatured: isfeatured || false,
         isdisabled: !!isdisabled,
         awaitingrestock: !!awaitingrestock,
+        promodiscountpercent: normalizePromoDiscountPercent(promodiscountpercent),
         updatedat: new Date().toISOString()
       })
       .eq('productid', id)

@@ -13,6 +13,11 @@ import { translations } from '@/lib/translations';
 import { ShoppingCart, Heart, ShoppingBag } from 'lucide-react';
 import { isAwaitingRestock } from '@/lib/product-availability';
 import { normalizeProductImages } from '@/lib/product-images';
+import {
+  getPromoDiscountPercent,
+  getPromoSalePrice,
+  hasActivePromo,
+} from '@/lib/product-promo';
 
 interface ProductCardProps {
   product: Product;
@@ -29,8 +34,13 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isFavorited, setIsFavorited] = useState(initialIsFavorited || false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
-  const bgnPrice = product.price * 1.95;
   const showOutOfStockOverlay = isAwaitingRestock(product);
+  const promoActive = hasActivePromo(product);
+  const promoPercent = getPromoDiscountPercent(product);
+  const salePrice = getPromoSalePrice(product.price, product);
+  const displayPrice = promoActive ? salePrice : product.price;
+  const bgnPrice = displayPrice * 1.95;
+  const originalBgnPrice = product.price * 1.95;
 
   const uniqueImages = normalizeProductImages(product.images);
 
@@ -183,6 +193,14 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
               </div>
             </div>
           )}
+          {promoActive && !showOutOfStockOverlay && (
+            <span
+              className="absolute top-3 left-3 z-10 px-2.5 py-1 text-[10px] sm:text-xs font-semibold rounded-md text-white tracking-wide"
+              style={{ backgroundColor: '#b91c1c' }}
+            >
+              ПРОМОЦИЯ{promoPercent > 0 ? ` −${promoPercent}%` : ''}
+            </span>
+          )}
           {showNewBadge && !showOutOfStockOverlay && (
             <span
               className="absolute bottom-3 left-3 z-10 px-2.5 py-1 text-[10px] sm:text-xs font-semibold rounded-md text-white"
@@ -243,12 +261,29 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
           </p>
 
           <div className="mt-auto">
-            <div
-              className="text-base sm:text-lg font-bold transition-colors duration-300"
-              style={{ color: theme.colors.text }}
-            >
-              €{product.price.toFixed(2)} / {bgnPrice.toFixed(2)} лв
-            </div>
+            {promoActive ? (
+              <>
+                <div
+                  className="text-xs sm:text-sm line-through transition-colors duration-300"
+                  style={{ color: theme.colors.textSecondary }}
+                >
+                  €{product.price.toFixed(2)} / {originalBgnPrice.toFixed(2)} лв
+                </div>
+                <div
+                  className="text-base sm:text-lg font-bold transition-colors duration-300"
+                  style={{ color: '#b91c1c' }}
+                >
+                  €{displayPrice.toFixed(2)} / {bgnPrice.toFixed(2)} лв
+                </div>
+              </>
+            ) : (
+              <div
+                className="text-base sm:text-lg font-bold transition-colors duration-300"
+                style={{ color: theme.colors.text }}
+              >
+                €{product.price.toFixed(2)} / {bgnPrice.toFixed(2)} лв
+              </div>
+            )}
             <div
               className="text-[10px] sm:text-xs mt-0.5 transition-colors duration-300"
               style={{ color: theme.colors.textSecondary }}

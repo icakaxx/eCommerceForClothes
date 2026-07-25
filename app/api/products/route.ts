@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { isVerifiedAdminRequest } from '@/lib/api/is-verified-admin-request';
+import { normalizePromoDiscountPercent } from '@/lib/product-promo';
 
 // Type-safe Supabase client for this module
 const getSupabase = () => supabaseAdmin as any;
@@ -257,6 +258,10 @@ export async function GET(request: NextRequest) {
           productTypeID: product.producttypeid,
           isfeatured: product.isfeatured || false,
           awaitingrestock: !!product.awaitingrestock,
+          promodiscountpercent:
+            product.promodiscountpercent != null && Number(product.promodiscountpercent) > 0
+              ? Number(product.promodiscountpercent)
+              : null,
 
           // Legacy fields for backwards compatibility
           id: product.productid,
@@ -311,6 +316,7 @@ export async function POST(request: NextRequest) {
       isfeatured,
       isdisabled,
       awaitingrestock,
+      promodiscountpercent,
       Variants = [],
     } = body;
     const productImages = Array.isArray(body.productImages) ? body.productImages.filter(Boolean) : [];
@@ -370,6 +376,7 @@ export async function POST(request: NextRequest) {
         isfeatured: isfeatured || false,
         isdisabled: !!isdisabled,
         awaitingrestock: !!awaitingrestock,
+        promodiscountpercent: normalizePromoDiscountPercent(promodiscountpercent),
         updatedat: new Date().toISOString()
       })
       .select()

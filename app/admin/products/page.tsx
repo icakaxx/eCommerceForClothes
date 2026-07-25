@@ -63,6 +63,8 @@ interface Product {
   isdisabled?: boolean;
   /** Shown greyed out on shop as awaiting restock. */
   awaitingrestock?: boolean;
+  /** Percentage discount for ПРОМОЦИЯ label. */
+  promodiscountpercent?: number | null;
   ProductType?: ProductType;
   propertyvalues?: Record<string, string>;
 }
@@ -107,6 +109,8 @@ export default function ProductsPage() {
     isfeatured: false,
     isdisabled: false,
     awaitingrestock: false,
+    hasPromo: false,
+    promodiscountpercent: '' as string,
     propertyvalues: {} as Record<string, string>
   });
   const [availableProperties, setAvailableProperties] = useState<Property[]>([]);
@@ -322,6 +326,10 @@ export default function ProductsPage() {
           producttypeid: p.producttypeid || '',
           isdisabled: p.isdisabled === true,
           awaitingrestock: p.awaitingrestock === true,
+          promodiscountpercent:
+            p.promodiscountpercent != null && Number(p.promodiscountpercent) > 0
+              ? Number(p.promodiscountpercent)
+              : null,
           ProductType: p.producttype,
           propertyvalues: p.propertyvalues || {}
         }));
@@ -488,6 +496,18 @@ export default function ProductsPage() {
       }
     });
 
+    if (formData.hasPromo) {
+      const promoValue = parseFloat(formData.promodiscountpercent);
+      if (!Number.isFinite(promoValue) || promoValue <= 0 || promoValue > 99) {
+        alert(
+          language === 'bg'
+            ? 'Въведете валидна отстъпка за ПРОМОЦИЯ между 1 и 99%.'
+            : 'Enter a valid ПРОМОЦИЯ discount between 1 and 99%.'
+        );
+        return;
+      }
+    }
+
     if (hasErrors) {
       setValidationErrors(errors);
       // Scroll to bottom of form to show error message
@@ -518,6 +538,9 @@ export default function ProductsPage() {
         isfeatured: formData.isfeatured || false,
         isdisabled: formData.isdisabled === true,
         awaitingrestock: formData.awaitingrestock === true,
+        promodiscountpercent: formData.hasPromo
+          ? (parseFloat(formData.promodiscountpercent) || null)
+          : null,
         Variants: variants,
         productImages: productImages.slice(0, MAX_PRODUCT_IMAGES),
       };
@@ -540,7 +563,7 @@ export default function ProductsPage() {
         setTimeout(() => {
           setShowModal(false);
           setShowCompleteAnimation(false);
-          setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, awaitingrestock: false, propertyvalues: {} });
+          setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, awaitingrestock: false, hasPromo: false, promodiscountpercent: '', propertyvalues: {} });
           setEditingProduct(null);
           setVariants([]);
           setVariantDisplayValues({});
@@ -576,6 +599,10 @@ export default function ProductsPage() {
         const fullProduct = result.product;
         console.log('Loaded product for editing:', fullProduct);
         
+        const promoPercent =
+          fullProduct.promodiscountpercent != null && Number(fullProduct.promodiscountpercent) > 0
+            ? Number(fullProduct.promodiscountpercent)
+            : null;
         setFormData({
           name: fullProduct.name,
           sku: fullProduct.sku || '',
@@ -585,6 +612,8 @@ export default function ProductsPage() {
           isfeatured: fullProduct.isfeatured || false,
           isdisabled: fullProduct.isdisabled === true,
           awaitingrestock: fullProduct.awaitingrestock === true,
+          hasPromo: promoPercent != null,
+          promodiscountpercent: promoPercent != null ? String(promoPercent) : '',
           propertyvalues: {}
         });
 
@@ -1145,7 +1174,7 @@ export default function ProductsPage() {
             <button
               onClick={() => {
                 setEditingProduct(null);
-                setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, awaitingrestock: false, propertyvalues: {} });
+                setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, awaitingrestock: false, hasPromo: false, promodiscountpercent: '', propertyvalues: {} });
                 setProductTypeProperties([]);
                 setSelectedPropertyValues({});
                 setVariants([]);
@@ -1208,7 +1237,7 @@ export default function ProductsPage() {
                   <button
                     onClick={() => {
                       setEditingProduct(null);
-                      setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, awaitingrestock: false, propertyvalues: {} });
+                      setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, awaitingrestock: false, hasPromo: false, promodiscountpercent: '', propertyvalues: {} });
                       setProductTypeProperties([]);
                       setSelectedPropertyValues({});
                       setVariants([]);
@@ -1281,6 +1310,12 @@ export default function ProductsPage() {
                               {product.awaitingrestock && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800 border border-slate-200">
                                   {language === 'bg' ? 'Изчерпан' : 'OOS'}
+                                </span>
+                              )}
+                              {product.promodiscountpercent != null &&
+                                Number(product.promodiscountpercent) > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-800 border border-rose-200">
+                                  ПРОМОЦИЯ −{Number(product.promodiscountpercent)}%
                                 </span>
                               )}
                             </div>
@@ -1365,6 +1400,14 @@ export default function ProductsPage() {
                             <span className="font-medium">{language === 'bg' ? 'Статус:' : 'Status:'}</span>{' '}
                             <span className="text-slate-700">
                               {language === 'bg' ? 'Изчерпана наличност' : 'Out of stock display'}
+                            </span>
+                          </p>
+                        )}
+                        {product.promodiscountpercent != null &&
+                          Number(product.promodiscountpercent) > 0 && (
+                          <p>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-800 border border-rose-200">
+                              ПРОМОЦИЯ −{Number(product.promodiscountpercent)}%
                             </span>
                           </p>
                         )}
@@ -1723,6 +1766,87 @@ export default function ProductsPage() {
                         </p>
                       </div>
                     </label>
+                  </div>
+
+                  <div className="rounded-lg border border-rose-200 bg-rose-50/60 p-3 sm:p-4">
+                    <label className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.hasPromo}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            hasPromo: e.target.checked,
+                            promodiscountpercent: e.target.checked ? formData.promodiscountpercent || '20' : '',
+                          })
+                        }
+                        className="mt-0.5 w-4 h-4 text-rose-600 border-border rounded focus:ring-rose-500"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs sm:text-sm font-medium text-gray-800 block">
+                          {language === 'bg'
+                            ? 'ПРОМОЦИЯ — отстъпка на артикула'
+                            : 'ПРОМОЦИЯ — product discount'}
+                        </span>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {language === 'bg'
+                            ? 'Показва етикет „ПРОМОЦИЯ“ на картата, зачеркната оригинална цена и новата намалена цена.'
+                            : 'Shows a “ПРОМОЦИЯ” badge on the card, struck-through original price, and the new sale price.'}
+                        </p>
+                      </div>
+                    </label>
+                    {formData.hasPromo && (
+                      <div className="mt-3 ml-6 space-y-2">
+                        <label className="block text-xs font-medium text-gray-700">
+                          {language === 'bg' ? 'Отстъпка (%)' : 'Discount (%)'}
+                          <div className="mt-1 flex items-center gap-2 max-w-[200px]">
+                            <input
+                              type="number"
+                              min={1}
+                              max={99}
+                              step={1}
+                              value={formData.promodiscountpercent}
+                              onChange={(e) =>
+                                setFormData({ ...formData, promodiscountpercent: e.target.value })
+                              }
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                              placeholder="20"
+                            />
+                            <span className="text-sm text-gray-600 shrink-0">%</span>
+                          </div>
+                        </label>
+                        {(() => {
+                          const percent = parseFloat(formData.promodiscountpercent);
+                          const original =
+                            variants.find((v) => v.price > 0)?.price ||
+                            variants[0]?.price ||
+                            0;
+                          if (!Number.isFinite(percent) || percent <= 0 || original <= 0) {
+                            return (
+                              <p className="text-xs text-gray-500">
+                                {language === 'bg'
+                                  ? 'Задайте процент и цена на вариант, за да видите новата цена.'
+                                  : 'Set a percent and a variant price to preview the sale price.'}
+                              </p>
+                            );
+                          }
+                          const sale = Math.round(original * (1 - percent / 100) * 100) / 100;
+                          return (
+                            <p className="text-xs sm:text-sm text-gray-800">
+                              <span className="line-through text-gray-500 mr-2">
+                                €{original.toFixed(2)}
+                              </span>
+                              <span className="font-semibold text-rose-700">
+                                €{sale.toFixed(2)}
+                              </span>
+                              <span className="ml-2 text-rose-600 font-medium">
+                                (−{percent}%)
+                              </span>
+                            </p>
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
 
                   {formData.producttypeid && productTypeProperties.length > 0 && (

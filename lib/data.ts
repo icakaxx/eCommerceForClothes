@@ -19,6 +19,8 @@ export interface Product {
   isdisabled?: boolean;
   /** When true, product is shown greyed out as out of stock / awaiting restock. */
   awaitingrestock?: boolean;
+  /** Percentage discount for ПРОМОЦИЯ (e.g. 20 = 20% off). Null/0 = none. */
+  promodiscountpercent?: number | null;
   // New fields for product type system
   productTypeID?: string;
   propertyValues?: Record<string, string | string[]>; // property name -> value(s) mapping

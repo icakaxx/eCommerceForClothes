@@ -14,6 +14,7 @@ import {
   getOptionStockStatus,
   LOW_STOCK_MAX,
 } from '@/lib/variant-stock';
+import { getPromoSalePrice, hasActivePromo } from '@/lib/product-promo';
 
 interface AddToCartModalProps {
   isOpen: boolean;
@@ -193,7 +194,8 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
 
     // Use selected variant if available, otherwise use product
     const itemId = selectedVariant?.productvariantid || selectedVariant?.ProductVariantID || product.id;
-    const itemPrice = selectedVariant?.price ?? product.price ?? 0;
+    const originalItemPrice = selectedVariant?.price ?? product.price ?? 0;
+    const itemPrice = getPromoSalePrice(originalItemPrice, product);
     const itemImageUrl = selectedVariant?.imageurl || selectedVariant?.ImageURL || product.images[0] || '/placeholder-image.jpg';
     
     // Extract property values from selected variant or use selected options
@@ -501,14 +503,32 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
 
             {/* Price Preview */}
             <div className="rounded-xl p-4" style={{ backgroundColor: theme.colors.secondary }}>
-              <div className="flex justify-between items-center">
-                <span style={{ color: theme.colors.textSecondary }}>
-                  {quantity} × €{(selectedVariant?.price || product.price || 0).toFixed(2)}
-                </span>
-                <span className="text-lg font-bold" style={{ color: theme.colors.text }}>
-                  €{((selectedVariant?.price || product.price || 0) * quantity).toFixed(2)}
-                </span>
-              </div>
+              {(() => {
+                const originalUnit = selectedVariant?.price || product.price || 0;
+                const unit = getPromoSalePrice(originalUnit, product);
+                const promo = hasActivePromo(product);
+                return (
+                  <div className="flex justify-between items-center gap-3">
+                    <span style={{ color: theme.colors.textSecondary }}>
+                      {quantity} ×{' '}
+                      {promo ? (
+                        <>
+                          <span className="line-through mr-1">€{originalUnit.toFixed(2)}</span>
+                          <span style={{ color: '#b91c1c' }}>€{unit.toFixed(2)}</span>
+                        </>
+                      ) : (
+                        <>€{unit.toFixed(2)}</>
+                      )}
+                    </span>
+                    <span
+                      className="text-lg font-bold"
+                      style={{ color: promo ? '#b91c1c' : theme.colors.text }}
+                    >
+                      €{(unit * quantity).toFixed(2)}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
