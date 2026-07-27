@@ -7,8 +7,9 @@ import { ProductType, Property } from '@/lib/types/product-types';
 import AdminLayout from '../components/AdminLayout';
 import AdminModal from '../components/AdminModal';
 import { useLanguage } from '@/context/LanguageContext';
+import { useTheme } from '@/context/ThemeContext';
 import { translations } from '@/lib/translations';
-import { AdminPage, PageHeader, Section, SectionSurface, EmptyState, DataTableShell, TableHeader, TableHeaderRow, TableHeaderCell, TableBody, TableRow, TableCell } from '../components/layout';
+import { AdminPage, Section, SectionSurface, EmptyState, DataTableShell, TableHeader, TableHeaderRow, TableHeaderCell, TableBody, TableRow, TableCell } from '../components/layout';
 import { Package } from 'lucide-react';
 import CompleteAnimation from '@/components/CompleteAnimation';
 import { adminAuthHeaders } from '@/lib/admin-auth-headers';
@@ -87,6 +88,7 @@ interface Variant {
 export default function ProductsPage() {
   const router = useRouter();
   const { language } = useLanguage();
+  const { theme } = useTheme();
   const t = translations[language || 'en'];
   const [products, setProducts] = useState<Product[]>([]);
 
@@ -1111,107 +1113,184 @@ export default function ProductsPage() {
     setVariants(updatedVariants);
   };
 
+  const openAddProductModal = () => {
+    setEditingProduct(null);
+    setFormData({
+      name: '',
+      sku: '',
+      description: '',
+      rfproducttypeid: 1,
+      producttypeid: '',
+      isfeatured: false,
+      isdisabled: false,
+      awaitingrestock: false,
+      hasPromo: false,
+      promodiscountpercent: '',
+      propertyvalues: {},
+    });
+    setProductTypeProperties([]);
+    setSelectedPropertyValues({});
+    setVariants([]);
+    setVariantDisplayValues({});
+    setProductImages([]);
+    setValidationErrors({});
+    setShowModal(true);
+  };
+
+  const selectedCount = selectedProductIds.length;
+
+  const headerActionButton = (
+    opts: {
+      label: string;
+      onClick: () => void;
+      variant: 'outline-orange' | 'outline-green' | 'solid-slate' | 'solid-teal' | 'solid-red' | 'solid-violet';
+      badge?: number;
+      title?: string;
+      disabled?: boolean;
+      showPlus?: boolean;
+    }
+  ) => {
+    const variantClasses = {
+      'outline-orange': {
+        button: 'border border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 disabled:opacity-50',
+        badge: 'bg-orange-500 text-white',
+      },
+      'outline-green': {
+        button: 'border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50',
+        badge: 'bg-emerald-600 text-white',
+      },
+      'solid-slate': {
+        button: 'border border-slate-700 bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-50',
+        badge: 'bg-slate-900 text-white',
+      },
+      'solid-teal': {
+        button: 'border border-teal-600 bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50',
+        badge: 'bg-teal-800 text-white',
+      },
+      'solid-red': {
+        button: 'border border-red-500 bg-red-500 text-white hover:bg-red-600 disabled:opacity-50',
+        badge: 'bg-red-700 text-white',
+      },
+      'solid-violet': {
+        button: 'border border-violet-600 bg-violet-600 text-white hover:bg-violet-700',
+        badge: '',
+      },
+    }[opts.variant];
+
+    return (
+      <button
+        type="button"
+        onClick={opts.onClick}
+        title={opts.title || opts.label}
+        disabled={opts.disabled}
+        className={`inline-flex shrink-0 items-center gap-2 rounded-md px-2.5 py-1.5 text-xs sm:text-sm font-medium transition-colors touch-manipulation disabled:cursor-not-allowed ${variantClasses.button}`}
+      >
+        {opts.showPlus && <Plus className="h-4 w-4 shrink-0" />}
+        <span className="whitespace-nowrap">{opts.label}</span>
+        {opts.badge != null && opts.badge > 0 && (
+          <span
+            className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-semibold ${variantClasses.badge}`}
+          >
+            {opts.badge}
+          </span>
+        )}
+      </button>
+    );
+  };
+
   return (
     <AdminLayout currentPath="/admin/products">
       <AdminPage>
-        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-          <h1 className="text-2xl sm:text-3xl font-bold">Артикули</h1>
-          <div className="flex flex-wrap items-center gap-2">
-            {selectedProductIds.length > 0 && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setBulkVisibilityModal('hide')}
-                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 active:bg-amber-800 transition-colors touch-manipulation text-sm sm:text-base"
-                >
-                  <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
-                  {language === 'bg'
-                    ? `Скрий избрани (${selectedProductIds.length})`
-                    : `Hide selected (${selectedProductIds.length})`}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBulkVisibilityModal('show')}
-                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 active:bg-emerald-800 transition-colors touch-manipulation text-sm sm:text-base"
-                >
-                  <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
-                  {language === 'bg'
-                    ? `Покажи избрани (${selectedProductIds.length})`
-                    : `Show selected (${selectedProductIds.length})`}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBulkRestockModal('mark')}
-                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-slate-600 text-white rounded hover:bg-slate-700 active:bg-slate-800 transition-colors touch-manipulation text-sm sm:text-base"
-                >
-                  <PackageX className="w-4 h-4 sm:w-5 sm:h-5" />
-                  {language === 'bg'
-                    ? `Изчерпана наличност (${selectedProductIds.length})`
-                    : `Mark out of stock (${selectedProductIds.length})`}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBulkRestockModal('clear')}
-                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 active:bg-teal-800 transition-colors touch-manipulation text-sm sm:text-base"
-                >
-                  <PackageCheck className="w-4 h-4 sm:w-5 sm:h-5" />
-                  {language === 'bg'
-                    ? `Премахни „изчерпан“ (${selectedProductIds.length})`
-                    : `Clear out of stock (${selectedProductIds.length})`}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowBulkDeleteModal(true)}
-                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 active:bg-red-800 transition-colors touch-manipulation text-sm sm:text-base"
-                >
-                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                  {language === 'bg'
-                    ? `Изтрий избрани (${selectedProductIds.length})`
-                    : `Delete selected (${selectedProductIds.length})`}
-                </button>
-              </>
-            )}
-            <button
-              onClick={() => {
-                setEditingProduct(null);
-                setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, awaitingrestock: false, hasPromo: false, promodiscountpercent: '', propertyvalues: {} });
-                setProductTypeProperties([]);
-                setSelectedPropertyValues({});
-                setVariants([]);
-                setVariantDisplayValues({});
-              setProductImages([]);
-                setValidationErrors({});
-                setShowModal(true);
-              }}
-              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation text-sm sm:text-base"
+        <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start lg:gap-x-8">
+          {/* Left: titles */}
+          <div className="min-w-0">
+            <h1
+              className="text-2xl sm:text-3xl font-bold tracking-tight"
+              style={{ color: theme.colors.text }}
             >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              {t.addProduct}
-            </button>
+              {language === 'bg' ? 'Артикули' : 'Items'}
+            </h1>
+            <h2
+              className="mt-2 text-base sm:text-lg font-semibold"
+              style={{ color: theme.colors.text }}
+            >
+              {language === 'bg' ? 'Списък с артикули' : 'Items list'}
+            </h2>
+            <p className="mt-1 text-sm" style={{ color: theme.colors.textSecondary }}>
+              {language === 'bg'
+                ? 'Управлявайте артикулите и техните варианти'
+                : 'Manage items and their variants'}
+            </p>
           </div>
-        </div>
 
-        {loading ? (
-          <div className="text-center py-8 sm:py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-2 text-sm sm:text-base text-gray-500">{t.loading || 'Loading...'}</p>
-          </div>
-        ) : (
-          <>
-          <Section
-            title={language === 'bg' ? 'Списък с артикули' : 'Items List'}
-            description={language === 'bg' ? 'Управлявайте артикулите и техните варианти' : 'Manage items and their variants'}
-          >
-            {/* Filter by Product Type */}
+          {/* Right: action pills + filter */}
+          <div className="flex min-w-0 flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-start gap-2 lg:justify-end">
+              {headerActionButton({
+                label: language === 'bg' ? 'Скрий избрани' : 'Hide selected',
+                variant: 'outline-orange',
+                onClick: () => setBulkVisibilityModal('hide'),
+                badge: selectedCount > 0 ? selectedCount : undefined,
+                disabled: selectedCount === 0,
+                title: selectedCount > 0 ? undefined : (language === 'bg' ? 'Изберете артикули' : 'Select items first'),
+              })}
+              {headerActionButton({
+                label: language === 'bg' ? 'Покажи избрани' : 'Show selected',
+                variant: 'outline-green',
+                onClick: () => setBulkVisibilityModal('show'),
+                badge: selectedCount > 0 ? selectedCount : undefined,
+                disabled: selectedCount === 0,
+                title: selectedCount > 0 ? undefined : (language === 'bg' ? 'Изберете артикули' : 'Select items first'),
+              })}
+              {headerActionButton({
+                label: language === 'bg' ? 'Изчерпана наличност' : 'Out of stock',
+                variant: 'solid-slate',
+                onClick: () => setBulkRestockModal('mark'),
+                badge: selectedCount > 0 ? selectedCount : undefined,
+                disabled: selectedCount === 0,
+                title: selectedCount > 0 ? undefined : (language === 'bg' ? 'Изберете артикули' : 'Select items first'),
+              })}
+              {headerActionButton({
+                label: language === 'bg' ? 'Премахни „изчерпан“' : 'Clear out of stock',
+                variant: 'solid-teal',
+                onClick: () => setBulkRestockModal('clear'),
+                badge: selectedCount > 0 ? selectedCount : undefined,
+                disabled: selectedCount === 0,
+                title: selectedCount > 0 ? undefined : (language === 'bg' ? 'Изберете артикули' : 'Select items first'),
+              })}
+              {headerActionButton({
+                label: language === 'bg' ? 'Изтрий избрани' : 'Delete selected',
+                variant: 'solid-red',
+                onClick: () => setShowBulkDeleteModal(true),
+                badge: selectedCount > 0 ? selectedCount : undefined,
+                disabled: selectedCount === 0,
+                title: selectedCount > 0 ? undefined : (language === 'bg' ? 'Изберете артикули' : 'Select items first'),
+              })}
+              {headerActionButton({
+                label: language === 'bg' ? 'Добави артикул' : (t.addProduct || 'Add item'),
+                variant: 'solid-violet',
+                onClick: openAddProductModal,
+                showPlus: true,
+              })}
+            </div>
+
             {products.length > 0 && (
-              <div className="mb-4 flex items-center gap-3">
-                <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                <label
+                  className="text-sm font-medium whitespace-nowrap"
+                  style={{ color: theme.colors.text }}
+                >
                   {language === 'bg' ? 'Филтър по тип:' : 'Filter by type:'}
                 </label>
                 <select
                   value={selectedProductTypeFilter}
                   onChange={(e) => setSelectedProductTypeFilter(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+                  className="min-w-[200px] rounded-md border px-3 py-2 text-sm shadow-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30"
+                  style={{
+                    backgroundColor: theme.colors.cardBg,
+                    borderColor: theme.colors.border,
+                    color: theme.colors.text,
+                  }}
                 >
                   <option value="all">
                     {language === 'bg' ? 'Всички типове' : 'All types'}
@@ -1223,33 +1302,34 @@ export default function ProductsPage() {
                   ))}
                 </select>
                 {selectedProductTypeFilter !== 'all' && (
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm" style={{ color: theme.colors.textSecondary }}>
                     ({filteredProducts.length} {language === 'bg' ? 'артикула' : 'items'})
                   </span>
                 )}
               </div>
             )}
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-8 sm:py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-2 text-sm sm:text-base text-gray-500">{t.loading || 'Loading...'}</p>
+          </div>
+        ) : (
+          <>
+          <Section>
             {filteredProducts.length === 0 ? (
               <EmptyState
                 title={language === 'bg' ? selectedProductTypeFilter === 'all' ? 'Няма артикули' : 'Няма артикули от този тип' : selectedProductTypeFilter === 'all' ? 'No Items' : 'No items of this type'}
                 description={language === 'bg' ? selectedProductTypeFilter === 'all' ? 'Създайте първия продукт, за да започнете да продавате.' : 'Няма артикули, отговарящи на избрания филтър.' : selectedProductTypeFilter === 'all' ? 'Create your first product to start selling.' : 'No items match the selected filter.'}
                 action={
                   <button
-                    onClick={() => {
-                      setEditingProduct(null);
-                      setFormData({ name: '', sku: '', description: '', rfproducttypeid: 1, producttypeid: '', isfeatured: false, isdisabled: false, awaitingrestock: false, hasPromo: false, promodiscountpercent: '', propertyvalues: {} });
-                      setProductTypeProperties([]);
-                      setSelectedPropertyValues({});
-                      setVariants([]);
-                      setProductImages([]);
-        setVariantDisplayValues({});
-                      setValidationErrors({});
-                      setShowModal(true);
-                    }}
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
+                    onClick={openAddProductModal}
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
                   >
                     <Plus className="w-4 h-4" />
-                    {t.addProduct}
+                    {language === 'bg' ? 'Добави артикул' : (t.addProduct || 'Add item')}
                   </button>
                 }
                 icon={Package}
