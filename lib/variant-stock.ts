@@ -114,6 +114,14 @@ export function variantHasSizeValue(variant: any, sizeValue: string): boolean {
   });
 }
 
+export function productHasAnyVariantInStock(product: Product): boolean {
+  const variants = (product.variants || product.Variants || []) as any[];
+  if (variants.length === 0) {
+    return (Number(product.quantity) || 0) > 0;
+  }
+  return variants.some((variant) => effectiveQuantity(variant) > 0);
+}
+
 export function productHasSizeInStock(product: Product, sizeValue: string): boolean {
   const variants = (product.variants || product.Variants || []) as any[];
   return variants.some((variant) => {
