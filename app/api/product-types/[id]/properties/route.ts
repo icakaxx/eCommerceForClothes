@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 // GET - Get all properties for a product type
 export async function GET(
@@ -36,11 +39,8 @@ export async function GET(
       .eq('producttypeid', id);
 
     if (error) {
-      console.error('Error fetching product type properties:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error fetching product type properties:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     // Transform the data to include values array properly
@@ -61,7 +61,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Failed to fetch product type properties:', error);
+    logger.error('Failed to fetch product type properties:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -102,11 +102,8 @@ export async function POST(
       .select();
 
     if (error) {
-      console.error('Error assigning properties to product type:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error assigning properties to product type:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({
@@ -116,11 +113,8 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Failed to assign property to product type:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
+    logger.error('Failed to assign property to product type:', error);
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }
 
@@ -149,11 +143,8 @@ export async function DELETE(
       .eq('propertyid', propertyId);
 
     if (error) {
-      console.error('Error removing property from product type:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error removing property from product type:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({
@@ -162,7 +153,7 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('Failed to remove property from product type:', error);
+    logger.error('Failed to remove property from product type:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -49,8 +49,8 @@ export default function ProductTypeDetailsPage() {
         setProductType(result.productType);
         setAssignedProperties(result.productType.product_type_properties || []);
       }
-    } catch (error) {
-      console.error('Failed to load product type:', error);
+    } catch {
+      // Loading state ends; UI shows not-found when productType is null
     } finally {
       setLoading(false);
     }
@@ -63,8 +63,8 @@ export default function ProductTypeDetailsPage() {
       if (result.success) {
         setAvailableProperties(result.properties);
       }
-    } catch (error) {
-      console.error('Failed to load properties:', error);
+    } catch {
+      // Available properties list stays empty on failure
     }
   };
 
@@ -103,8 +103,7 @@ export default function ProductTypeDetailsPage() {
       } else {
         alert('Error: ' + result.error);
       }
-    } catch (error) {
-      console.error('Failed to add properties:', error);
+    } catch {
       alert(language === 'bg' ? 'Грешка при добавяне на характеристики' : 'Failed to add properties');
     } finally {
       setAddingProperties(false);
@@ -147,8 +146,7 @@ export default function ProductTypeDetailsPage() {
       } else {
         alert('Error: ' + result.error);
       }
-    } catch (error) {
-      console.error('Failed to remove property:', error);
+    } catch {
       alert('Failed to remove property');
     }
   };

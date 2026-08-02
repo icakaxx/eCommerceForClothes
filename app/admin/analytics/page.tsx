@@ -39,7 +39,6 @@ export default function AnalyticsPage() {
         }
         setIsAuthenticated(true);
       } catch (error) {
-        console.error('Auth check error:', error);
         router.push('/admin/login');
       } finally {
         setIsLoading(false);
@@ -63,7 +62,6 @@ export default function AnalyticsPage() {
         setAnalyticsData(result.data);
       }
     } catch (error) {
-      console.error('Failed to load analytics:', error);
     }
   };
 

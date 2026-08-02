@@ -75,7 +75,6 @@ export default function ProductView({ product }: ProductViewProps) {
           }
         }
       } catch (error) {
-        console.error('Error fetching related products:', error);
       }
     };
 
@@ -165,7 +164,6 @@ export default function ProductView({ product }: ProductViewProps) {
           setMaybeYouWillLikeProducts([]);
         }
       } catch (error) {
-        console.error('Error fetching maybe you will like products:', error);
         setMaybeYouWillLikeProducts([]);
       }
     };

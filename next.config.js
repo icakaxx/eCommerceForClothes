@@ -1,8 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Set Turbopack root to silence workspace root warning
   turbopack: {
     root: __dirname,
+  },
+  productionBrowserSourceMaps: false,
+  compiler: {
+    // Safety net: strip debug/info logs from client bundles in production.
+    // Source still uses logger — this catches any remaining console.log calls.
+    removeConsole:
+      process.env.NODE_ENV === 'production'
+        ? { exclude: ['error', 'warn'] }
+        : false,
   },
   images: {
     remotePatterns: [
@@ -17,7 +25,6 @@ const nextConfig = {
       },
     ],
   },
-}
+};
 
-module.exports = nextConfig
-
+module.exports = nextConfig;

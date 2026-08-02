@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { logger } from './logger';
 
 /**
  * Get current admin session
@@ -6,43 +7,26 @@ import { supabase } from './supabase';
 export async function getAdminSession() {
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
-    
+
     if (error) {
-      console.error('❌ Error getting session:', error);
+      logger.error('Failed to get admin session');
       return null;
     }
 
     if (!session) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('⚠️ No active session found');
-      }
       return null;
     }
 
-    // Check if user has admin access
-    const userRole = session.user.user_metadata?.role || 'admin';
     const canAccess = session.user.user_metadata?.can_access || ['admin'];
 
     if (!canAccess.includes('admin')) {
-      console.warn('⚠️ User does not have admin access:', {
-        email: session.user.email,
-        role: userRole,
-        canAccess
-      });
+      logger.warn('Admin session rejected: insufficient access');
       return null;
     }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Admin session active:', {
-        email: session.user.email,
-        expiresAt: new Date(session.expires_at! * 1000).toLocaleString(),
-        role: userRole
-      });
-    }
-
     return session;
-  } catch (error) {
-    console.error('❌ Failed to get session:', error);
+  } catch {
+    logger.error('Failed to get admin session');
     return null;
   }
 }
@@ -60,17 +44,15 @@ export async function isAdminAuthenticated(): Promise<boolean> {
  */
 export async function signOutAdmin() {
   try {
-    console.log('🚪 Signing out admin...');
     const { error } = await supabase.auth.signOut();
     if (error) {
-      console.error('❌ Error signing out:', error);
-      return { success: false, error };
+      logger.error('Admin sign-out failed');
+      return { success: false, error: { message: 'Sign out failed' } };
     }
-    console.log('✅ Successfully signed out');
     return { success: true };
-  } catch (error) {
-    console.error('❌ Failed to sign out:', error);
-    return { success: false, error };
+  } catch {
+    logger.error('Admin sign-out failed');
+    return { success: false, error: { message: 'Sign out failed' } };
   }
 }
 
@@ -80,16 +62,15 @@ export async function signOutAdmin() {
 export async function refreshSession() {
   try {
     const { data: { session }, error } = await supabase.auth.refreshSession();
-    
+
     if (error) {
-      console.error('Error refreshing session:', error);
+      logger.error('Session refresh failed');
       return null;
     }
 
     return session;
-  } catch (error) {
-    console.error('Failed to refresh session:', error);
+  } catch {
+    logger.error('Session refresh failed');
     return null;
   }
 }
-

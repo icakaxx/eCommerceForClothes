@@ -3,6 +3,8 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { adjustVariantQuantityByDelta } from '@/lib/admin-order-stock';
+import { logger } from '@/lib/logger';
+
 
 export async function PUT(
   request: NextRequest,
@@ -35,7 +37,7 @@ export async function PUT(
       .single();
 
     if (fetchError || !variant) {
-      console.error('Error fetching variant:', fetchError);
+      logger.error('Error fetching variant:', fetchError);
       return NextResponse.json(
         {
           success: false,
@@ -79,7 +81,7 @@ export async function PUT(
       delta,
       movement_type: mt,
       note: note ?? null,
-      allowNegative: true,
+      allowNegative: false,
     });
 
     if (!res.ok) {
@@ -103,7 +105,7 @@ export async function PUT(
       variant: updatedVariant,
     });
   } catch (error) {
-    console.error('API error:', error);
+    logger.error('API error:', error);
     return NextResponse.json(
       {
         success: false,

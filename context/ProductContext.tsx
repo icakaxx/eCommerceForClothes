@@ -23,21 +23,17 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       setError(null);
-      console.log('📦 Loading products from Supabase...');
 
       const response = await fetch('/api/products');
       const result = await response.json();
 
       if (result.success && result.products) {
         setProducts(result.products);
-        console.log(`✅ Loaded ${result.products.length} products from database`);
       } else {
-        console.error('❌ Failed to load products:', result.error || 'Unknown error');
         setError('Failed to load products from database');
         setProducts([]);
       }
-    } catch (error) {
-      console.error('❌ Failed to load products:', error);
+    } catch {
       setError('Failed to connect to database');
       setProducts([]);
     } finally {

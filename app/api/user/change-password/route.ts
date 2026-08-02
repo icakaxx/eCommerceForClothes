@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs'
 import { changePasswordSchema } from '@/lib/zodSchemas'
 import { ValidationService } from '@/lib/validation'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { logger } from '@/lib/logger';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +25,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!validationResult.success) {
-      console.error('❌ Change password validation failed:', validationResult.error.flatten())
+      logger.error('Validation failed')
       return NextResponse.json(
         { 
           error: 'Invalid input format',
@@ -80,7 +82,7 @@ export async function POST(request: NextRequest) {
       .eq('userid', userId)
 
     if (updateError) {
-      console.error('Error updating password:', updateError)
+      logger.error('Error updating password:', updateError)
       return NextResponse.json(
         { error: 'Failed to update password' },
         { status: 500 }
@@ -92,7 +94,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Change password API error:', error)
+    logger.error('Change password API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

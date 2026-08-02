@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { logger } from '@/lib/logger';
+
 
 // GET - Get user's favorite products
 export async function GET(request: NextRequest) {
@@ -22,7 +24,7 @@ export async function GET(request: NextRequest) {
       .order('createdat', { ascending: false })
 
     if (favoritesError) {
-      console.error('Error fetching favorites:', favoritesError)
+      logger.error('Error fetching favorites:', favoritesError)
       return NextResponse.json(
         { error: 'Failed to fetch favorites' },
         { status: 500 }
@@ -39,7 +41,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Favorites API error:', error)
+    logger.error('Favorites API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -69,7 +71,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
-      console.error('Error checking favorite:', checkError)
+      logger.error('Error checking favorite:', checkError)
       return NextResponse.json(
         { error: 'Failed to check favorite status' },
         { status: 500 }
@@ -84,7 +86,7 @@ export async function POST(request: NextRequest) {
         .eq('favoriteid', existingFavorite.favoriteid)
 
       if (deleteError) {
-        console.error('Error removing favorite:', deleteError)
+        logger.error('Error removing favorite:', deleteError)
         return NextResponse.json(
           { error: 'Failed to remove favorite' },
           { status: 500 }
@@ -108,7 +110,7 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (insertError) {
-        console.error('Error adding favorite:', insertError)
+        logger.error('Error adding favorite:', insertError)
         return NextResponse.json(
           { error: 'Failed to add favorite' },
           { status: 500 }
@@ -124,7 +126,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Toggle favorite API error:', error)
+    logger.error('Toggle favorite API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

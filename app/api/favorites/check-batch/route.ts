@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { logger } from '@/lib/logger';
+
 
 // POST - Check if multiple products are favorited by a user (batch)
 export async function POST(request: NextRequest) {
@@ -22,7 +24,7 @@ export async function POST(request: NextRequest) {
       .in('productid', productIds)
 
     if (checkError) {
-      console.error('Error checking favorites:', checkError)
+      logger.error('Error checking favorites:', checkError)
       return NextResponse.json(
         { error: 'Failed to check favorite status' },
         { status: 500 }
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Check favorites batch API error:', error)
+    logger.error('Check favorites batch API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

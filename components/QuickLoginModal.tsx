@@ -96,8 +96,8 @@ export default function QuickLoginModal({
               productId: productId
             })
           })
-        } catch (err) {
-          console.error('Error adding favorite after login:', err)
+        } catch {
+          // Favorite add is best-effort after login
         }
       }
 

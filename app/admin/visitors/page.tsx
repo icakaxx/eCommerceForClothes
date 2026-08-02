@@ -46,7 +46,6 @@ export default function VisitorsPage() {
         }
         setIsAuthenticated(true);
       } catch (error) {
-        console.error('Auth check error:', error);
         router.push('/admin/login');
       } finally {
         setIsLoading(false);
@@ -71,7 +70,6 @@ export default function VisitorsPage() {
         setAnalytics(result.data);
       }
     } catch (error) {
-      console.error('Failed to load analytics:', error);
     } finally {
       setLoading(false);
     }

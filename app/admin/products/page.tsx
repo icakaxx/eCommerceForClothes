@@ -196,7 +196,6 @@ export default function ProductsPage() {
         setRfProductTypes(result.rfProductTypes);
       }
     } catch (error) {
-      console.error('Failed to load RF product types:', error);
     }
   };
 
@@ -210,7 +209,6 @@ export default function ProductsPage() {
         setMediaFiles(result.files || []);
       }
     } catch (error) {
-      console.error('Failed to load media files:', error);
     } finally {
       setLoadingMedia(false);
     }
@@ -339,7 +337,6 @@ export default function ProductsPage() {
         setProducts(mappedProducts);
       }
     } catch (error) {
-      console.error('Failed to load products:', error);
     } finally {
       setLoading(false);
     }
@@ -353,7 +350,6 @@ export default function ProductsPage() {
         setProductTypes(result.productTypes);
       }
     } catch (error) {
-      console.error('Failed to load product types:', error);
     }
   };
 
@@ -365,7 +361,6 @@ export default function ProductsPage() {
         setAvailableProperties(result.properties);
       }
     } catch (error) {
-      console.error('Failed to load properties:', error);
     }
   };
 
@@ -389,7 +384,6 @@ export default function ProductsPage() {
                 };
               }
             } catch (error) {
-              console.error(`Failed to load values for property ${prop.propertyid}:`, error);
             }
             return {
               ...prop,
@@ -401,7 +395,6 @@ export default function ProductsPage() {
         return propertiesWithValues;
       }
     } catch (error) {
-      console.error('Failed to load properties for product type:', error);
     }
     return [];
   };
@@ -457,7 +450,6 @@ export default function ProductsPage() {
         alert(language === 'bg' ? 'Грешка при добавяне на стойност: ' + result.error : 'Error adding value: ' + result.error);
       }
     } catch (error) {
-      console.error('Failed to add property value:', error);
       alert(language === 'bg' ? 'Неуспешно добавяне на стойност' : 'Failed to add property value');
     } finally {
       setAddingPropertyValue(prev => ({ ...prev, [propertyId]: false }));
@@ -555,7 +547,6 @@ export default function ProductsPage() {
       });
 
       const result = await response.json();
-      console.log('API response:', result);
       
       if (result.success) {
         // Show complete animation
@@ -580,7 +571,6 @@ export default function ProductsPage() {
         alert('Error: ' + result.error);
       }
     } catch (error) {
-      console.error('Failed to save product:', error);
       alert('Failed to save product');
     }
   };
@@ -599,7 +589,6 @@ export default function ProductsPage() {
       
       if (result.success && result.product) {
         const fullProduct = result.product;
-        console.log('Loaded product for editing:', fullProduct);
         
         const promoPercent =
           fullProduct.promodiscountpercent != null && Number(fullProduct.promodiscountpercent) > 0
@@ -679,7 +668,6 @@ export default function ProductsPage() {
         }
       }
     } catch (error) {
-      console.error('Failed to load product details:', error);
       alert('Failed to load product details');
       return;
     }
@@ -714,7 +702,6 @@ export default function ProductsPage() {
         alert('Error: ' + result.error);
       }
     } catch (error) {
-      console.error('Failed to delete product:', error);
       alert('Failed to delete product');
     } finally {
       setDeleting(false);
@@ -778,7 +765,6 @@ export default function ProductsPage() {
         loadProducts();
       }, 1200);
     } catch (error) {
-      console.error('Failed to bulk update visibility:', error);
       alert(
         language === 'bg'
           ? 'Неуспешна промяна на видимостта'
@@ -827,7 +813,6 @@ export default function ProductsPage() {
         loadProducts();
       }, 1200);
     } catch (error) {
-      console.error('Failed to bulk update awaiting restock:', error);
       alert(
         language === 'bg'
           ? 'Неуспешна промяна на статуса „изчерпана наличност“'
@@ -876,7 +861,6 @@ export default function ProductsPage() {
         return;
       }
     } catch (error) {
-      console.error('Failed to bulk delete products:', error);
       alert(language === 'bg' ? 'Неуспешно масово изтриване' : 'Bulk delete failed');
     } finally {
       setBulkDeleting(false);
@@ -1067,7 +1051,6 @@ export default function ProductsPage() {
       alert('Failed to upload image: ' + (result.error || 'Unknown error'));
       return null;
     } catch (error) {
-      console.error('Error uploading image:', error);
       alert('Failed to upload image');
       return null;
     }

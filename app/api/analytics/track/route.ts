@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
+
 
 // Rate limiting store (in-memory, replace with Redis in production)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -78,7 +80,7 @@ export async function POST(request: NextRequest) {
         .eq('sessionid', payload.sessionId);
 
       if (updateError) {
-        console.error('Failed to update session:', updateError);
+        logger.error('Failed to update session:', updateError);
         return NextResponse.json(
           { error: 'Failed to update session' },
           { status: 500 }
@@ -113,7 +115,7 @@ export async function POST(request: NextRequest) {
         .insert([sessionData]);
 
       if (insertError) {
-        console.error('Failed to create session:', insertError);
+        logger.error('Failed to create session:', insertError);
         return NextResponse.json(
           { error: 'Failed to create session' },
           { status: 500 }
@@ -123,7 +125,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, created: true });
     }
   } catch (error) {
-    console.error('Analytics tracking error:', error);
+    logger.error('Analytics tracking error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -180,7 +182,7 @@ async function getCountryFromIP(ip: string): Promise<string> {
     const data = await response.json();
     return data.countryCode || 'Unknown';
   } catch (error) {
-    console.error('Geolocation error:', error);
+    logger.error('Geolocation error:', error);
     return 'Unknown';
   }
 }

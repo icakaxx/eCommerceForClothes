@@ -40,7 +40,6 @@ export default function ForHimPage() {
           setProducts(result.products);
         }
       } catch (error) {
-        console.error('Failed to load products:', error);
       } finally {
         setLoading(false);
       }

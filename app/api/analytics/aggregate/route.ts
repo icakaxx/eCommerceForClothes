@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
 import { getAdminSession } from '@/lib/auth';
+import { logger } from '@/lib/logger';
+
 
 /**
  * Aggregate old visitor sessions into stats table
@@ -31,7 +33,7 @@ export async function POST(request: NextRequest) {
       .lt('created_at', oneHourAgo);
 
     if (fetchError) {
-      console.error('Failed to fetch sessions:', fetchError);
+      logger.error('Failed to fetch sessions:', fetchError);
       return NextResponse.json(
         { error: 'Failed to fetch sessions' },
         { status: 500 }
@@ -140,7 +142,7 @@ export async function POST(request: NextRequest) {
         if (!updateError) {
           updatedCount++;
         } else {
-          console.error('Failed to update stat:', updateError);
+          logger.error('Failed to update stat:', updateError);
         }
       } else {
         // Insert new record
@@ -151,7 +153,7 @@ export async function POST(request: NextRequest) {
         if (!insertError) {
           insertedCount++;
         } else {
-          console.error('Failed to insert stat:', insertError);
+          logger.error('Failed to insert stat:', insertError);
         }
       }
     }
@@ -164,7 +166,7 @@ export async function POST(request: NextRequest) {
       .in('sessionid', sessionIds);
 
     if (deleteError) {
-      console.error('Failed to delete sessions:', deleteError);
+      logger.error('Failed to delete sessions:', deleteError);
       // Don't fail the request, data is already aggregated
     }
 
@@ -177,7 +179,7 @@ export async function POST(request: NextRequest) {
       deleted: sessionIds.length,
     });
   } catch (error) {
-    console.error('Aggregation error:', error);
+    logger.error('Aggregation error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -227,7 +229,7 @@ export async function GET(request: NextRequest) {
       total_stats_records: statsCount || 0,
     });
   } catch (error) {
-    console.error('Status check error:', error);
+    logger.error('Status check error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

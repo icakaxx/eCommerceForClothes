@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { passwordResetSchema } from '@/lib/zodSchemas'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { logger } from '@/lib/logger';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,7 +12,7 @@ export async function POST(request: NextRequest) {
     // Validate input with Zod
     const validationResult = passwordResetSchema.safeParse(body)
     if (!validationResult.success) {
-      console.error('❌ Reset password validation failed:', validationResult.error.flatten())
+      logger.error('Validation failed')
       return NextResponse.json(
         { 
           error: 'Invalid input format',
@@ -69,7 +71,7 @@ export async function POST(request: NextRequest) {
       .eq('userid', user.userid)
 
     if (updateError) {
-      console.error('Error updating password:', updateError)
+      logger.error('Error updating password:', updateError)
       return NextResponse.json(
         { error: 'Failed to reset password' },
         { status: 500 }
@@ -81,7 +83,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Reset password error:', error)
+    logger.error('Reset password error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

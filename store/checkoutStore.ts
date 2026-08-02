@@ -163,7 +163,6 @@ export const useCheckoutStore = create<CheckoutState>()(
             });
           }
         } catch (error) {
-          console.error('Discount validation error:', error);
           set({
             appliedDiscount: null,
             discountError: 'Failed to validate discount code',

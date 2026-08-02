@@ -2,6 +2,8 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,7 +58,7 @@ export async function GET(request: NextRequest) {
     const { data: orders, error: ordersError } = await query;
 
     if (ordersError) {
-      console.error('Error fetching orders:', ordersError);
+      logger.error('Error fetching orders:', ordersError);
       return NextResponse.json({
         success: false,
         error: 'Failed to fetch finance data'
@@ -133,7 +135,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('API error:', error);
+    logger.error('API error:', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error'

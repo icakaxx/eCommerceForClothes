@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
 import { DEFAULT_BUCKET } from '@/lib/supabaseStorage';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -14,7 +17,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log(`🗑️ Deleting file from "${DEFAULT_BUCKET}/${path}"...`);
 
     // Create server client (uses service role key, bypasses RLS)
     const supabase = createServerClient();
@@ -25,22 +27,10 @@ export async function DELETE(request: NextRequest) {
       .remove([path]);
 
     if (error) {
-      console.error('❌ Delete error:', error);
-      return NextResponse.json(
-        { 
-          success: false,
-          error: error.message, 
-          details: error 
-        },
-        { status: 500 }
-      );
+      logger.error('Delete error:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
-    console.log('✅ File deleted successfully:', {
-      path: path,
-      bucket: DEFAULT_BUCKET,
-      deletedFiles: data
-    });
 
     return NextResponse.json({
       success: true,
@@ -50,13 +40,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Delete failed:', error);
-    return NextResponse.json(
-      { 
-        success: false,
-        error: error instanceof Error ? error.message : 'Delete failed' 
-      },
-      { status: 500 }
-    );
+    logger.error('Delete failed:', error);
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }

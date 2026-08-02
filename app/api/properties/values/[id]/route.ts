@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 // GET - Get single property value
 export async function GET(
@@ -29,7 +32,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Failed to get property value:', error);
+    logger.error('Failed to get property value:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -67,7 +70,7 @@ export async function PUT(
 
       if (error) {
         // Table doesn't exist or record not found, return mock success for temp IDs
-        console.warn('property_values table not found or record not found, returning mock success:', error.message);
+        logger.warn('property_values table not found or record not found, returning mock success:');
 
         const mockvalue = {
           propertyvalueid: id,
@@ -90,7 +93,7 @@ export async function PUT(
       });
 
     } catch (dbError) {
-      console.warn('Database error updating property value, returning mock success:', dbError);
+      logger.warn('Database error updating property value, returning mock success:');
 
       const mockvalue = {
         propertyvalueid: id,
@@ -108,11 +111,8 @@ export async function PUT(
     }
 
   } catch (error) {
-    console.error('Failed to update property value:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
+    logger.error('Failed to update property value:', error);
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }
 
@@ -139,7 +139,7 @@ export async function DELETE(
 
       if (error) {
         // Table doesn't exist or record not found, return mock success for temp IDs
-        console.warn('property_values table not found or record not found, returning mock success:', error.message);
+        logger.warn('property_values table not found or record not found, returning mock success:');
         return NextResponse.json({
           success: true,
           message: 'Property value deactivated successfully (temporarily)',
@@ -153,7 +153,7 @@ export async function DELETE(
       });
 
     } catch (dbError) {
-      console.warn('Database error deleting property value, returning mock success:', dbError);
+      logger.warn('Database error deleting property value, returning mock success:');
       return NextResponse.json({
         success: true,
         message: 'Property value deactivated successfully (temporarily)',
@@ -162,7 +162,7 @@ export async function DELETE(
     }
 
   } catch (error) {
-    console.error('Failed to delete property value:', error);
+    logger.error('Failed to delete property value:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -46,13 +46,7 @@ export default function AdminPage() {
         localStorage.setItem('admin_authenticated', 'true');
         localStorage.setItem('isAdmin', 'true');
         localStorage.setItem('admin_user_email', session.user.email || '');
-
-        console.log('✅ Admin session verified:', {
-          email: session.user.email,
-          expiresAt: new Date(session.expires_at! * 1000).toLocaleString()
-        });
-      } catch (error) {
-        console.error('Auth check error:', error);
+      } catch {
         router.push('/admin/login');
       } finally {
         setIsLoading(false);
@@ -63,8 +57,6 @@ export default function AdminPage() {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email);
-      
       if (event === 'SIGNED_OUT' || !session) {
         localStorage.removeItem('admin_authenticated');
         router.push('/admin/login');
@@ -79,7 +71,6 @@ export default function AdminPage() {
           localStorage.setItem('admin_authenticated', 'true');
         }
       } else if (event === 'TOKEN_REFRESHED' && session) {
-        console.log('✅ Session refreshed');
         setIsAuthenticated(true);
       }
     });

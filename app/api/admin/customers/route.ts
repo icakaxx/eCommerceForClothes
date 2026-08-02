@@ -2,6 +2,8 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,11 +14,8 @@ export async function GET(request: NextRequest) {
       .order('createdat', { ascending: false });
 
     if (customersError) {
-      console.error('Error fetching customers:', customersError);
-      return NextResponse.json({
-        success: false,
-        error: 'Failed to fetch customers'
-      }, { status: 500 });
+      logger.error('Error fetching customers', customersError);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: customersError });
     }
 
     // Fetch all orders to calculate statistics
@@ -25,11 +24,8 @@ export async function GET(request: NextRequest) {
       .select('customerid, total, createdat');
 
     if (ordersError) {
-      console.error('Error fetching orders:', ordersError);
-      return NextResponse.json({
-        success: false,
-        error: 'Failed to fetch order statistics'
-      }, { status: 500 });
+      logger.error('Error fetching orders', ordersError);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: ordersError });
     }
 
     // Calculate statistics for each customer
@@ -68,21 +64,13 @@ export async function GET(request: NextRequest) {
       new Date(b.lastorder).getTime() - new Date(a.lastorder).getTime()
     );
 
-    console.log('🔍 DEBUG: Customers API returning:', sortedCustomers.length, 'customers');
-    console.log('🔍 DEBUG: Sample customer:', sortedCustomers[0]);
-
     return NextResponse.json({
       success: true,
       customers: sortedCustomers
     });
 
   } catch (error) {
-    console.error('API error:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Internal server error'
-    }, { status: 500 });
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }
-
 

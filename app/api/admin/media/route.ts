@@ -3,6 +3,8 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { DEFAULT_BUCKET } from '@/lib/supabaseStorage';
+import { logger } from '@/lib/logger';
+
 
 interface MediaFile {
   name: string;
@@ -29,7 +31,7 @@ async function listFilesRecursive(
     });
 
   if (error) {
-    console.error(`Error listing files in ${folderPath}:`, error);
+    logger.error(`Error listing files in ${folderPath}`, error);
     return allFiles;
   }
 
@@ -83,7 +85,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('API error:', error);
+    logger.error('API error:', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error'
@@ -108,7 +110,7 @@ export async function DELETE(request: NextRequest) {
       .remove([filePath]);
 
     if (error) {
-      console.error('Error deleting file:', error);
+      logger.error('Error deleting file:', error);
       return NextResponse.json({
         success: false,
         error: 'Failed to delete file'
@@ -121,7 +123,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('API error:', error);
+    logger.error('API error:', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error'

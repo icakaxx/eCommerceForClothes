@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { DEFAULT_BUCKET } from '@/lib/supabaseStorage';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,11 +13,7 @@ export async function GET(request: NextRequest) {
 
     let allImageFiles: Array<{name: string, path: string, url: string, size: number, created_at: string}> = [];
 
-    // List files from all specified folders
-    console.log('🔍 DEBUG: Listing files from folders:', folders, 'in bucket:', DEFAULT_BUCKET);
-
     for (const folder of folders) {
-      console.log(`🔍 DEBUG: Listing files from folder: ${folder}`);
       const { data: files, error } = await supabase.storage
         .from(DEFAULT_BUCKET)
         .list(folder, {
@@ -24,18 +22,10 @@ export async function GET(request: NextRequest) {
           offset: 0
         });
 
-      console.log(`🔍 DEBUG: Files in ${folder}:`, files?.length || 0, 'files found');
-      if (files && files.length > 0) {
-        console.log('🔍 DEBUG: Sample files:', files.slice(0, 3).map(f => ({ name: f.name, size: f.metadata?.size })));
-      }
-
       if (error) {
-        console.error(`Error listing files from ${folder}:`, error);
-        continue; // Skip this folder if there's an error
+        logger.error(`Error listing files from ${folder}`, error);
+        continue;
       }
-
-      // Filter to only image files and get public URLs
-      console.log(`🔍 DEBUG: All files in ${folder}:`, files?.map(f => ({ name: f.name, type: f.metadata?.mimetype })));
 
       const imageFiles = (files || [])
         .filter(file => {
@@ -54,14 +44,8 @@ export async function GET(request: NextRequest) {
 
           const isImageByMime = mimeType.startsWith('image/');
 
-          const isImage = isImageByName || isImageByMime;
-
-          console.log(`🔍 DEBUG: File ${name}: mime=${mimeType}, isImageByName=${isImageByName}, isImageByMime=${isImageByMime}, isImage=${isImage}`);
-
-          return isImage;
+          return isImageByName || isImageByMime;
         });
-
-      console.log(`🔍 DEBUG: After filtering, ${imageFiles.length} image files in ${folder}`);
 
       const processedImageFiles = imageFiles
         .map(file => {
@@ -92,22 +76,12 @@ export async function GET(request: NextRequest) {
     // Limit total results
     allImageFiles = allImageFiles.slice(0, limit);
 
-    console.log('🔍 DEBUG: Returning', allImageFiles.length, 'total image files');
-    if (allImageFiles.length > 0) {
-      console.log('🔍 DEBUG: Sample returned files:', allImageFiles.slice(0, 3).map(f => ({ name: f.name, url: f.url.substring(0, 50) + '...' })));
-    }
-
     return NextResponse.json({
       success: true,
       files: allImageFiles
     });
 
   } catch (error) {
-    console.error('Failed to list files:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }
-

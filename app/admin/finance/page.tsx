@@ -59,7 +59,6 @@ export default function FinancePage() {
         }
         setIsAuthenticated(true);
       } catch (error) {
-        console.error('Auth check error:', error);
         router.push('/admin/login');
       } finally {
         setIsLoading(false);
@@ -91,7 +90,6 @@ export default function FinancePage() {
         setFinanceData(result.data);
       }
     } catch (error) {
-      console.error('Failed to load finance data:', error);
     } finally {
       setLoading(false);
     }

@@ -2,6 +2,8 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
+
 
 // Input validation helper
 function validateDiscountInput(data: any): { isValid: boolean; errors: string[] } {
@@ -51,7 +53,7 @@ export async function GET(request: NextRequest) {
       .order('createdat', { ascending: false });
 
     if (error) {
-      console.error('Database error:', error);
+      logger.error('Database error:', error);
       return NextResponse.json({
         success: false,
         error: 'Failed to fetch discounts'
@@ -64,7 +66,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('API error:', error);
+    logger.error('API error:', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error'
@@ -118,7 +120,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Database error:', error);
+      logger.error('Database error:', error);
       return NextResponse.json({
         success: false,
         error: 'Failed to create discount'
@@ -132,7 +134,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('API error:', error);
+    logger.error('API error:', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error'
@@ -196,7 +198,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Database error:', error);
+      logger.error('Database error:', error);
       return NextResponse.json({
         success: false,
         error: 'Failed to update discount'
@@ -217,7 +219,7 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('API error:', error);
+    logger.error('API error:', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error'
@@ -243,7 +245,7 @@ export async function DELETE(request: NextRequest) {
       .eq('discountid', discountid);
 
     if (error) {
-      console.error('Database error:', error);
+      logger.error('Database error:', error);
       return NextResponse.json({
         success: false,
         error: 'Failed to delete discount'
@@ -256,7 +258,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('API error:', error);
+    logger.error('API error:', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error'

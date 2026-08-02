@@ -2,6 +2,9 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 const TABLE_KEY = 'order_tracking';
 
@@ -23,13 +26,13 @@ export async function GET(request: NextRequest) {
       if (error.code === '42P01') {
         return NextResponse.json({ success: true, views: [] });
       }
-      console.error('order-tracking-views GET:', error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      logger.error('order-tracking-views GET:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({ success: true, views: data || [] });
   } catch (e) {
-    console.error(e);
+    logger.error('API error', e);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -60,8 +63,8 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (findErr && findErr.code !== 'PGRST116' && findErr.code !== '42P01') {
-      console.error('order-tracking-views POST find:', findErr);
-      return NextResponse.json({ success: false, error: findErr.message }, { status: 500 });
+      logger.error('order-tracking-views POST find:', findErr);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: findErr });
     }
 
     const now = new Date().toISOString();
@@ -109,13 +112,13 @@ export async function POST(request: NextRequest) {
           { status: 503 }
         );
       }
-      console.error('order-tracking-views POST:', error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      logger.error('order-tracking-views POST:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({ success: true, view: data });
   } catch (e) {
-    console.error(e);
+    logger.error('API error', e);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -135,11 +138,11 @@ export async function DELETE(request: NextRequest) {
       .eq('user_id', userId);
 
     if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error(e);
+    logger.error('API error', e);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

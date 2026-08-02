@@ -2,6 +2,8 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
+
 
 interface OrderWithItems {
   orderid: string;
@@ -75,7 +77,7 @@ export async function GET(request: NextRequest) {
       .order('createdat', { ascending: false });
 
     if (ordersError) {
-      console.error('Error fetching orders:', ordersError);
+      logger.error('Error fetching orders:', ordersError);
       return NextResponse.json({
         success: false,
         error: 'Failed to fetch orders'
@@ -220,7 +222,7 @@ export async function GET(request: NextRequest) {
             }
           }
         } catch (error) {
-          console.error('Error fetching product details for item:', item, error);
+          logger.error('Error fetching product details for item', error);
           // Keep default productInfo
         }
 
@@ -258,7 +260,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('API error:', error);
+    logger.error('API error:', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error'

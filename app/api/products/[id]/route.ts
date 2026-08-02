@@ -3,6 +3,8 @@ import { createServerClient } from '@/lib/supabase';
 import { ProductVariantPropertyValue } from '@/lib/types/product-types';
 import { isVerifiedAdminRequest } from '@/lib/api/is-verified-admin-request';
 import { normalizePromoDiscountPercent } from '@/lib/product-promo';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
 
 // Ensure SKUs are unique by checking database and generating alternatives if needed
 async function ensureUniqueSKUs(variants: any[], supabase: any) {
@@ -107,19 +109,10 @@ export async function GET(
         `)
         .in('productvariantid', variantIds);
       
-      console.log('🔍 Property values query:', {
-        variantIdsCount: variantIds.length,
-        propertyValuesCount: propertyValues?.length || 0,
-        error: pvError?.message,
-        sampleVariantId: variantIds[0],
-        samplePropertyValue: propertyValues?.[0]
-      });
-      
       let finalPropertyValues = propertyValues;
       
       // If that fails or returns empty, try PascalCase
       if (pvError || !propertyValues || propertyValues.length === 0) {
-        console.log('⚠️ Lowercase query failed or returned empty, trying PascalCase...');
         const { data: propertyValuesUpper, error: pvErrorUpper } = await supabase
           .from('product_variant_property_values')
           .select(`
@@ -131,20 +124,12 @@ export async function GET(
         
         if (!pvErrorUpper && propertyValuesUpper && propertyValuesUpper.length > 0) {
           finalPropertyValues = propertyValuesUpper;
-          console.log('✅ PascalCase query succeeded, found', propertyValuesUpper.length, 'property values');
-        } else {
-          console.log('❌ Both queries failed. Errors:', {
-            lowercase: pvError?.message,
-            pascalCase: pvErrorUpper?.message
-          });
         }
       }
 
       if (pvError && (!finalPropertyValues || finalPropertyValues.length === 0)) {
-        console.error('❌ Error fetching property values:', pvError);
+        logger.error('Error fetching property values', pvError);
       } else {
-        console.log('📦 Fetched property values count:', finalPropertyValues?.length || 0);
-        
         // Group property values by variant
         const propsByVariant: Record<string, any[]> = {};
         finalPropertyValues?.forEach((pv: any) => {
@@ -158,11 +143,6 @@ export async function GET(
           }
         });
 
-        console.log('📊 Property values grouped by variant:', Object.keys(propsByVariant).length, 'variants have properties');
-        Object.entries(propsByVariant).forEach(([variantId, props]) => {
-          console.log(`  Variant ${variantId}: ${props.length} properties`);
-        });
-
         // Attach property values to variants
         variantsWithProps = variants.map(variant => {
           const variantId = variant.productvariantid || variant.ProductVariantID;
@@ -174,27 +154,11 @@ export async function GET(
             product_variant_property_values: props
           };
         });
-
-        // Debug log
-        variantsWithProps.forEach((v: any) => {
-          const props = v.ProductVariantPropertyvalues || [];
-          console.log(`  Variant ${v.productvariantid}:`, {
-            sku: v.sku,
-            propertyValuesCount: props.length,
-            properties: props.map((pv: any) => ({
-              propertyName: pv.Property?.name || pv.Property?.Name || pv.properties?.name,
-              value: pv.value || pv.Value,
-              hasProperty: !!(pv.Property || pv.properties)
-            }))
-          });
-        });
       }
     }
 
     if (variantsError) {
-      console.error('❌ Error fetching variants:', variantsError);
-    } else {
-      console.log('📦 Fetched variants count:', variants?.length || 0);
+      logger.error('Error fetching variants', variantsError);
     }
 
     // Get all product images
@@ -219,13 +183,6 @@ export async function GET(
         imageurl: firstVariantImage?.imageurl,
         IsPrimaryImage: firstVariantImage?.isprimary || false
       };
-      
-      // Debug: Log the variant structure to ensure property values are preserved
-      if (variant.ProductVariantPropertyvalues) {
-        console.log(`✅ Variant ${variant.productvariantid} has ${variant.ProductVariantPropertyvalues.length} property values and ${variantImageUrls.length} images`);
-      } else {
-        console.log(`⚠️ Variant ${variant.productvariantid} has NO property values but has ${variantImageUrls.length} images`);
-      }
       
       return variantData;
     });
@@ -286,23 +243,6 @@ export async function GET(
     };
     const category = categoryMap[product.ProductType?.Code?.toLowerCase() || ''] || 'clothes';
     
-    // Debug logging
-    console.log('📦 Product variants count:', variantsWithImages?.length || 0);
-    if (variantsWithImages && variantsWithImages.length > 0) {
-      variantsWithImages.forEach((v: any, i: number) => {
-        const props = v.ProductVariantPropertyvalues || [];
-        console.log(`  Variant ${i}:`, {
-          id: v.productvariantid,
-          isvisible: v.isvisible,
-          propertyValuesCount: props.length,
-          propertyValues: props.map((pv: any) => ({
-            property: pv.Property?.name || pv.propertyid,
-            value: pv.value
-          }))
-        });
-      });
-    }
-
     const promoRaw = (product as { promodiscountpercent?: number | null }).promodiscountpercent;
     const legacyProduct = {
       // New schema fields
@@ -346,11 +286,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Failed to get product:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }
 
@@ -363,8 +299,6 @@ export async function PUT(
     const supabase = createServerClient();
     const { id } = await params;
     const body = await request.json();
-
-    console.log('📝 PUT /api/products/[id] - Received body:', JSON.stringify(body, null, 2));
 
     const {
       name,
@@ -394,11 +328,8 @@ export async function PUT(
         .limit(1);
 
       if (childrenError) {
-        console.error('Error checking category children:', childrenError);
-        return NextResponse.json(
-          { error: 'Failed to validate category' },
-          { status: 500 }
-        );
+        logger.error('Error checking category children', childrenError);
+        return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: childrenError });
       }
 
       if (categoryChildren && categoryChildren.length > 0) {
@@ -430,11 +361,8 @@ export async function PUT(
       .single();
 
     if (productError) {
-      console.error('Error updating product:', productError);
-      return NextResponse.json(
-        { error: productError.message },
-        { status: 500 }
-      );
+      logger.error('Error updating product', productError);
+      return apiErrorResponse({ code: 'PRODUCT_SAVE_FAILED', status: 500, error: productError });
     }
 
     const { error: deleteProductImagesError } = await supabase
@@ -444,11 +372,8 @@ export async function PUT(
       .is('productvariantid', null);
 
     if (deleteProductImagesError) {
-      console.error('Error deleting product images:', deleteProductImagesError);
-      return NextResponse.json(
-        { error: deleteProductImagesError.message },
-        { status: 500 }
-      );
+      logger.error('Error deleting product images', deleteProductImagesError);
+      return apiErrorResponse({ code: 'PRODUCT_SAVE_FAILED', status: 500, error: deleteProductImagesError });
     }
 
     if (productImages.length > 0) {
@@ -466,11 +391,8 @@ export async function PUT(
         .insert(imageRows);
 
       if (productImagesError) {
-        console.error('Error creating product images:', productImagesError);
-        return NextResponse.json(
-          { error: productImagesError.message },
-          { status: 500 }
-        );
+        logger.error('Error creating product images', productImagesError);
+        return apiErrorResponse({ code: 'PRODUCT_SAVE_FAILED', status: 500, error: productImagesError });
       }
     }
 
@@ -490,9 +412,7 @@ export async function PUT(
         .eq('productid', id);
       
       if (deleteError) {
-        console.error('❌ Error deleting existing variants:', deleteError);
-      } else {
-        console.log('✅ Deleted existing variants and their images');
+        logger.error('Error deleting existing variants', deleteError);
       }
 
       // Batch create all variants at once
@@ -512,11 +432,8 @@ export async function PUT(
           .select();
 
         if (variantError) {
-          console.error('❌ Error creating variants:', variantError);
-          return NextResponse.json(
-            { error: variantError.message },
-            { status: 500 }
-          );
+          logger.error('Error creating variants', variantError);
+          return apiErrorResponse({ code: 'PRODUCT_SAVE_FAILED', status: 500, error: variantError });
         }
 
         // Batch insert all property values
@@ -540,7 +457,7 @@ export async function PUT(
             .insert(allPropertyValues);
 
           if (pvError) {
-            console.error('Error creating property values:', pvError);
+            logger.error('Error creating property values', pvError);
           }
         }
 
@@ -576,15 +493,11 @@ export async function PUT(
             .insert(allVariantImages);
 
           if (imageError) {
-            console.error('❌ Error creating variant images:', imageError);
-          } else {
-            console.log(`✅ Saved ${allVariantImages.length} variant image(s) in batch`);
+            logger.error('Error creating variant images', imageError);
           }
         }
       }
     }
-
-    console.log('✅ Product updated successfully:', id);
 
     return NextResponse.json({
       success: true,
@@ -592,11 +505,7 @@ export async function PUT(
     });
 
   } catch (error) {
-    console.error('Failed to update product:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
+    return apiErrorResponse({ code: 'PRODUCT_SAVE_FAILED', status: 500, error });
   }
 }
 
@@ -616,14 +525,9 @@ export async function DELETE(
       .eq('productid', id);
 
     if (error) {
-      console.error('Error deleting product:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error deleting product', error);
+      return apiErrorResponse({ code: 'PRODUCT_SAVE_FAILED', status: 500, error });
     }
-
-    console.log('✅ Product deleted successfully:', id);
 
     return NextResponse.json({
       success: true,
@@ -631,10 +535,6 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('Failed to delete product:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }

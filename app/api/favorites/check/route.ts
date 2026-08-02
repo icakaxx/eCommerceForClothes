@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { logger } from '@/lib/logger';
+
 
 // POST - Check if a product is favorited by a user
 export async function POST(request: NextRequest) {
@@ -23,7 +25,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
-      console.error('Error checking favorite:', checkError)
+      logger.error('Error checking favorite:', checkError)
       return NextResponse.json(
         { error: 'Failed to check favorite status' },
         { status: 500 }
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Check favorite API error:', error)
+    logger.error('Check favorite API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

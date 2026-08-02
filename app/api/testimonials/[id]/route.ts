@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 // PUT - Update testimonial
 export async function PUT(
@@ -29,11 +32,8 @@ export async function PUT(
       .single();
 
     if (error) {
-      console.error('Error updating testimonial:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error updating testimonial:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     if (!data) {
@@ -48,11 +48,8 @@ export async function PUT(
       testimonial: data
     });
   } catch (error) {
-    console.error('Failed to update testimonial:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
+    logger.error('Failed to update testimonial:', error);
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }
 
@@ -71,11 +68,8 @@ export async function DELETE(
       .eq('testimonialid', id);
 
     if (error) {
-      console.error('Error deleting testimonial:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error deleting testimonial:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({
@@ -83,10 +77,7 @@ export async function DELETE(
       message: 'Testimonial deleted successfully'
     });
   } catch (error) {
-    console.error('Failed to delete testimonial:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
+    logger.error('Failed to delete testimonial:', error);
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }

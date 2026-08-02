@@ -40,7 +40,6 @@ export default function ForHerPage() {
           setProducts(result.products);
         }
       } catch (error) {
-        console.error('Failed to load products:', error);
       } finally {
         setLoading(false);
       }

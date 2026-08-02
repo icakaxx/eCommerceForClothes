@@ -1,9 +1,12 @@
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getVariantCheckoutPrice } from '@/lib/product-promo';
 import { sendCustomerOrderEmail, sendAdminOrderEmail } from '@/lib/email';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { generateUniqueOrderId } from '@/lib/order-id';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
 
 interface OrderData {
   customer: {
@@ -68,7 +71,7 @@ async function validateStock(items: OrderData['items']): Promise<{ valid: boolea
           .single();
 
         if (error || !variant) {
-          console.error('Error checking variant stock:', error);
+          logger.error('Error checking variant stock', error);
           // If variant not found, assume insufficient stock
           insufficientStock.push({ 
             id: item.id, 
@@ -93,17 +96,10 @@ async function validateStock(items: OrderData['items']): Promise<{ valid: boolea
               reason: 'Insufficient stock'
             });
           }
-        } else {
-          // If trackquantity is disabled or variant is not visible, assume sufficient stock
-          console.log(`Skipping stock check for variant ${variantId} - trackquantity disabled or not visible`);
         }
-      } else {
-        // For products without variants, assume sufficient stock
-        // (The products table doesn't have a quantity column in the current schema)
-        console.log(`Skipping stock check for product ${item.id} (no variant ID)`);
       }
     } catch (error) {
-      console.error('Stock validation error:', error);
+      logger.error('Stock validation error', error);
       insufficientStock.push({ 
         id: item.id, 
         requested: item.quantity, 
@@ -132,8 +128,6 @@ async function reduceStock(items: OrderData['items']): Promise<void> {
         // This is a variant - use item.id directly as the variant ID
         const variantId = item.id;
 
-        console.log(`🔍 Attempting to reduce stock for variant ID: ${variantId}, quantity: ${item.quantity}`);
-
         // Get current variant data including trackquantity flag
         const { data: variant, error: fetchError } = await supabase
           .from('product_variants')
@@ -142,25 +136,14 @@ async function reduceStock(items: OrderData['items']): Promise<void> {
           .single();
 
         if (fetchError) {
-          console.error('❌ Error fetching variant for stock reduction:', {
-            error: fetchError,
-            variantId: variantId,
-            errorCode: fetchError.code,
-            errorMessage: fetchError.message
-          });
-          throw new Error(`Failed to fetch variant ${variantId} for stock reduction: ${fetchError.message}`);
+          logger.error('Error fetching variant for stock reduction', fetchError);
+          throw new Error('Failed to fetch variant for stock reduction');
         }
 
         if (!variant) {
-          console.error(`❌ Variant ${variantId} not found in database`);
-          throw new Error(`Variant ${variantId} not found`);
+          logger.error('Variant not found for stock reduction');
+          throw new Error('Variant not found for stock reduction');
         }
-
-        console.log(`✅ Found variant:`, {
-          productvariantid: variant.productvariantid,
-          currentQuantity: variant.quantity,
-          trackquantity: variant.trackquantity
-        });
 
         // Only reduce stock if trackquantity is enabled (default is true, so check for explicit false)
         const trackQuantity = variant.trackquantity !== false && variant.trackquantity !== null;
@@ -168,8 +151,6 @@ async function reduceStock(items: OrderData['items']): Promise<void> {
         if (trackQuantity) {
           const currentQuantity = Number(variant.quantity) || 0;
           const newQuantity = Math.max(0, currentQuantity - item.quantity); // Prevent negative quantities
-
-          console.log(`📦 Reducing stock for variant ${variantId}: ${currentQuantity} -> ${newQuantity} (ordered: ${item.quantity})`);
 
           // Reduce variant stock - ensure we use the correct column name from schema
           const { error: updateError } = await supabase
@@ -181,26 +162,13 @@ async function reduceStock(items: OrderData['items']): Promise<void> {
             .eq('productvariantid', variantId);
 
           if (updateError) {
-            console.error('❌ Error reducing variant stock:', {
-              error: updateError,
-              variantId: variantId,
-              errorCode: updateError.code,
-              errorMessage: updateError.message
-            });
-            throw new Error(`Failed to reduce stock for variant ${variantId}: ${updateError.message}`);
+            logger.error('Error reducing variant stock', updateError);
+            throw new Error('Failed to reduce stock');
           }
-
-          console.log(`✅ Successfully reduced stock for variant ${variantId} from ${currentQuantity} to ${newQuantity}`);
-        } else {
-          console.log(`⚠️ Skipping stock reduction for variant ${variantId} - trackquantity is disabled (trackquantity: ${variant.trackquantity})`);
         }
-      } else {
-        // For products without variants, skip stock reduction
-        // (The products table doesn't have a quantity column in the current schema)
-        console.log(`Skipping stock reduction for product ${item.id} (no variant ID)`);
       }
     } catch (error) {
-      console.error('Stock reduction error:', error);
+      logger.error('Stock reduction error', error);
       throw error;
     }
   }
@@ -266,7 +234,7 @@ async function getOrCreateCustomer(customerData: OrderData['customer']): Promise
     .single();
 
   if (createError || !newCustomer) {
-    console.error('Failed to create customer:', createError);
+    logger.error('Failed to create customer', createError);
     throw new Error('Failed to create customer');
   }
 
@@ -309,29 +277,6 @@ async function createOrder(orderData: OrderData): Promise<string> {
     updatedat: new Date().toISOString()
   };
 
-  // Debug: Log connection details
-  console.log('🔍 Order Creation Debug Info:');
-  console.log('- Using supabaseAdmin client from @/lib/supabase/admin');
-  console.log('- Should be using SUPABASE_SERVICE_ROLE_KEY for service role access');
-  console.log('- Environment check:', {
-    hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-    hasServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-    serviceRoleKeyLength: process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0
-  });
-
-  // Check what auth context we're running in
-  try {
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    console.log('- Auth context:', {
-      hasUser: !!user,
-      userId: user?.id,
-      userRole: user?.user_metadata?.role,
-      authError: authError?.message
-    });
-  } catch (authCheckError) {
-    console.log('- Auth context check failed:', authCheckError);
-  }
-
   const { data: order, error } = await (supabase as any)
     .from('orders')
     .insert(orderRecord)
@@ -339,19 +284,8 @@ async function createOrder(orderData: OrderData): Promise<string> {
     .single();
 
   if (error) {
-    console.error('❌ Database Error Details:', {
-      message: error.message,
-      code: error.code,
-      details: error.details,
-      hint: error.hint,
-      role: 'Should be service_role, but likely falling back to anon/public key'
-    });
-    console.error('🔑 Connection Role Analysis:');
-    console.error('- If error.code is "42501", it\'s a permission denied error');
-    console.error('- This means RLS is blocking the operation');
-    console.error('- The client is likely using anon key instead of service role key');
-    console.error('- Check: Is SUPABASE_SERVICE_ROLE_KEY set in .env.local?');
-    throw new Error(`Failed to create order record: ${error.message} (Code: ${error.code})`);
+    logger.error('Failed to create order record', error);
+    throw new Error('Failed to create order record');
   }
 
   // Create order items
@@ -365,14 +299,18 @@ async function createOrder(orderData: OrderData): Promise<string> {
       // Looks like a UUID variant ID (from cart when size is selected)
       const { data: variant } = await supabase
         .from('product_variants')
-        .select('productid, price')
+        .select('productid, price, promotional_price, products(promodiscountpercent)')
         .eq('productvariantid', item.id)
         .single();
 
       if (variant) {
         productId = variant.productid;
         productVariantId = item.id;
-        price = variant.price || 0;
+        const product = Array.isArray(variant.products) ? variant.products[0] : variant.products;
+        price =
+          item.price && item.price > 0
+            ? item.price
+            : getVariantCheckoutPrice(variant, product || undefined);
       }
     } else if (item.id) {
       // Assume it's a product ID (for products without variants)
@@ -398,13 +336,7 @@ async function createOrder(orderData: OrderData): Promise<string> {
     .insert(orderItems);
 
   if (itemsError) {
-    console.error('Error creating order items:', itemsError);
-    console.error('Order items error details:', {
-      message: itemsError.message,
-      code: itemsError.code,
-      details: itemsError.details,
-      hint: itemsError.hint
-    });
+    logger.error('Error creating order items', itemsError);
     throw new Error('Failed to create order items');
   }
 
@@ -418,7 +350,7 @@ export async function POST(request: NextRequest) {
     // Validate stock availability before creating order
     const stockValidation = await validateStock(orderData.items);
     if (!stockValidation.valid) {
-      console.error('❌ Stock validation failed:', stockValidation.insufficientStock);
+      logger.error('Stock validation failed', { count: stockValidation.insufficientStock.length });
       return NextResponse.json({
         success: false,
         error: 'Insufficient stock',
@@ -533,7 +465,7 @@ export async function POST(request: NextRequest) {
             }
           }
         } catch (error) {
-          console.error('Error fetching product details for email:', error);
+          logger.error('Error fetching product details for email', error);
         }
 
         return {
@@ -586,22 +518,10 @@ export async function POST(request: NextRequest) {
 
     // Log email results
     if (customerEmailResult.status === 'rejected') {
-      const errorMsg = customerEmailResult.reason?.message || String(customerEmailResult.reason);
-      console.error('❌ Customer email failed:', errorMsg);
-      if (errorMsg.includes('Resend:')) {
-        console.error('🔧 Check RESEND_API_KEY and RESEND_FROM_EMAIL (verified domain in Resend dashboard).');
-      } else if (errorMsg.includes('Gmail authentication failed') || errorMsg.includes('BadCredentials')) {
-        console.error('🔧 Fix Gmail authentication or switch to Resend (RESEND_API_KEY + RESEND_FROM_EMAIL).');
-      }
+      logger.error('Customer order email failed', customerEmailResult.reason);
     }
     if (adminEmailResult.status === 'rejected') {
-      const errorMsg = adminEmailResult.reason?.message || String(adminEmailResult.reason);
-      console.error('❌ Admin email failed:', errorMsg);
-      if (errorMsg.includes('Resend:')) {
-        console.error('🔧 Check RESEND_API_KEY and RESEND_FROM_EMAIL (verified domain in Resend dashboard).');
-      } else if (errorMsg.includes('Gmail authentication failed') || errorMsg.includes('BadCredentials')) {
-        console.error('🔧 Fix Gmail authentication or switch to Resend (RESEND_API_KEY + RESEND_FROM_EMAIL).');
-      }
+      logger.error('Admin order email failed', adminEmailResult.reason);
     }
 
     return NextResponse.json({
@@ -611,11 +531,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Order processing error:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to process order',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return apiErrorResponse({ code: 'ORDER_FAILED', status: 500, error });
   }
 }

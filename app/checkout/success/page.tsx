@@ -100,7 +100,6 @@ function CheckoutSuccessContent() {
       const data: EcontOfficesData = await response.json();
       setEcontOffices(data);
     } catch (error) {
-      console.error('Failed to load Econt offices:', error);
     }
   };
 
@@ -120,7 +119,6 @@ function CheckoutSuccessContent() {
         throw new Error('Invalid order data');
       }
     } catch (err) {
-      console.error('Error fetching order:', err);
       setError(err instanceof Error ? err.message : 'Failed to load order details');
     } finally {
       setIsLoading(false);

@@ -15,6 +15,8 @@ import {
 } from '@/lib/admin-order-stock';
 import { splitCustomerName } from '@/lib/admin-order-form';
 import { deleteOrderByOrderId } from '@/lib/admin-delete-order';
+import { logger } from '@/lib/logger';
+
 
 function mapAdminStatusToEmail(
   s: string
@@ -42,7 +44,7 @@ async function insertStatusHistory(params: {
     changed_by: params.changedBy ?? null,
   });
   if (error && error.code !== '42P01') {
-    console.warn('order_status_history insert skipped:', error.message);
+    logger.warn('order_status_history insert skipped:');
   }
 }
 
@@ -101,7 +103,7 @@ export async function PUT(
       .single();
 
     if (fetchError || !existingOrder) {
-      console.error('Error fetching order:', fetchError);
+      logger.error('Error fetching order:', fetchError);
       return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
     }
 
@@ -132,7 +134,7 @@ export async function PUT(
       .single();
 
     if (error) {
-      console.error('Error updating order:', error);
+      logger.error('Error updating order:', error);
       return NextResponse.json({ success: false, error: 'Failed to update order' }, { status: 500 });
     }
 
@@ -217,11 +219,11 @@ export async function PUT(
           const orderDetails = buildOrderDetailsForEmail(id, existingOrder, customer, itemsWithDetails);
 
           sendOrderStatusEmail(orderDetails, emailStatus, language).catch((emailError) => {
-            console.error('Failed to send status update email:', emailError);
+            logger.error('Failed to send status update email:', emailError);
           });
         }
       } catch (emailError) {
-        console.error('Error preparing email notification:', emailError);
+        logger.error('Error preparing email notification:', emailError);
       }
     }
 
@@ -230,7 +232,7 @@ export async function PUT(
       order: updatedOrder,
     });
   } catch (error) {
-    console.error('API error:', error);
+    logger.error('API error:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -317,7 +319,7 @@ async function buildItemsForEmail(existingOrder: any) {
           }
         }
       } catch (err) {
-        console.error('Error fetching product details for email:', err);
+        logger.error('Error fetching product details for email:', err);
       }
 
       return {
@@ -568,7 +570,7 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, orderId: id });
   } catch (e) {
-    console.error('PATCH order:', e);
+    logger.error('PATCH order:', e);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -593,7 +595,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('DELETE order:', error);
+    logger.error('DELETE order:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

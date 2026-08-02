@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -86,7 +86,7 @@ export default function SalesPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    document.title = t.sales || (language === 'bg' ? 'Продажби' : 'Sales');
+    document.title = t.sales || (language === 'bg' ? '????????' : 'Sales');
   }, [language, t]);
   const [isLoading, setIsLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -138,17 +138,17 @@ export default function SalesPage() {
       case 'cancelled':
         return t.cancelled;
       case 'new':
-        return language === 'bg' ? 'Нова' : 'New';
+        return language === 'bg' ? '????' : 'New';
       case 'prepared':
-        return language === 'bg' ? 'Подготвена' : 'Prepared';
+        return language === 'bg' ? '??????????' : 'Prepared';
       case 'sent':
-        return language === 'bg' ? 'Изпратена' : 'Sent';
+        return language === 'bg' ? '?????????' : 'Sent';
       case 'picked_up':
-        return language === 'bg' ? 'Взета' : 'Picked up';
+        return language === 'bg' ? '?????' : 'Picked up';
       case 'returned':
-        return language === 'bg' ? 'Върната' : 'Returned';
+        return language === 'bg' ? '???????' : 'Returned';
       case 'waiting_for_stock':
-        return language === 'bg' ? 'Чака стока' : 'Waiting for stock';
+        return language === 'bg' ? '???? ?????' : 'Waiting for stock';
       default:
         return status;
     }
@@ -164,7 +164,6 @@ export default function SalesPage() {
         }
         setIsAuthenticated(true);
       } catch (error) {
-        console.error('Auth check error:', error);
         router.push('/admin/login');
       } finally {
         setIsLoading(false);
@@ -207,7 +206,6 @@ export default function SalesPage() {
       const data: EcontOfficesData = await response.json();
       setEcontOffices(data);
     } catch (error) {
-      console.error('Failed to load Econt offices:', error);
     }
   };
 
@@ -220,7 +218,6 @@ export default function SalesPage() {
         setOrders(result.orders || []);
       }
     } catch (error) {
-      console.error('Failed to load orders:', error);
     } finally {
       setLoading(false);
     }
@@ -268,7 +265,6 @@ export default function SalesPage() {
         alert('Failed to update order status: ' + result.error);
       }
     } catch (error) {
-      console.error('Failed to update order status:', error);
       alert('Failed to update order status');
     } finally {
       setUpdatingStatus(null);
@@ -291,7 +287,7 @@ export default function SalesPage() {
 
   const saveCurrentView = async () => {
     if (!adminUserId || !viewNameInput.trim()) {
-      alert(language === 'bg' ? 'Въведи име на изглед' : 'Enter a view name');
+      alert(language === 'bg' ? '?????? ??? ?? ??????' : 'Enter a view name');
       return;
     }
     const filters = { selectedStatuses, searchQuery, dateFrom, dateTo, sortKey };
@@ -356,10 +352,10 @@ export default function SalesPage() {
           closeOrderModal();
         }
       } else {
-        alert(data.error || (language === 'bg' ? 'Грешка при изтриване' : 'Delete failed'));
+        alert(data.error || (language === 'bg' ? '?????? ??? ?????????' : 'Delete failed'));
       }
     } catch {
-      alert(language === 'bg' ? 'Мрежова грешка' : 'Network error');
+      alert(language === 'bg' ? '??????? ??????' : 'Network error');
     } finally {
       setDeletingOrderId(null);
     }
@@ -369,7 +365,7 @@ export default function SalesPage() {
     if (clearAllConfirmInput !== 'DELETE_ALL_ORDERS') {
       alert(
         language === 'bg'
-          ? 'Напиши точно: DELETE_ALL_ORDERS'
+          ? '?????? ?????: DELETE_ALL_ORDERS'
           : 'Type exactly: DELETE_ALL_ORDERS'
       );
       return;
@@ -386,20 +382,20 @@ export default function SalesPage() {
       setClearAllConfirmInput('');
       await loadOrders();
       if (!res.ok) {
-        alert(data.error || (language === 'bg' ? 'Грешка' : 'Error'));
+        alert(data.error || (language === 'bg' ? '??????' : 'Error'));
         return;
       }
       const msg =
         language === 'bg'
-          ? `Изтрити: ${data.deleted ?? 0} от ${data.attempted ?? 0}.`
+          ? `???????: ${data.deleted ?? 0} ?? ${data.attempted ?? 0}.`
           : `Deleted: ${data.deleted ?? 0} of ${data.attempted ?? 0}.`;
       if (data.errors?.length) {
-        alert(`${msg}\n${language === 'bg' ? 'Проблеми:' : 'Issues:'}\n${data.errors.slice(0, 5).join('\n')}`);
+        alert(`${msg}\n${language === 'bg' ? '????????:' : 'Issues:'}\n${data.errors.slice(0, 5).join('\n')}`);
       } else {
         alert(msg);
       }
     } catch {
-      alert(language === 'bg' ? 'Мрежова грешка' : 'Network error');
+      alert(language === 'bg' ? '??????? ??????' : 'Network error');
     } finally {
       setClearingAll(false);
     }
@@ -430,11 +426,11 @@ export default function SalesPage() {
     if (!type) return '-';
     switch (type) {
       case 'office':
-        return language === 'bg' ? 'Офис на Еконт' : 'Econt Office';
+        return language === 'bg' ? '???? ?? ?????' : 'Econt Office';
       case 'address':
-        return language === 'bg' ? 'Адрес' : 'Address';
+        return language === 'bg' ? '?????' : 'Address';
       case 'econtomat':
-        return language === 'bg' ? 'Еконтомат' : 'Econtomat';
+        return language === 'bg' ? '?????????' : 'Econtomat';
       default:
         return type;
     }
@@ -442,7 +438,7 @@ export default function SalesPage() {
 
   const getCustomerFullName = (order: Order) => {
     const s = `${order.customerfirstname || ''} ${order.customerlastname || ''}`.trim();
-    return s || '—';
+    return s || '-';
   };
 
   const getInternalNote = (order: Order) => {
@@ -456,10 +452,10 @@ export default function SalesPage() {
         const base =
           item.product?.name && item.product.name !== 'Unknown Product' ? item.product.name : '';
         if (!base) return '';
-        return item.quantity > 1 ? `${base} ×${item.quantity}` : base;
+        return item.quantity > 1 ? `${base} ?${item.quantity}` : base;
       })
       .filter(Boolean);
-    return chunks.length ? chunks.join(', ') : '—';
+    return chunks.length ? chunks.join(', ') : '-';
   };
 
   const getEcontOfficeCell = (order: Order) => {
@@ -467,7 +463,7 @@ export default function SalesPage() {
       return getEcontOfficeName(order.econtoffice);
     }
     if (order.econtoffice) return getEcontOfficeName(order.econtoffice);
-    return '—';
+    return '-';
   };
 
   // Handle status filter change
@@ -513,7 +509,6 @@ export default function SalesPage() {
         }
       }
     } catch (error) {
-      console.error('Failed to refresh orders after edit:', error);
     }
   };
 
@@ -628,8 +623,8 @@ export default function SalesPage() {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-6">
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">{t.sales || (language === 'bg' ? 'Продажби' : 'Sales')}</h1>
-            <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">Управление и преглед на вашите поръчки</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">{t.sales || (language === 'bg' ? '????????' : 'Sales')}</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">?????????? ? ??????? ?? ?????? ???????</p>
           </div>
           <button
             type="button"
@@ -640,14 +635,14 @@ export default function SalesPage() {
             className="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-red-300 bg-red-50 text-red-800 text-sm font-semibold hover:bg-red-100 min-h-[44px] touch-manipulation"
           >
             <Trash2 className="w-4 h-4" />
-            {language === 'bg' ? 'Изтрий всички поръчки' : 'Delete all orders'}
+            {language === 'bg' ? '?????? ?????? ???????' : 'Delete all orders'}
           </button>
         </div>
 
         <AdminModal
           isOpen={showDeleteOrderModal}
           onClose={closeDeleteOrderModal}
-          title={language === 'bg' ? 'Изтриване на поръчка' : 'Delete order'}
+          title={language === 'bg' ? '????????? ?? ???????' : 'Delete order'}
           subheader={orderPendingDelete?.orderid}
           maxWidth="max-w-md"
           minWidth={280}
@@ -657,7 +652,7 @@ export default function SalesPage() {
             <div className="space-y-4">
               <p className="text-sm text-gray-700">
                 {language === 'bg'
-                  ? 'Поръчката ще бъде премахната завинаги. Наличностите се коригират автоматично (освен при върната поръчка с върната стока).'
+                  ? '????????? ?? ???? ?????????? ????????. ???????????? ?? ????????? ??????????? (????? ??? ??????? ??????? ? ??????? ?????).'
                   : 'This order will be permanently removed. Stock is adjusted automatically (except fully returned orders where stock was already restored).'}
               </p>
               <div className="flex gap-2 justify-end">
@@ -666,7 +661,7 @@ export default function SalesPage() {
                   className="px-4 py-2 rounded-lg border text-sm min-h-[44px]"
                   onClick={closeDeleteOrderModal}
                 >
-                  {language === 'bg' ? 'Отказ' : 'Cancel'}
+                  {language === 'bg' ? '?????' : 'Cancel'}
                 </button>
                 <button
                   type="button"
@@ -676,10 +671,10 @@ export default function SalesPage() {
                 >
                   {deletingOrderId === orderPendingDelete.orderid
                     ? language === 'bg'
-                      ? 'Изтриване…'
-                      : 'Deleting…'
+                      ? '??????????'
+                      : 'Deleting?'
                     : language === 'bg'
-                      ? 'Изтрий'
+                      ? '??????'
                       : 'Delete'}
                 </button>
               </div>
@@ -693,8 +688,8 @@ export default function SalesPage() {
             setShowClearAllModal(false);
             setClearAllConfirmInput('');
           }}
-          title={language === 'bg' ? 'Изтриване на всички поръчки' : 'Delete all orders'}
-          subheader={language === 'bg' ? 'Необратимо действие' : 'Irreversible'}
+          title={language === 'bg' ? '????????? ?? ?????? ???????' : 'Delete all orders'}
+          subheader={language === 'bg' ? '?????????? ????????' : 'Irreversible'}
           maxWidth="max-w-md"
           minWidth={280}
           minHeight={220}
@@ -702,12 +697,12 @@ export default function SalesPage() {
           <div className="space-y-4">
             <p className="text-sm text-red-800 font-medium">
               {language === 'bg'
-                ? 'Всички поръчки в базата ще бъдат изтрити. Клиентските записи остават.'
+                ? '?????? ??????? ? ?????? ?? ????? ???????. ??????????? ?????? ???????.'
                 : 'Every order in the database will be removed. Customer records are kept.'}
             </p>
             <p className="text-xs text-gray-600">
               {language === 'bg'
-                ? 'За потвърждение напиши точно: DELETE_ALL_ORDERS'
+                ? '?? ???????????? ?????? ?????: DELETE_ALL_ORDERS'
                 : 'To confirm, type exactly: DELETE_ALL_ORDERS'}
             </p>
             <input
@@ -726,7 +721,7 @@ export default function SalesPage() {
                   setClearAllConfirmInput('');
                 }}
               >
-                {language === 'bg' ? 'Отказ' : 'Cancel'}
+                {language === 'bg' ? '?????' : 'Cancel'}
               </button>
               <button
                 type="button"
@@ -734,7 +729,7 @@ export default function SalesPage() {
                 disabled={clearingAll}
                 onClick={() => confirmClearAllOrders()}
               >
-                {clearingAll ? (language === 'bg' ? 'Изтриване…' : 'Deleting…') : language === 'bg' ? 'Изтрий всички' : 'Delete all'}
+                {clearingAll ? (language === 'bg' ? '??????????' : 'Deleting?') : language === 'bg' ? '?????? ??????' : 'Delete all'}
               </button>
             </div>
           </div>
@@ -743,8 +738,8 @@ export default function SalesPage() {
         <AdminModal
           isOpen={showOrderModal}
           onClose={closeOrderModal}
-          title={language === 'bg' ? 'Детайли за поръчката' : 'Order details'}
-          subheader={selectedOrder ? `${language === 'bg' ? 'Поръчка' : 'Order'} #${selectedOrder.orderid}` : undefined}
+          title={language === 'bg' ? '??????? ?? ?????????' : 'Order details'}
+          subheader={selectedOrder ? `${language === 'bg' ? '???????' : 'Order'} #${selectedOrder.orderid}` : undefined}
           maxWidth="max-w-4xl"
           minWidth={320}
           minHeight={400}
@@ -753,46 +748,46 @@ export default function SalesPage() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-xs text-gray-500 mb-1">{language === 'bg' ? 'Статус' : 'Status'}</p>
+                  <p className="text-xs text-gray-500 mb-1">{language === 'bg' ? '??????' : 'Status'}</p>
                   <Badge variant={getOrderStatusVariant(selectedOrder.status)}>
                     {getStatusTranslation(selectedOrder.status)}
                   </Badge>
-                  <p className="text-xs text-gray-500 mt-3">{language === 'bg' ? 'Дата' : 'Date'}</p>
+                  <p className="text-xs text-gray-500 mt-3">{language === 'bg' ? '????' : 'Date'}</p>
                   <p className="text-sm font-medium text-gray-900">{formatDate(selectedOrder.createdat)}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-xs text-gray-500 mb-1">{language === 'bg' ? 'Клиент' : 'Customer'}</p>
+                  <p className="text-xs text-gray-500 mb-1">{language === 'bg' ? '??????' : 'Customer'}</p>
                   <p className="text-sm font-medium text-gray-900">
                     {`${selectedOrder.customerfirstname || ''} ${selectedOrder.customerlastname || ''}`.trim() || 'N/A'}
                   </p>
-                  <p className="text-xs text-gray-500 mt-2">{language === 'bg' ? 'Имейл' : 'Email'}</p>
+                  <p className="text-xs text-gray-500 mt-2">{language === 'bg' ? '?????' : 'Email'}</p>
                   <p className="text-sm text-gray-900">{selectedOrder.customeremail || 'N/A'}</p>
-                  <p className="text-xs text-gray-500 mt-2">{language === 'bg' ? 'Телефон' : 'Phone'}</p>
+                  <p className="text-xs text-gray-500 mt-2">{language === 'bg' ? '???????' : 'Phone'}</p>
                   <p className="text-sm text-gray-900">{selectedOrder.customertelephone || 'N/A'}</p>
                 </div>
               </div>
 
               <div className="bg-white border border-gray-200 rounded-lg p-4">
                 <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                  {language === 'bg' ? 'Доставка' : 'Delivery'}
+                  {language === 'bg' ? '????????' : 'Delivery'}
                 </h4>
                 <p className="text-sm text-gray-700">
-                  <span className="font-medium">{language === 'bg' ? 'Тип:' : 'Type:'}</span>{' '}
+                  <span className="font-medium">{language === 'bg' ? '???:' : 'Type:'}</span>{' '}
                   {getDeliveryTypeLabel(selectedOrder.deliverytype)}
                 </p>
                 {selectedOrder.deliverytype === 'address' && (selectedOrder.deliverystreet || selectedOrder.deliverystreetnumber) && (
                   <p className="text-sm text-gray-700 mt-2">
-                    <span className="font-medium">{language === 'bg' ? 'Адрес:' : 'Address:'}</span>{' '}
+                    <span className="font-medium">{language === 'bg' ? '?????:' : 'Address:'}</span>{' '}
                     {selectedOrder.deliverystreet || ''} {selectedOrder.deliverystreetnumber || ''}
-                    {selectedOrder.deliveryentrance ? `, ${language === 'bg' ? 'вх.' : 'Entrance'} ${selectedOrder.deliveryentrance}` : ''}
-                    {selectedOrder.deliveryfloor ? `, ${language === 'bg' ? 'ет.' : 'Floor'} ${selectedOrder.deliveryfloor}` : ''}
-                    {selectedOrder.deliveryapartment ? `, ${language === 'bg' ? 'ап.' : 'Apt'} ${selectedOrder.deliveryapartment}` : ''}
+                    {selectedOrder.deliveryentrance ? `, ${language === 'bg' ? '??.' : 'Entrance'} ${selectedOrder.deliveryentrance}` : ''}
+                    {selectedOrder.deliveryfloor ? `, ${language === 'bg' ? '??.' : 'Floor'} ${selectedOrder.deliveryfloor}` : ''}
+                    {selectedOrder.deliveryapartment ? `, ${language === 'bg' ? '??.' : 'Apt'} ${selectedOrder.deliveryapartment}` : ''}
                   </p>
                 )}
                 {selectedOrder.deliverytype === 'office' && selectedOrder.econtoffice && (
                   <div className="text-sm text-gray-700 mt-2">
                     <p>
-                      <span className="font-medium">{language === 'bg' ? 'Офис:' : 'Office:'}</span>{' '}
+                      <span className="font-medium">{language === 'bg' ? '????:' : 'Office:'}</span>{' '}
                       {getEcontOfficeName(selectedOrder.econtoffice)}
                     </p>
                     {getEcontOffice(selectedOrder.econtoffice)?.address && (
@@ -802,7 +797,7 @@ export default function SalesPage() {
                 )}
                 {(selectedOrder.deliverynotes || '').trim() && (
                   <p className="text-sm text-gray-700 mt-3">
-                    <span className="font-medium">{language === 'bg' ? 'Бележки:' : 'Notes:'}</span>{' '}
+                    <span className="font-medium">{language === 'bg' ? '???????:' : 'Notes:'}</span>{' '}
                     {selectedOrder.deliverynotes}
                   </p>
                 )}
@@ -816,17 +811,17 @@ export default function SalesPage() {
               {(getInternalNote(selectedOrder) || (selectedOrder.customer_order_note || '').trim()) && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2">
                   <h4 className="text-sm font-semibold text-amber-950">
-                    {language === 'bg' ? 'Бележки' : 'Notes'}
+                    {language === 'bg' ? '???????' : 'Notes'}
                   </h4>
                   {getInternalNote(selectedOrder) ? (
                     <p className="text-sm text-amber-950">
-                      <span className="font-medium">{language === 'bg' ? 'Вътрешна:' : 'Internal:'}</span>{' '}
+                      <span className="font-medium">{language === 'bg' ? '????????:' : 'Internal:'}</span>{' '}
                       {getInternalNote(selectedOrder)}
                     </p>
                   ) : null}
                   {(selectedOrder.customer_order_note || '').trim() ? (
                     <p className="text-sm text-amber-950">
-                      <span className="font-medium">{language === 'bg' ? 'Към клиента:' : 'Customer note:'}</span>{' '}
+                      <span className="font-medium">{language === 'bg' ? '??? ???????:' : 'Customer note:'}</span>{' '}
                       {selectedOrder.customer_order_note}
                     </p>
                   ) : null}
@@ -835,7 +830,7 @@ export default function SalesPage() {
 
               <div className="bg-white border border-gray-200 rounded-lg p-4">
                 <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                  {language === 'bg' ? 'Артикули' : 'Items'}
+                  {language === 'bg' ? '????????' : 'Items'}
                 </h4>
                 <div className="space-y-3">
                   {(selectedOrder.order_items || []).map((item, index) => (
@@ -853,9 +848,9 @@ export default function SalesPage() {
                         )}
                       </div>
                       <div className="text-sm text-gray-700">
-                        <p>{language === 'bg' ? 'Кол.' : 'Qty'}: {item.quantity}</p>
-                        <p>€{item.price?.toFixed(2) || '0.00'}</p>
-                        <p className="font-medium">€{(item.price * item.quantity)?.toFixed(2) || '0.00'}</p>
+                        <p>{language === 'bg' ? '???.' : 'Qty'}: {item.quantity}</p>
+                        <p>?{item.price?.toFixed(2) || '0.00'}</p>
+                        <p className="font-medium">?{(item.price * item.quantity)?.toFixed(2) || '0.00'}</p>
                       </div>
                     </div>
                   ))}
@@ -864,22 +859,22 @@ export default function SalesPage() {
 
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="flex items-center justify-between text-sm text-gray-700">
-                  <span>{language === 'bg' ? 'Междинна сума' : 'Subtotal'}</span>
-                  <span>€{selectedOrder.subtotal?.toFixed(2) || '0.00'}</span>
+                  <span>{language === 'bg' ? '???????? ????' : 'Subtotal'}</span>
+                  <span>?{selectedOrder.subtotal?.toFixed(2) || '0.00'}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm text-gray-700 mt-2">
-                  <span>{language === 'bg' ? 'Доставка' : 'Delivery'}</span>
-                  <span>€{selectedOrder.deliverycost?.toFixed(2) || '0.00'}</span>
+                  <span>{language === 'bg' ? '????????' : 'Delivery'}</span>
+                  <span>?{selectedOrder.deliverycost?.toFixed(2) || '0.00'}</span>
                 </div>
                 {selectedOrder.discountamount && selectedOrder.discountamount > 0 && (
                   <div className="flex items-center justify-between text-sm text-green-700 mt-2">
-                    <span>{language === 'bg' ? 'Отстъпка' : 'Discount'} {selectedOrder.discountcode ? `(${selectedOrder.discountcode})` : ''}</span>
-                    <span>-€{selectedOrder.discountamount.toFixed(2)}</span>
+                    <span>{language === 'bg' ? '????????' : 'Discount'} {selectedOrder.discountcode ? `(${selectedOrder.discountcode})` : ''}</span>
+                    <span>-?{selectedOrder.discountamount.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between text-base font-semibold text-gray-900 mt-3">
-                  <span>{language === 'bg' ? 'Общо' : 'Total'}</span>
-                  <span>€{selectedOrder.total?.toFixed(2) || '0.00'}</span>
+                  <span>{language === 'bg' ? '????' : 'Total'}</span>
+                  <span>?{selectedOrder.total?.toFixed(2) || '0.00'}</span>
                 </div>
               </div>
 
@@ -897,7 +892,7 @@ export default function SalesPage() {
                   className="inline-flex items-center gap-2 px-4 py-3 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 min-h-[44px] touch-manipulation"
                 >
                   <Trash2 className="w-4 h-4" />
-                  {language === 'bg' ? 'Изтрий тази поръчка' : 'Delete this order'}
+                  {language === 'bg' ? '?????? ???? ???????' : 'Delete this order'}
                 </button>
               </div>
             </div>
@@ -916,53 +911,53 @@ export default function SalesPage() {
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
           <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
-            <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">Общо поръчки</h3>
+            <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">???? ???????</h3>
             <p className="text-2xl sm:text-3xl font-bold text-blue-600 mt-1 sm:mt-2">{totalOrders}</p>
           </div>
           <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
-            <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">Общо приходи</h3>
-            <p className="text-2xl sm:text-3xl font-bold text-green-600 mt-1 sm:mt-2">€{totalRevenue.toFixed(2)}</p>
+            <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">???? ???????</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-green-600 mt-1 sm:mt-2">?{totalRevenue.toFixed(2)}</p>
           </div>
           <div className="bg-white p-4 sm:p-6 rounded-lg shadow sm:col-span-2 lg:col-span-1">
-            <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">Поръчки в очакване</h3>
+            <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">??????? ? ????????</h3>
             <p className="text-2xl sm:text-3xl font-bold text-orange-600 mt-1 sm:mt-2">{pendingOrders}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-xs font-semibold text-gray-700">Изпратени (бр.)</h3>
+            <h3 className="text-xs font-semibold text-gray-700">????????? (??.)</h3>
             <p className="text-xl font-bold text-indigo-600 mt-1">{sentCount}</p>
           </div>
           <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-xs font-semibold text-gray-700">Взети (бр.)</h3>
+            <h3 className="text-xs font-semibold text-gray-700">????? (??.)</h3>
             <p className="text-xl font-bold text-green-600 mt-1">{pickedUpCount}</p>
           </div>
           <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-xs font-semibold text-gray-700">Върнати (бр.)</h3>
+            <h3 className="text-xs font-semibold text-gray-700">??????? (??.)</h3>
             <p className="text-xl font-bold text-red-600 mt-1">{returnedCount}</p>
           </div>
           <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-xs font-semibold text-gray-700">Чака стока</h3>
+            <h3 className="text-xs font-semibold text-gray-700">???? ?????</h3>
             <p className="text-xl font-bold text-amber-600 mt-1">{waitingStockCount}</p>
           </div>
           <div className="bg-white p-4 rounded-lg shadow col-span-2 sm:col-span-1">
-            <h3 className="text-xs font-semibold text-gray-700">Сума взети / доставени</h3>
-            <p className="text-lg font-bold text-gray-900 mt-1">€{pickedUpTotal.toFixed(2)}</p>
+            <h3 className="text-xs font-semibold text-gray-700">???? ????? / ?????????</h3>
+            <p className="text-lg font-bold text-gray-900 mt-1">?{pickedUpTotal.toFixed(2)}</p>
           </div>
           <div className="bg-white p-4 rounded-lg shadow col-span-2 sm:col-span-1">
-            <h3 className="text-xs font-semibold text-gray-700">Сума върнати</h3>
-            <p className="text-lg font-bold text-gray-900 mt-1">€{returnedTotal.toFixed(2)}</p>
+            <h3 className="text-xs font-semibold text-gray-700">???? ???????</h3>
+            <p className="text-lg font-bold text-gray-900 mt-1">?{returnedTotal.toFixed(2)}</p>
           </div>
           <div className="bg-white p-4 rounded-lg shadow col-span-2 lg:col-span-2">
-            <h3 className="text-xs font-semibold text-gray-700">Общо продадени бройки (артикули)</h3>
+            <h3 className="text-xs font-semibold text-gray-700">???? ????????? ?????? (????????)</h3>
             <p className="text-xl font-bold text-blue-700 mt-1">{soldItemsCount}</p>
           </div>
         </div>
 
         {/* Status Filters */}
         <div className="bg-white rounded-lg shadow p-3 sm:p-4 mb-4 sm:mb-6">
-          <h3 className="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">{language === 'bg' ? 'Филтрирай по статус' : 'Filter by Status'}</h3>
+          <h3 className="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">{language === 'bg' ? '????????? ?? ??????' : 'Filter by Status'}</h3>
           <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
             {ALL_STATUS_KEYS.map((status) => (
               <label key={status} className="flex items-center gap-2 cursor-pointer py-1">
@@ -980,12 +975,12 @@ export default function SalesPage() {
 
         <div className="bg-white rounded-lg shadow p-3 sm:p-4 mb-4 sm:mb-6 space-y-3">
           <h3 className="text-xs sm:text-sm font-medium text-gray-700">
-            {language === 'bg' ? 'Търсене и сортиране' : 'Search and sort'}
+            {language === 'bg' ? '??????? ? ?????????' : 'Search and sort'}
           </h3>
           <div className="flex flex-col lg:flex-row gap-3 flex-wrap">
             <input
               className="flex-1 min-w-[200px] border rounded-lg px-3 py-2.5 text-sm min-h-[44px]"
-              placeholder={language === 'bg' ? 'Клиент, имейл, телефон, град, № поръчка…' : 'Customer, email, phone, city, order #…'}
+              placeholder={language === 'bg' ? '??????, ?????, ???????, ????, ? ????????' : 'Customer, email, phone, city, order #?'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -1008,15 +1003,15 @@ export default function SalesPage() {
               value={sortKey}
               onChange={(e) => setSortKey(e.target.value as typeof sortKey)}
             >
-              <option value="newest">{language === 'bg' ? 'Най-нови първо' : 'Newest first'}</option>
-              <option value="oldest">{language === 'bg' ? 'Най-стари първо' : 'Oldest first'}</option>
-              <option value="total">{language === 'bg' ? 'По сума' : 'By total'}</option>
-              <option value="status">{language === 'bg' ? 'По статус' : 'By status'}</option>
-              <option value="updated">{language === 'bg' ? 'Последна промяна' : 'Last updated'}</option>
+              <option value="newest">{language === 'bg' ? '???-???? ?????' : 'Newest first'}</option>
+              <option value="oldest">{language === 'bg' ? '???-????? ?????' : 'Oldest first'}</option>
+              <option value="total">{language === 'bg' ? '?? ????' : 'By total'}</option>
+              <option value="status">{language === 'bg' ? '?? ??????' : 'By status'}</option>
+              <option value="updated">{language === 'bg' ? '???????? ???????' : 'Last updated'}</option>
             </select>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center flex-wrap">
-            <span className="text-xs text-gray-500">{language === 'bg' ? 'Запазени изгледи:' : 'Saved views:'}</span>
+            <span className="text-xs text-gray-500">{language === 'bg' ? '???????? ???????:' : 'Saved views:'}</span>
             <select
               className="border rounded-lg px-2 py-2 text-sm min-h-[40px] max-w-xs"
               defaultValue=""
@@ -1027,7 +1022,7 @@ export default function SalesPage() {
                 e.target.value = '';
               }}
             >
-              <option value="">{language === 'bg' ? '— зареди изглед —' : '— load view —'}</option>
+              <option value="">{language === 'bg' ? '- ?????? ?????? -' : '- load view -'}</option>
               {savedViews.map((v) => (
                 <option key={v.id} value={v.id}>
                   {v.name}
@@ -1036,7 +1031,7 @@ export default function SalesPage() {
             </select>
             <input
               className="border rounded-lg px-2 py-2 text-sm flex-1 min-w-[120px] max-w-xs min-h-[40px]"
-              placeholder={language === 'bg' ? 'Име на изглед' : 'View name'}
+              placeholder={language === 'bg' ? '??? ?? ??????' : 'View name'}
               value={viewNameInput}
               onChange={(e) => setViewNameInput(e.target.value)}
             />
@@ -1046,7 +1041,7 @@ export default function SalesPage() {
               className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-gray-900 text-white text-sm min-h-[40px]"
             >
               <Save className="w-4 h-4" />
-              {language === 'bg' ? 'Запази изглед' : 'Save view'}
+              {language === 'bg' ? '?????? ??????' : 'Save view'}
             </button>
           </div>
         </div>
@@ -1056,13 +1051,13 @@ export default function SalesPage() {
           {loading ? (
             <div className="text-center py-8 sm:py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-              <p className="mt-2 text-sm sm:text-base text-gray-500">Зареждане на поръчки...</p>
+              <p className="mt-2 text-sm sm:text-base text-gray-500">????????? ?? ???????...</p>
             </div>
           ) : (
             <>
             <p className="text-xs text-gray-500 mb-2 px-1">
               {language === 'bg'
-                ? 'Двоен клик върху ред за редакция на поръчката.'
+                ? '????? ???? ????? ??? ?? ???????? ?? ?????????.'
                 : 'Double-click a row to edit the order.'}
             </p>
             {/* Desktop Table View */}
@@ -1074,34 +1069,34 @@ export default function SalesPage() {
                       ID
                     </th>
                     <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-                      Пълно име
+                      ????? ???
                     </th>
                     <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                      Телефон
+                      ???????
                     </th>
                     <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                      Град
+                      ????
                     </th>
                     <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
-                      Офис Еконт
+                      ???? ?????
                     </th>
                     <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-                      Вътрешна бележка
+                      ???????? ???????
                     </th>
                     <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">
-                      Артикули
+                      ????????
                     </th>
                     <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                      Сума
+                      ????
                     </th>
                     <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                      Статус
+                      ??????
                     </th>
                     <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                      Дата
+                      ????
                     </th>
                     <th className="px-3 xl:px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                      Действия
+                      ????????
                     </th>
                   </tr>
                 </thead>
@@ -1127,11 +1122,11 @@ export default function SalesPage() {
                             </span>
                           </td>
                           <td className="px-3 xl:px-4 py-3 align-top text-sm text-gray-700 whitespace-nowrap">
-                            {order.customertelephone || '—'}
+                            {order.customertelephone || '-'}
                           </td>
                           <td className="px-3 xl:px-4 py-3 align-top text-sm text-gray-700 max-w-[100px]">
                             <span className="truncate block" title={order.customercity || ''}>
-                              {order.customercity || '—'}
+                              {order.customercity || '-'}
                             </span>
                           </td>
                           <td className="px-3 xl:px-4 py-3 align-top text-sm text-gray-700 max-w-[200px]">
@@ -1145,7 +1140,7 @@ export default function SalesPage() {
                                 {internalNote}
                               </span>
                             ) : (
-                              <span className="text-gray-400">—</span>
+                              <span className="text-gray-400">-</span>
                             )}
                           </td>
                           <td className="px-3 xl:px-4 py-3 align-top text-sm text-gray-800 max-w-[260px]">
@@ -1157,7 +1152,7 @@ export default function SalesPage() {
                                   toggleOrderExpansion(order.orderid);
                                 }}
                                 className="flex-shrink-0 mt-0.5 p-0.5 text-blue-600 hover:text-blue-800"
-                                title={language === 'bg' ? 'Детайли' : 'Details'}
+                                title={language === 'bg' ? '???????' : 'Details'}
                               >
                                 {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                               </button>
@@ -1167,7 +1162,7 @@ export default function SalesPage() {
                             </div>
                           </td>
                           <td className="px-3 xl:px-4 py-3 align-top whitespace-nowrap text-sm font-medium text-gray-900">
-                            €{order.total?.toFixed(2) || '0.00'}
+                            ?{order.total?.toFixed(2) || '0.00'}
                           </td>
                           <td
                             className="px-3 xl:px-4 py-3 align-top whitespace-nowrap"
@@ -1179,8 +1174,8 @@ export default function SalesPage() {
                               value={normalizeOrderStatus(order.status || 'pending')}
                               disabled={updatingStatus === order.orderid}
                               onChange={(e) => handleStatusSelectChange(order, e.target.value)}
-                              title={language === 'bg' ? 'Статус' : 'Status'}
-                              aria-label={language === 'bg' ? 'Статус' : 'Status'}
+                              title={language === 'bg' ? '??????' : 'Status'}
+                              aria-label={language === 'bg' ? '??????' : 'Status'}
                             >
                               {statusOptionsForOrder(order).map((s) => (
                                 <option key={s} value={s}>
@@ -1202,7 +1197,7 @@ export default function SalesPage() {
                                 type="button"
                                 onClick={() => openOrderModal(order)}
                                 className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
-                                title={language === 'bg' ? 'Преглед' : 'View'}
+                                title={language === 'bg' ? '???????' : 'View'}
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
@@ -1211,13 +1206,13 @@ export default function SalesPage() {
                                 onClick={() => openDeleteOrderModal(order)}
                                 disabled={deletingOrderId === order.orderid}
                                 className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                                title={language === 'bg' ? 'Изтрий' : 'Delete'}
+                                title={language === 'bg' ? '??????' : 'Delete'}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
                               {updatingStatus === order.orderid && (
                                 <span className="ml-2 text-xs text-gray-500">
-                                  {language === 'bg' ? 'Обновяване...' : 'Updating...'}
+                                  {language === 'bg' ? '??????????...' : 'Updating...'}
                                 </span>
                               )}
                             </div>
@@ -1233,13 +1228,13 @@ export default function SalesPage() {
                                 {order.deliverytype === 'address' && (order.deliverystreet || order.deliverystreetnumber) && (
                                   <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-green-50 border border-green-200 rounded-lg">
                                     <h4 className="text-xs sm:text-sm font-medium text-green-900 mb-1">
-                                      {language === 'bg' ? 'Адрес за доставка' : 'Delivery Address'}
+                                      {language === 'bg' ? '????? ?? ????????' : 'Delivery Address'}
                                     </h4>
                                     <p className="text-xs sm:text-sm text-green-700 font-medium">
                                       {order.deliverystreet || ''} {order.deliverystreetnumber || ''}
-                                      {order.deliveryentrance ? `, ${language === 'bg' ? 'вх.' : 'Entrance'} ${order.deliveryentrance}` : ''}
-                                      {order.deliveryfloor ? `, ${language === 'bg' ? 'ет.' : 'Floor'} ${order.deliveryfloor}` : ''}
-                                      {order.deliveryapartment ? `, ${language === 'bg' ? 'ап.' : 'Apt'} ${order.deliveryapartment}` : ''}
+                                      {order.deliveryentrance ? `, ${language === 'bg' ? '??.' : 'Entrance'} ${order.deliveryentrance}` : ''}
+                                      {order.deliveryfloor ? `, ${language === 'bg' ? '??.' : 'Floor'} ${order.deliveryfloor}` : ''}
+                                      {order.deliveryapartment ? `, ${language === 'bg' ? '??.' : 'Apt'} ${order.deliveryapartment}` : ''}
                                     </p>
                                   </div>
                                 )}
@@ -1248,7 +1243,7 @@ export default function SalesPage() {
                                   return office ? (
                                     <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
                                       <h4 className="text-xs sm:text-sm font-medium text-blue-900 mb-1">
-                                        {language === 'bg' ? 'Офис на Еконт' : 'Econt Office Delivery'}
+                                        {language === 'bg' ? '???? ?? ?????' : 'Econt Office Delivery'}
                                       </h4>
                                       <p className="text-xs sm:text-sm text-blue-700 font-medium">{office.name}</p>
                                       <p className="text-xs sm:text-sm text-blue-600 mt-1">{office.address}</p>
@@ -1256,10 +1251,10 @@ export default function SalesPage() {
                                   ) : (
                                     <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
                                       <h4 className="text-xs sm:text-sm font-medium text-blue-900 mb-1">
-                                        {language === 'bg' ? 'Офис на Еконт' : 'Econt Office Delivery'}
+                                        {language === 'bg' ? '???? ?? ?????' : 'Econt Office Delivery'}
                                       </h4>
                                       <p className="text-xs sm:text-sm text-blue-700">
-                                        {language === 'bg' ? 'ID на офис' : 'Office ID'}: {order.econtoffice}
+                                        {language === 'bg' ? 'ID ?? ????' : 'Office ID'}: {order.econtoffice}
                                       </p>
                                     </div>
                                   );
@@ -1290,7 +1285,7 @@ export default function SalesPage() {
                                           </p>
                                           <div className="text-xs text-gray-500 space-y-0.5 sm:space-y-1 mt-1">
                                             {item.product.name === 'Unknown Product' ? (
-                                              <p className="text-red-500">a️ Product data missing</p>
+                                              <p className="text-red-500">a? Product data missing</p>
                                             ) : (
                                               <>
                                                 {/* Display all properties */}
@@ -1326,13 +1321,13 @@ export default function SalesPage() {
                                       </div>
                                       <div className="text-left sm:text-right flex-shrink-0 sm:ml-4">
                                         <p className="text-xs sm:text-sm font-medium text-gray-900">
-                                          €{item.price?.toFixed(2) || '0.00'}
+                                          ?{item.price?.toFixed(2) || '0.00'}
                                         </p>
                                         <p className="text-xs text-gray-500">
                                           Qty: {item.quantity}
                                         </p>
                                         <p className="text-xs text-gray-500 font-medium">
-                                          Subtotal: €{(item.price * item.quantity)?.toFixed(2) || '0.00'}
+                                          Subtotal: ?{(item.price * item.quantity)?.toFixed(2) || '0.00'}
                                         </p>
                                       </div>
                                     </div>
@@ -1353,7 +1348,7 @@ export default function SalesPage() {
             <div className="lg:hidden">
               <p className="text-xs text-gray-500 mb-2 px-1 lg:hidden">
                 {language === 'bg'
-                  ? 'Двоен клик върху картата за редакция.'
+                  ? '????? ???? ????? ??????? ?? ????????.'
                   : 'Double-click a card to edit.'}
               </p>
               <div className="divide-y divide-gray-200">
@@ -1376,24 +1371,24 @@ export default function SalesPage() {
                             <p className="text-xs font-mono text-gray-500 mb-1 truncate">{order.orderid}</p>
                             <p className="text-sm font-semibold text-gray-900">{getCustomerFullName(order)}</p>
                             <p className="text-xs text-gray-600 mt-1">
-                              <span className="font-medium">{language === 'bg' ? 'Тел.:' : 'Phone:'}</span>{' '}
-                              {order.customertelephone || '—'}
+                              <span className="font-medium">{language === 'bg' ? '???.:' : 'Phone:'}</span>{' '}
+                              {order.customertelephone || '-'}
                             </p>
                             <p className="text-xs text-gray-600">
-                              <span className="font-medium">{language === 'bg' ? 'Град:' : 'City:'}</span>{' '}
-                              {order.customercity || '—'}
+                              <span className="font-medium">{language === 'bg' ? '????:' : 'City:'}</span>{' '}
+                              {order.customercity || '-'}
                             </p>
                             <p className="text-xs text-gray-600 line-clamp-2 mt-0.5">
-                              <span className="font-medium">{language === 'bg' ? 'Еконт:' : 'Econt:'}</span>{' '}
+                              <span className="font-medium">{language === 'bg' ? '?????:' : 'Econt:'}</span>{' '}
                               {getEcontOfficeCell(order)}
                             </p>
                             {mNote ? (
                               <p className="text-xs text-amber-900 bg-amber-50 border border-amber-100 rounded px-2 py-1 mt-2 line-clamp-3">
-                                <span className="font-medium">{language === 'bg' ? 'Вътр. бел.:' : 'Internal:'}</span> {mNote}
+                                <span className="font-medium">{language === 'bg' ? '????. ???.:' : 'Internal:'}</span> {mNote}
                               </p>
                             ) : null}
                             <p className="text-xs text-gray-700 mt-2 line-clamp-3" title={mNames}>
-                              <span className="font-medium">{language === 'bg' ? 'Артикули:' : 'Items:'}</span> {mNames}
+                              <span className="font-medium">{language === 'bg' ? '????????:' : 'Items:'}</span> {mNames}
                             </p>
                             {order.customeremail ? (
                               <p className="text-xs text-gray-500 mt-1 truncate">{order.customeremail}</p>
@@ -1406,8 +1401,8 @@ export default function SalesPage() {
                             onClick={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
                             onChange={(e) => handleStatusSelectChange(order, e.target.value)}
-                            title={language === 'bg' ? 'Статус' : 'Status'}
-                            aria-label={language === 'bg' ? 'Статус' : 'Status'}
+                            title={language === 'bg' ? '??????' : 'Status'}
+                            aria-label={language === 'bg' ? '??????' : 'Status'}
                           >
                             {statusOptionsForOrder(order).map((s) => (
                               <option key={s} value={s}>
@@ -1420,11 +1415,11 @@ export default function SalesPage() {
                         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                           <div className="flex items-center gap-4 text-sm">
                             <div>
-                              <p className="text-xs text-gray-500">Сума</p>
-                              <p className="text-sm font-semibold text-gray-900">€{order.total?.toFixed(2) || '0.00'}</p>
+                              <p className="text-xs text-gray-500">????</p>
+                              <p className="text-sm font-semibold text-gray-900">?{order.total?.toFixed(2) || '0.00'}</p>
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500">Дата</p>
+                              <p className="text-xs text-gray-500">????</p>
                               <p className="text-sm text-gray-700">{new Date(order.createdat).toLocaleDateString()}</p>
                             </div>
                           </div>
@@ -1435,7 +1430,7 @@ export default function SalesPage() {
                               openOrderModal(order);
                             }}
                             className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
-                            title={language === 'bg' ? 'Преглед' : 'View'}
+                            title={language === 'bg' ? '???????' : 'View'}
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -1466,14 +1461,14 @@ export default function SalesPage() {
                               onClick={() => openDeleteOrderModal(order)}
                               disabled={deletingOrderId === order.orderid}
                               className="p-2 min-h-[44px] min-w-[44px] text-red-600 hover:bg-red-50 rounded border border-red-200 disabled:opacity-50"
-                              title={language === 'bg' ? 'Изтрий' : 'Delete'}
+                              title={language === 'bg' ? '??????' : 'Delete'}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
                         {updatingStatus === order.orderid && (
-                          <p className="text-xs text-gray-500 text-center">Обновяване...</p>
+                          <p className="text-xs text-gray-500 text-center">??????????...</p>
                         )}
                       </div>
 
@@ -1484,13 +1479,13 @@ export default function SalesPage() {
                           {order.deliverytype === 'address' && (order.deliverystreet || order.deliverystreetnumber) && (
                             <div className="mb-3 p-2 sm:p-3 bg-green-50 border border-green-200 rounded-lg">
                               <h4 className="text-xs sm:text-sm font-medium text-green-900 mb-1">
-                                {language === 'bg' ? 'Адрес за доставка' : 'Delivery Address'}
+                                {language === 'bg' ? '????? ?? ????????' : 'Delivery Address'}
                               </h4>
                               <p className="text-xs sm:text-sm text-green-700 font-medium">
                                 {order.deliverystreet || ''} {order.deliverystreetnumber || ''}
-                                {order.deliveryentrance ? `, ${language === 'bg' ? 'вх.' : 'Entrance'} ${order.deliveryentrance}` : ''}
-                                {order.deliveryfloor ? `, ${language === 'bg' ? 'ет.' : 'Floor'} ${order.deliveryfloor}` : ''}
-                                {order.deliveryapartment ? `, ${language === 'bg' ? 'ап.' : 'Apt'} ${order.deliveryapartment}` : ''}
+                                {order.deliveryentrance ? `, ${language === 'bg' ? '??.' : 'Entrance'} ${order.deliveryentrance}` : ''}
+                                {order.deliveryfloor ? `, ${language === 'bg' ? '??.' : 'Floor'} ${order.deliveryfloor}` : ''}
+                                {order.deliveryapartment ? `, ${language === 'bg' ? '??.' : 'Apt'} ${order.deliveryapartment}` : ''}
                               </p>
                             </div>
                           )}
@@ -1499,7 +1494,7 @@ export default function SalesPage() {
                             return office ? (
                               <div className="mb-3 p-2 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
                                 <h4 className="text-xs sm:text-sm font-medium text-blue-900 mb-1">
-                                  {language === 'bg' ? 'Офис на Еконт' : 'Econt Office Delivery'}
+                                  {language === 'bg' ? '???? ?? ?????' : 'Econt Office Delivery'}
                                 </h4>
                                 <p className="text-xs sm:text-sm text-blue-700 font-medium">{office.name}</p>
                                 <p className="text-xs sm:text-sm text-blue-600 mt-1">{office.address}</p>
@@ -1507,10 +1502,10 @@ export default function SalesPage() {
                             ) : (
                               <div className="mb-3 p-2 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
                                 <h4 className="text-xs sm:text-sm font-medium text-blue-900 mb-1">
-                                  {language === 'bg' ? 'Офис на Еконт' : 'Econt Office Delivery'}
+                                  {language === 'bg' ? '???? ?? ?????' : 'Econt Office Delivery'}
                                 </h4>
                                 <p className="text-xs sm:text-sm text-blue-700">
-                                  {language === 'bg' ? 'ID на офис' : 'Office ID'}: {order.econtoffice}
+                                  {language === 'bg' ? 'ID ?? ????' : 'Office ID'}: {order.econtoffice}
                                 </p>
                               </div>
                             );
@@ -1541,7 +1536,7 @@ export default function SalesPage() {
                                     </p>
                                     <div className="text-xs text-gray-500 space-y-0.5 mb-2">
                                       {item.product.name === 'Unknown Product' ? (
-                                        <p className="text-red-500">a️ Product data missing</p>
+                                        <p className="text-red-500">a? Product data missing</p>
                                       ) : (
                                         <>
                                           {/* Display all properties */}
@@ -1576,7 +1571,7 @@ export default function SalesPage() {
                                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
                                       <div>
                                         <p className="text-xs text-gray-500">Price</p>
-                                        <p className="text-sm font-medium text-gray-900">€{item.price?.toFixed(2) || '0.00'}</p>
+                                        <p className="text-sm font-medium text-gray-900">?{item.price?.toFixed(2) || '0.00'}</p>
                                       </div>
                                       <div>
                                         <p className="text-xs text-gray-500">Qty</p>
@@ -1584,7 +1579,7 @@ export default function SalesPage() {
                                       </div>
                                       <div className="text-right">
                                         <p className="text-xs text-gray-500">Subtotal</p>
-                                        <p className="text-sm font-semibold text-gray-900">€{(item.price * item.quantity)?.toFixed(2) || '0.00'}</p>
+                                        <p className="text-sm font-semibold text-gray-900">?{(item.price * item.quantity)?.toFixed(2) || '0.00'}</p>
                                       </div>
                                     </div>
                                   </div>
@@ -1630,7 +1625,7 @@ export default function SalesPage() {
                 <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between w-full">
                   <div>
                     <p className="text-xs sm:text-sm text-gray-700">
-                      {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? 'до' : 'to'} <span className="font-medium">{Math.min(endIndex, filteredOrders.length)}</span> {language === 'bg' ? 'от' : 'of'} <span className="font-medium">{filteredOrders.length}</span> {language === 'bg' ? 'поръчки' : 'orders'}
+                      {t.showingTransactions || 'Showing'} <span className="font-medium">{startIndex + 1}</span> {language === 'bg' ? '??' : 'to'} <span className="font-medium">{Math.min(endIndex, filteredOrders.length)}</span> {language === 'bg' ? '??' : 'of'} <span className="font-medium">{filteredOrders.length}</span> {language === 'bg' ? '???????' : 'orders'}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">

@@ -1,4 +1,5 @@
 import sharp from 'sharp';
+import { logger } from '@/lib/logger';
 
 /** Longest side after resize — enough for retina product cards / zoom. */
 const MAX_DIMENSION = 1600;
@@ -79,7 +80,7 @@ export async function compressImageForUpload(
       compressedBytes: compressed.byteLength,
     };
   } catch (error) {
-    console.warn('Image compression skipped, uploading original:', error);
+    logger.warn('Image compression skipped, uploading original');
     return null;
   }
 }

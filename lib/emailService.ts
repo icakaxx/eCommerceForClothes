@@ -1,4 +1,5 @@
 import { sendEmail, getContactEmail, isEmailConfigured } from '@/lib/mail'
+import { logger } from '@/lib/logger'
 
 interface EmailOptions {
   to: string
@@ -116,7 +117,7 @@ export class EmailService {
         replyTo: getContactEmail(),
       })
     } catch (error) {
-      console.error('Error sending welcome email:', error)
+      logger.error('Error sending welcome email', error)
     }
   }
 
@@ -236,7 +237,7 @@ export class EmailService {
         replyTo: getContactEmail(),
       })
     } catch (error) {
-      console.error('Error sending password reset email:', error)
+      logger.error('Error sending password reset email', error)
     }
   }
 }

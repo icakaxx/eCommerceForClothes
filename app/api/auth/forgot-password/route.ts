@@ -4,6 +4,8 @@ import { passwordResetRequestSchema } from '@/lib/zodSchemas'
 import { withRateLimit, createRateLimitResponse } from '@/lib/rateLimit'
 import crypto from 'crypto'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { logger } from '@/lib/logger';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +20,7 @@ export async function POST(request: NextRequest) {
     // Validate input with Zod
     const validationResult = passwordResetRequestSchema.safeParse(body)
     if (!validationResult.success) {
-      console.error('❌ Forgot password validation failed:', validationResult.error.flatten())
+      logger.error('Validation failed')
       return NextResponse.json(
         { 
           error: 'Invalid email format',
@@ -66,7 +68,7 @@ export async function POST(request: NextRequest) {
       .eq('userid', user.userid)
 
     if (updateError) {
-      console.error('Error storing reset token:', updateError)
+      logger.error('Error storing reset token:', updateError)
       return NextResponse.json(
         { error: 'Failed to process request' },
         { 
@@ -88,7 +90,7 @@ export async function POST(request: NextRequest) {
         resetUrl
       })
     } catch (emailError) {
-      console.error('Failed to send password reset email:', emailError)
+      logger.error('Failed to send password reset email:', emailError)
       return NextResponse.json(
         { error: 'Failed to send email' },
         { 
@@ -105,7 +107,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Forgot password error:', error)
+    logger.error('Forgot password error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

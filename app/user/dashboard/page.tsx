@@ -46,7 +46,6 @@ function FavoritesList({ userId, language }: { userId: string; language: string 
           }
         }
       } catch (err: any) {
-        console.error('Error fetching favorites:', err)
         setError(err.message || (language === 'bg' ? 'Грешка при зареждане на любимите' : 'Error loading favorites'))
       } finally {
         setIsLoading(false)
@@ -251,8 +250,8 @@ export default function DashboardPage() {
       const response = await fetch('/data/econt-offices.json')
       const data: EcontOfficesData = await response.json()
       setEcontOffices(data)
-    } catch (error) {
-      console.error('Failed to load Econt offices:', error)
+    } catch {
+      // Econt offices are optional; delivery UI falls back gracefully
     }
   }
 
@@ -336,13 +335,10 @@ export default function DashboardPage() {
           new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
         )
         setOrders(sortedOrders)
-        console.log('Orders loaded:', sortedOrders.length)
       } else {
-        console.error('Error fetching orders:', ordersData.error || 'Unknown error')
         setError(ordersData.error || (language === 'bg' ? 'Грешка при зареждане на поръчките' : 'Error loading orders'))
       }
-    } catch (err) {
-      console.error('Error fetching user data:', err)
+    } catch {
       setError(language === 'bg' ? 'Грешка при зареждане на поръчките' : 'Error loading orders')
     }
   }
@@ -406,8 +402,8 @@ export default function DashboardPage() {
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' })
-    } catch (err) {
-      console.error('Logout error:', err)
+    } catch {
+      // Logout continues locally even if API call fails
     } finally {
       logout()
       router.push('/user')

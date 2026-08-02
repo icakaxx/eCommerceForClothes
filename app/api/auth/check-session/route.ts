@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,7 +49,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Session check error:', error);
+    logger.error('Session check error:', error);
     return NextResponse.json(
       { authenticated: false, error: 'Internal server error' },
       { status: 500 }

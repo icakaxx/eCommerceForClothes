@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAccess } from '@/lib/auth-admin'
+import { logger } from '@/lib/logger';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +22,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Admin verification error:', error)
+    logger.error('Admin verification error:', error)
     return NextResponse.json(
       { error: 'Verification failed' },
       { status: 500 }

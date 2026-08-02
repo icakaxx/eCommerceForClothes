@@ -19,11 +19,7 @@ import {
   getOptionStockQuantity,
   getOptionStockStatus,
 } from '@/lib/variant-stock';
-import {
-  getPromoDiscountPercent,
-  getPromoSalePrice,
-  hasActivePromo,
-} from '@/lib/product-promo';
+import { getVariantEffectivePrice } from '@/lib/product-promo';
 
 interface ProductDetailsProps {
   product: Product;
@@ -108,8 +104,8 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
           if (data.success) {
             setIsFavorited(data.isFavorited)
           }
-        } catch (error) {
-          console.error('Error checking favorite:', error)
+        } catch {
+          // Non-critical: favorite state unavailable
         }
       }
       checkFavorite()
@@ -123,8 +119,8 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         if (data.success) {
           setFavoriteCount(data.count)
         }
-      } catch (error) {
-        console.error('Error fetching favorite count:', error)
+      } catch {
+        // Non-critical: favorite count unavailable
       }
     }
     fetchFavoriteCount()
@@ -135,9 +131,7 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
     const productVariants = product.variants || product.Variants || [];
 
     if (Array.isArray(productVariants) && productVariants.length > 0) {
-      console.log('🔍 ProductDetails: Found variants:', productVariants);
       const visibleVariants = productVariants.filter((v: any) => v.isvisible !== false);
-      console.log('🔍 ProductDetails: Visible variants:', visibleVariants);
       setVariants(visibleVariants);
 
       // Build available options map
@@ -150,7 +144,6 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
           variant.ProductVariantPropertyValues ||
           variant.product_variant_property_values ||
           [];
-        console.log(`🔍 ProductDetails: Variant ${variant.productvariantid} property values:`, propertyValues);
 
         propertyValues.forEach((pv: any) => {
           // Get original property name with proper capitalization
@@ -171,14 +164,12 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
           }
         });
       });
-      console.log('🔍 ProductDetails: Available options map:', optionsMap);
       setAvailableOptions(optionsMap);
       setPropertyNameMap(nameMap);
 
       // Select first variant by default (or primary variant if available)
       if (visibleVariants.length > 0) {
         const primaryVariant = visibleVariants.find((v: any) => v.IsPrimaryImage) || visibleVariants[0];
-        console.log('🔍 ProductDetails: Selected primary variant:', primaryVariant);
         setSelectedVariant(primaryVariant);
 
         // Set initial selected options
@@ -199,7 +190,6 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
             initialOptions[propertyNameKey] = propertyValue;
           }
         });
-        console.log('🔍 ProductDetails: Initial selected options:', initialOptions);
         setSelectedOptions(initialOptions);
 
         // Notify parent of initial variant images (only once on mount)
@@ -213,13 +203,10 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
           }
         }
       }
-    } else {
-      console.log('🔍 ProductDetails: No variants found. Product:', product);
     }
   }, [product.variants, product.Variants]);
 
   const handleOptionChange = (propertyName: string, value: string) => {
-    console.log(`🔍 ProductDetails: Option changed - ${propertyName}: ${value}`);
     const newOptions = { ...selectedOptions, [propertyName]: value };
     setSelectedOptions(newOptions);
 
@@ -247,21 +234,12 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
       });
 
       // Check if all selected options match this variant
-      const matches = Object.keys(newOptions).every(
+      return Object.keys(newOptions).every(
         (key) => variantOptions[key] === newOptions[key]
       );
-
-      console.log(`🔍 ProductDetails: Checking variant ${variant.productvariantid}:`, {
-        variantOptions,
-        newOptions,
-        matches
-      });
-
-      return matches;
     });
 
     if (matchingVariant) {
-      console.log('🔍 ProductDetails: Matched variant:', matchingVariant);
       setSelectedVariant(matchingVariant);
 
       // Notify parent component of image change - prioritize variant images, fall back to imageurl, then product images
@@ -281,7 +259,6 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         }
       }
     } else {
-      console.log('🔍 ProductDetails: No matching variant found for options:', newOptions);
       // No matching variant - show general product images
       if (onVariantChange && product.images && product.images.length > 0) {
         onVariantChange(product.images);
@@ -290,10 +267,11 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
   };
 
   // Get current price and quantity
-  const originalPrice = selectedVariant?.price || product.price || 0;
-  const promoActive = hasActivePromo(product);
-  const promoPercent = getPromoDiscountPercent(product);
-  const currentPrice = getPromoSalePrice(originalPrice, product);
+  const selectedPricing = getVariantEffectivePrice(selectedVariant || { price: product.price }, product);
+  const originalPrice = selectedPricing.original;
+  const promoActive = selectedPricing.promoActive;
+  const promoPercent = selectedPricing.promoPercent;
+  const currentPrice = selectedPricing.sale;
   const rawQuantity = selectedVariant?.quantity ?? product.quantity ?? 0;
   const tracksStock =
     selectedVariant == null ||
@@ -489,8 +467,8 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
         setShareMessage('Link copied to clipboard!');
       }
       setTimeout(() => setShareMessage(''), 3000);
-    } catch (error) {
-      console.error('Error sharing:', error);
+    } catch {
+      // Share API unavailable or cancelled
     }
   };
 
@@ -523,8 +501,8 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
           setFavoriteCount(countData.count)
         }
       }
-    } catch (error) {
-      console.error('Error toggling favorite:', error)
+    } catch {
+      // Non-critical: favorite toggle failed
     } finally {
       setIsTogglingFavorite(false)
     }
@@ -1004,8 +982,8 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
                 if (data.success) {
                   setIsFavorited(data.isFavorited)
                 }
-              } catch (error) {
-                console.error('Error checking favorite:', error)
+              } catch {
+                // Non-critical: favorite state unavailable
               }
             }
             checkFavorite()

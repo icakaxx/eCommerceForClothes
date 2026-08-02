@@ -63,7 +63,6 @@ export default function OrdersPage() {
         }
         setIsAuthenticated(true);
       } catch (error) {
-        console.error('Auth check error:', error);
         router.push('/admin/login');
       } finally {
         setIsLoading(false);
@@ -92,7 +91,6 @@ export default function OrdersPage() {
         setOrders(filteredOrders);
       }
     } catch (error) {
-      console.error('Failed to load orders:', error);
     } finally {
       setLoading(false);
     }
@@ -120,7 +118,6 @@ export default function OrdersPage() {
         alert(result.error || 'Failed to update order status');
       }
     } catch (error) {
-      console.error('Failed to update order status:', error);
       alert('Failed to update order status');
     } finally {
       setUpdatingStatus(null);

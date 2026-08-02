@@ -3,6 +3,8 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { translations } from '@/lib/translations';
+import { logger } from '@/lib/logger';
+
 
 // Rate limiting cache (in production, use Redis or similar)
 const rateLimitCache = new Map<string, { attempts: number; lastAttempt: number }>();
@@ -129,7 +131,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Discount validation error:', error);
+    logger.error('Discount validation error:', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error'

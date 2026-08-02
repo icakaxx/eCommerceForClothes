@@ -106,8 +106,8 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
       if (response.ok && result.productTypes) {
         setProductTypes(result.productTypes);
       }
-    } catch (error) {
-      console.error('Error loading product types:', error);
+    } catch {
+      // Product types unavailable
     }
   };
 
@@ -125,91 +125,58 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
       const result = await response.json();
 
       if (response.ok && result.properties) {
-        // Extract properties from nested structure
         const properties = (result.properties || [])
           .map((ptp: any) => ptp.properties)
           .filter((p: any) => p !== null && p !== undefined);
-        
-        console.log('🔍 DEBUG EditProductModal: Raw API response:', result);
-        console.log('🔍 DEBUG EditProductModal: Extracted properties:', properties);
-        
+
         setProperties(properties);
-        
-        // Extract property values from the nested structure
+
         const propertyValuesMap: Record<string, PropertyValue[]> = {};
         for (const property of properties) {
           if (property.datatype === 'select' && property.values) {
             propertyValuesMap[property.propertyid] = property.values;
-            console.log(`🔍 DEBUG EditProductModal: Property "${property.name}" (${property.propertyid}) has values:`, 
-              property.values.map((pv: PropertyValue) => ({
-                id: pv.propertyvalueid,
-                value: pv.value,
-                isactive: pv.isactive
-              }))
-            );
           }
         }
         setPropertyValuesMap(propertyValuesMap);
-        
-        // Initialize selected values from existing product property values
+
         const initialSelected: Record<string, string[]> = {};
         properties.forEach((prop: Property) => {
           initialSelected[prop.propertyid] = [];
         });
 
-        console.log('🔍 DEBUG EditProductModal: Product propertyValues:', product?.propertyValues);
-        console.log('🔍 DEBUG EditProductModal: Product variants:', product?.variants || product?.Variants);
-        
-        // Extract property values from ALL variants (not just the first one)
         const variants = product?.variants || product?.Variants || [];
-        const propertyValueMap: Record<string, Set<string>> = {}; // propertyid -> Set of value strings
-        
+        const propertyValueMap: Record<string, Set<string>> = {};
+
         variants.forEach((variant: any) => {
-          // Handle different possible field names for property values
-          const variantPropertyValues = 
-            variant.product_variant_property_values || 
-            variant.ProductVariantPropertyvalues || 
-            variant.ProductVariantPropertyValues || 
-            variant.propertyvalues || 
+          const variantPropertyValues =
+            variant.product_variant_property_values ||
+            variant.ProductVariantPropertyvalues ||
+            variant.ProductVariantPropertyValues ||
+            variant.propertyvalues ||
             [];
-          
-          console.log(`🔍 DEBUG EditProductModal: Processing variant ${variant.productvariantid || variant.ProductVariantID}, has ${variantPropertyValues.length} property values`);
-          
+
           variantPropertyValues.forEach((pvv: any) => {
-            // Get property info - could be nested or direct
             const property = pvv.properties || pvv.Property || pvv.property;
             if (!property) {
-              console.log('🔍 DEBUG EditProductModal: No property found in pvv:', pvv);
               return;
             }
-            
-            // Handle different possible field names for property ID
+
             const propertyId = property.propertyid || property.PropertyID || property.property_id;
-            // Handle different possible field names for value
             const value = pvv.value || pvv.Value;
-            
+
             if (propertyId && value) {
               if (!propertyValueMap[propertyId]) {
                 propertyValueMap[propertyId] = new Set();
               }
               propertyValueMap[propertyId].add(value);
-              console.log(`🔍 DEBUG EditProductModal: Added property "${property.name || propertyId}" value "${value}"`);
-            } else {
-              console.log('🔍 DEBUG EditProductModal: Missing propertyId or value:', { propertyId, value, property, pvv });
             }
           });
         });
-        
-        console.log('🔍 DEBUG EditProductModal: Extracted property values from variants:', propertyValueMap);
-        
-        // If editing existing product, populate selected values from variants
+
         if (Object.keys(propertyValueMap).length > 0) {
           Object.entries(propertyValueMap).forEach(([propertyId, valueSet]) => {
             const prop = properties.find((p: Property) => p.propertyid === propertyId);
             if (prop) {
-              console.log(`🔍 DEBUG EditProductModal: Processing property "${prop.name}" (${prop.propertyid})`);
-              
-              // For select properties, find the propertyvalueids that match the value strings
               if (prop.datatype === 'select' && propertyValuesMap[prop.propertyid]) {
                 const matchingIds: string[] = [];
                 valueSet.forEach(valueStr => {
@@ -218,61 +185,40 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                   );
                   if (matchingValue) {
                     matchingIds.push(matchingValue.propertyvalueid);
-                    console.log(`🔍 DEBUG EditProductModal: Matched value "${valueStr}" to ID: ${matchingValue.propertyvalueid}`);
-                  } else {
-                    console.log(`🔍 DEBUG EditProductModal: ❌ No matching propertyvalueid found for "${valueStr}"`);
-                    console.log(`  Available values:`, propertyValuesMap[prop.propertyid].map(pv => ({ id: pv.propertyvalueid, value: pv.value })));
                   }
                 });
                 if (matchingIds.length > 0) {
                   initialSelected[prop.propertyid] = matchingIds;
                 }
               } else {
-                // For non-select properties, use the values directly
                 initialSelected[prop.propertyid] = Array.from(valueSet);
               }
-            } else {
-              console.log(`🔍 DEBUG EditProductModal: ❌ Property with ID "${propertyId}" not found in available properties`);
             }
           });
         } else if (product?.propertyValues) {
-          // Fallback to old propertyValues format (for backwards compatibility)
           Object.entries(product.propertyValues).forEach(([propName, value]) => {
-            console.log(`🔍 DEBUG EditProductModal: Looking for property "${propName}" with value "${value}"`);
-            // Find property by name and add value to selection
             const prop = properties.find((p: Property) => p.name.toLowerCase() === propName.toLowerCase());
             if (prop) {
-              console.log(`🔍 DEBUG EditProductModal: Found property "${prop.name}" (${prop.propertyid})`);
-              
-              // For select properties, find the propertyvalueid that matches the value string
               if (prop.datatype === 'select' && propertyValuesMap[prop.propertyid]) {
                 const matchingValue = propertyValuesMap[prop.propertyid].find(
                   pv => pv.value === value && pv.isactive
                 );
                 if (matchingValue) {
                   initialSelected[prop.propertyid] = [matchingValue.propertyvalueid];
-                  console.log(`🔍 DEBUG EditProductModal: Matched value "${value}" to ID: ${matchingValue.propertyvalueid}`);
                 } else {
-                  console.log(`🔍 DEBUG EditProductModal: ❌ No matching propertyvalueid found for "${value}"`);
-                  console.log(`  Available values:`, propertyValuesMap[prop.propertyid].map(pv => ({ id: pv.propertyvalueid, value: pv.value })));
-                  // Fallback: use the value(s) directly (for non-select or if ID not found)
                   initialSelected[prop.propertyid] = Array.isArray(value) ? value : [value];
                 }
               } else {
-                // For non-select properties, use the value(s) directly
                 initialSelected[prop.propertyid] = Array.isArray(value) ? value : [value];
               }
-            } else {
-              console.log(`🔍 DEBUG EditProductModal: ❌ Property "${propName}" not found in available properties`);
             }
           });
         }
 
-        console.log('🔍 DEBUG EditProductModal: Initial selected property values:', initialSelected);
         setSelectedPropertyValues(initialSelected);
       }
-    } catch (error) {
-      console.error('Error loading properties:', error);
+    } catch {
+      // Properties unavailable
     } finally {
       setLoadingProperties(false);
     }
@@ -284,20 +230,14 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
       const current = prev[propertyId] || [];
       const isSelected = current.includes(propertyValueId);
 
-      console.log(`🔍 DEBUG EditProductModal: Toggling property "${propertyId}" value ID "${propertyValueId}"`);
-      console.log(`  Current selection:`, current);
-      console.log(`  Is selected:`, isSelected);
-
       if (isSelected) {
         const newSelection = current.filter(v => v !== propertyValueId);
-        console.log(`  Removing, new selection:`, newSelection);
         return {
           ...prev,
           [propertyId]: newSelection
         };
       } else {
         const newSelection = [...current, propertyValueId];
-        console.log(`  Adding, new selection:`, newSelection);
         return {
           ...prev,
           [propertyId]: newSelection
@@ -377,8 +317,8 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
         );
         setAvailableProducts(filtered);
       }
-    } catch (error) {
-      console.error('Error loading available products:', error);
+    } catch {
+      // Available products unavailable
     }
   };
 
@@ -396,8 +336,8 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
         const ids = result.products.map((p: Product) => p.productid || p.id);
         setRelatedProductIds(ids);
       }
-    } catch (error) {
-      console.error('Error loading related products:', error);
+    } catch {
+      // Related products unavailable
     } finally {
       setLoadingRelatedProducts(false);
     }
@@ -406,28 +346,19 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
   // Save related products
   const saveRelatedProducts = async (productId: string) => {
     try {
-      const response = await fetch(`/api/products/${productId}/related`, {
+      await fetch(`/api/products/${productId}/related`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ relatedProductIds })
       });
-      
-      if (!response.ok) {
-        console.error('Error saving related products');
-      }
-    } catch (error) {
-      console.error('Error saving related products:', error);
+    } catch {
+      // Related products save is best-effort
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log('🔍 DEBUG EditProductModal: Submitting form');
-    console.log('  Selected property values (IDs):', selectedPropertyValues);
-    console.log('  Available properties:', properties);
-
-    // Convert selected property values (IDs) to propertyValues format (value strings)
     const propertyValues: Record<string, string> = {};
     Object.entries(selectedPropertyValues).forEach(([propertyId, valueIds]) => {
       const property = properties.find(p => p.propertyid === propertyId);
@@ -437,7 +368,6 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
           const matchingValue = property.values.find(pv => pv.propertyvalueid === valueIds[0]);
           if (matchingValue) {
             propertyValues[property.name.toLowerCase()] = matchingValue.value;
-            console.log(`  Property "${property.name}": ID ${valueIds[0]} -> value "${matchingValue.value}"`);
           }
         } else {
           // For non-select properties, use the value directly
@@ -445,8 +375,6 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
         }
       }
     });
-
-    console.log('  Final propertyValues:', propertyValues);
 
     const productToSave = {
       ...formData,
@@ -486,20 +414,15 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
       uploadFormData.append('file', file);
       uploadFormData.append('folder', 'images');
 
-      console.log('📤 Uploading image:', file.name, file.size, file.type);
-
       const response = await fetch('/api/storage/upload', {
         method: 'POST',
         body: uploadFormData
       });
 
       const result = await response.json();
-      console.log('📥 Upload response:', result);
 
       if (response.ok && result.success) {
-        // Verify URL is valid
         if (!result.url) {
-          console.error('❌ No URL returned from upload:', result);
           setFormData(prev => ({
             ...prev,
             images: prev.images.filter(img => img !== tempPreviewUrl)
@@ -516,41 +439,14 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
           const newImages = prev.images
             .filter(img => img !== tempPreviewUrl)
             .concat(result.url);
-          
-          console.log('📸 Updated images array:', {
-            oldCount: prev.images.length,
-            newCount: newImages.length,
-            newUrl: result.url,
-            allUrls: newImages
-          });
-          
+
           return {
             ...prev,
             images: newImages
           };
         });
-        
-        // Revoke temporary URL
+
         URL.revokeObjectURL(tempPreviewUrl);
-        
-        console.log('✅ Image uploaded successfully:', {
-          url: result.url,
-          path: result.path,
-          fileName: result.fileName,
-          bucket: result.bucket,
-          fullUrl: result.url
-        });
-        
-        // Test if image is accessible
-        const img = new Image();
-        img.onload = () => {
-          console.log('✅ Image URL is accessible and loaded:', result.url);
-        };
-        img.onerror = () => {
-          console.warn('⚠️ Image URL may not be accessible:', result.url);
-          console.warn('⚠️ Check if bucket is public and CORS is configured');
-        };
-        img.src = result.url;
       } else {
         // Remove temporary preview on error
         setFormData(prev => ({
@@ -558,21 +454,19 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
           images: prev.images.filter(img => img !== tempPreviewUrl)
         }));
         URL.revokeObjectURL(tempPreviewUrl);
-        
-        console.error('❌ Upload failed:', result);
+
         alert(language === 'bg' 
           ? `Грешка при качване: ${result.error || 'Неуспешно качване'}` 
           : `Upload error: ${result.error || 'Upload failed'}`);
       }
-    } catch (error) {
+    } catch {
       // Remove temporary preview on error
       setFormData(prev => ({
         ...prev,
         images: prev.images.filter(img => img !== tempPreviewUrl)
       }));
       URL.revokeObjectURL(tempPreviewUrl);
-      
-      console.error('❌ Upload error:', error);
+
       alert(language === 'bg' 
         ? 'Грешка при качване на снимка' 
         : 'Error uploading image');
@@ -1210,11 +1104,6 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                               className="w-full h-full object-cover"
                               crossOrigin="anonymous"
                               onError={(e) => {
-                                console.error('❌ Image failed to load:', {
-                                  url: image,
-                                  index,
-                                  allImages: formData.images
-                                });
                                 const target = e.currentTarget;
                                 target.style.display = 'none';
                                 const errorDiv = document.createElement('div');
@@ -1224,12 +1113,6 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                                   <div class="text-[10px] mt-1 break-all">${image.substring(0, 30)}...</div>
                                 `;
                                 target.parentElement?.appendChild(errorDiv);
-                              }}
-                              onLoad={() => {
-                                console.log('✅ Image loaded successfully:', {
-                                  url: image,
-                                  index
-                                });
                               }}
                             />
                             <button

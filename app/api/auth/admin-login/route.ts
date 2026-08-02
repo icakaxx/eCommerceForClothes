@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { verifyAdminAccess } from '@/lib/auth-admin'
+import { logger } from '@/lib/logger';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (authError || !authData.user) {
-      console.error('Supabase auth error:', authError)
+      logger.error('Supabase auth error:', authError)
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
@@ -54,7 +56,7 @@ export async function POST(request: NextRequest) {
     const { isAdmin, user: adminUser } = await verifyAdminAccess(authData.user.id)
 
     if (!isAdmin) {
-      console.error('Access denied: User is not an admin')
+      logger.error('Access denied: User is not an admin')
       return NextResponse.json(
         {
           error: 'Access denied. Your account does not have permission to access this area.',
@@ -96,7 +98,7 @@ export async function POST(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error('Admin login error:', error)
+    logger.error('Admin login error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

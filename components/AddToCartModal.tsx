@@ -14,7 +14,7 @@ import {
   getOptionStockStatus,
   LOW_STOCK_MAX,
 } from '@/lib/variant-stock';
-import { getPromoSalePrice, hasActivePromo } from '@/lib/product-promo';
+import { getVariantEffectivePrice } from '@/lib/product-promo';
 
 interface AddToCartModalProps {
   isOpen: boolean;
@@ -195,7 +195,10 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
     // Use selected variant if available, otherwise use product
     const itemId = selectedVariant?.productvariantid || selectedVariant?.ProductVariantID || product.id;
     const originalItemPrice = selectedVariant?.price ?? product.price ?? 0;
-    const itemPrice = getPromoSalePrice(originalItemPrice, product);
+    const itemPrice = getVariantEffectivePrice(
+      selectedVariant || { price: originalItemPrice },
+      product
+    ).sale;
     const itemImageUrl = selectedVariant?.imageurl || selectedVariant?.ImageURL || product.images[0] || '/placeholder-image.jpg';
     
     // Extract property values from selected variant or use selected options
@@ -504,9 +507,13 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
             {/* Price Preview */}
             <div className="rounded-xl p-4" style={{ backgroundColor: theme.colors.secondary }}>
               {(() => {
-                const originalUnit = selectedVariant?.price || product.price || 0;
-                const unit = getPromoSalePrice(originalUnit, product);
-                const promo = hasActivePromo(product);
+                const pricing = getVariantEffectivePrice(
+                  selectedVariant || { price: product.price },
+                  product
+                );
+                const originalUnit = pricing.original;
+                const unit = pricing.sale;
+                const promo = pricing.promoActive;
                 return (
                   <div className="flex justify-between items-center gap-3">
                     <span style={{ color: theme.colors.textSecondary }}>

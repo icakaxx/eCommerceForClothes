@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
+
 
 export async function GET(
   request: NextRequest,
@@ -140,7 +142,7 @@ export async function GET(
             }
           }
         } catch (error) {
-          console.error('Error fetching product details for item:', item, error);
+          logger.error('Error fetching product details for item', error);
         }
 
         return {
@@ -173,7 +175,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Failed to fetch order:', error);
+    logger.error('Failed to fetch order:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

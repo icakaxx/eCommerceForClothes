@@ -15,9 +15,7 @@ export function isResendConfigured(): boolean {
 }
 
 export function isGmailConfigured(): boolean {
-  const email = process.env.EMAIL_USER || process.env.NEXT_PUBLIC_EMAIL;
-  const pass = process.env.EMAIL_PASS || process.env.NEXT_PUBLIC_EMAIL_PASS;
-  return Boolean(email && pass);
+  return Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
 }
 
 export function isEmailConfigured(): boolean {
@@ -55,7 +53,7 @@ function getFromAddress(): string {
   }
 
   const email = process.env.EMAIL_USER || process.env.NEXT_PUBLIC_EMAIL || 'noreply@store.com';
-  return `"${storeName}" <${email}>`;
+  return `${storeName} <${email}>`;
 }
 
 async function sendViaResend(options: SendEmailOptions): Promise<void> {
@@ -76,8 +74,8 @@ async function sendViaResend(options: SendEmailOptions): Promise<void> {
 }
 
 async function sendViaGmail(options: SendEmailOptions): Promise<void> {
-  const email = process.env.EMAIL_USER || process.env.NEXT_PUBLIC_EMAIL;
-  const password = process.env.EMAIL_PASS || process.env.NEXT_PUBLIC_EMAIL_PASS;
+  const email = process.env.EMAIL_USER;
+  const password = process.env.EMAIL_PASS;
 
   if (!email || !password) {
     throw new Error('Gmail email credentials are not configured');

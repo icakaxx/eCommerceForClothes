@@ -90,22 +90,12 @@ export default function AdminLoginPage() {
           });
 
           if (sessionError) {
-            console.error('Error setting session:', sessionError);
             setError({
               message: 'Грешка при създаване на сесия. Моля, опитайте отново.',
               type: 'error'
             });
             return;
           }
-
-          console.log('✅ Session created successfully');
-          console.log('📋 Session info:', {
-            email: result.user?.email,
-            role: result.role,
-            expiresAt: result.session?.expires_at 
-              ? new Date(result.session.expires_at * 1000).toLocaleString() 
-              : 'N/A'
-          });
         }
 
         // Store basic auth state (for quick check)

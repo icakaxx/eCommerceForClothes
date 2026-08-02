@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs'
 import { loginSchema } from '@/lib/zodSchemas'
 import { withRateLimit, createRateLimitResponse } from '@/lib/rateLimit'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { logger } from '@/lib/logger';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +19,7 @@ export async function POST(request: NextRequest) {
     // Validate input with Zod
     const validationResult = loginSchema.safeParse(body)
     if (!validationResult.success) {
-      console.error('❌ Login validation failed:', validationResult.error.flatten())
+      logger.error('Validation failed')
       return NextResponse.json(
         { 
           error: 'Invalid email or password format',
@@ -73,7 +75,7 @@ export async function POST(request: NextRequest) {
           ? JSON.parse(user.locationcoordinates) 
           : user.locationcoordinates
       } catch (error) {
-        console.warn('Failed to parse coordinates:', user.locationcoordinates)
+        logger.warn('Failed to parse coordinates:')
       }
     }
 
@@ -103,7 +105,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Login error:', error)
+    logger.error('Login error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { logger } from '@/lib/logger'
+import { apiErrorResponse } from '@/lib/api-error'
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,7 +23,7 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (userError || !user) {
-      console.error('User not found:', { userId, error: userError })
+      logger.error('User not found', userError)
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
@@ -32,8 +34,6 @@ export async function GET(request: NextRequest) {
     const normalizedEmail = (user.email || '').toLowerCase().trim()
 
     if (!normalizedEmail) {
-      // User has no email
-      console.log('User has no email:', { userId })
       return NextResponse.json({
         orders: [],
         count: 0
@@ -67,15 +67,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (customerError || !customer) {
-      // User exists but has no customer record (no orders yet)
-      console.log('No customer found for user:', { userId, email: normalizedEmail })
       return NextResponse.json({
         orders: [],
         count: 0
       })
     }
-
-    console.log('Found customer:', { customerId: customer.customerid, email: customer.email })
 
     // Fetch orders for this customer
     const { data: orders, error: ordersError } = await supabaseAdmin
@@ -119,11 +115,8 @@ export async function GET(request: NextRequest) {
       .order('createdat', { ascending: false })
 
     if (ordersError) {
-      console.error('Error fetching orders:', ordersError)
-      return NextResponse.json(
-        { error: 'Failed to fetch orders' },
-        { status: 500 }
-      )
+      logger.error('Error fetching orders', ordersError)
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: ordersError })
     }
 
     // Transform orders to match expected format
@@ -180,10 +173,6 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Orders API error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error })
   }
 }

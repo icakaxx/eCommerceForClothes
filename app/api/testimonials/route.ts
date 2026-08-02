@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 // GET - Fetch all active testimonials ordered by sortorder
 export async function GET() {
@@ -13,11 +16,8 @@ export async function GET() {
       .order('sortorder', { ascending: true });
 
     if (error) {
-      console.error('Error fetching testimonials:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error fetching testimonials:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({
@@ -25,7 +25,7 @@ export async function GET() {
       testimonials: data || []
     });
   } catch (error) {
-    console.error('Failed to fetch testimonials:', error);
+    logger.error('Failed to fetch testimonials:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -74,11 +74,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating testimonial:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error creating testimonial:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({
@@ -86,10 +83,7 @@ export async function POST(request: NextRequest) {
       testimonial: data
     });
   } catch (error) {
-    console.error('Failed to create testimonial:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
+    logger.error('Failed to create testimonial:', error);
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }

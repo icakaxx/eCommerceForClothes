@@ -4,6 +4,19 @@ export type PromoDiscountSource = {
   promoDiscountPercent?: number | null;
 };
 
+export type VariantPriceSource = {
+  price?: number | null;
+  promotional_price?: number | null;
+  promotionalPrice?: number | null;
+};
+
+export type EffectivePriceResult = {
+  original: number;
+  sale: number;
+  promoPercent: number;
+  promoActive: boolean;
+};
+
 /** Parse admin/API values like 20, "20", "20%", "20,5". */
 function parsePromoNumber(raw: unknown): number {
   if (raw === null || raw === undefined || raw === '') return NaN;
@@ -44,3 +57,100 @@ export function normalizePromoDiscountPercent(input: unknown): number | null {
   if (!Number.isFinite(value) || value <= 0) return null;
   return Math.min(99, Math.max(1, Math.round(value)));
 }
+
+export function getVariantPromotionalPrice(
+  variant: VariantPriceSource | null | undefined
+): number | null {
+  if (!variant) return null;
+  const raw = variant.promotional_price ?? variant.promotionalPrice;
+  if (raw === null || raw === undefined) return null;
+  const num = Number(raw);
+  if (!Number.isFinite(num) || num <= 0) return null;
+  return roundMoney(num);
+}
+
+export function getDiscountPercentFromPrices(original: number, sale: number): number {
+  if (original <= 0 || sale >= original) return 0;
+  return Math.min(99, Math.max(1, Math.round((1 - sale / original) * 100)));
+}
+
+/** Resolve sale price: variant promo price takes precedence over product-level percent. */
+export function getVariantEffectivePrice(
+  variant: VariantPriceSource | null | undefined,
+  product?: PromoDiscountSource | null
+): EffectivePriceResult {
+  const original = roundMoney(Number(variant?.price) || 0);
+  const variantPromo = getVariantPromotionalPrice(variant);
+
+  if (variantPromo != null && variantPromo < original) {
+    return {
+      original,
+      sale: variantPromo,
+      promoPercent: getDiscountPercentFromPrices(original, variantPromo),
+      promoActive: true,
+    };
+  }
+
+  const productPercent = getPromoDiscountPercent(product);
+  if (productPercent > 0 && original > 0) {
+    return {
+      original,
+      sale: getPromoSalePrice(original, product),
+      promoPercent: productPercent,
+      promoActive: true,
+    };
+  }
+
+  return { original, sale: original, promoPercent: 0, promoActive: false };
+}
+
+export function hasVariantOrProductPromo(
+  variant: VariantPriceSource | null | undefined,
+  product?: PromoDiscountSource | null
+): boolean {
+  return getVariantEffectivePrice(variant, product).promoActive;
+}
+
+/** Pricing for product cards — uses lowest sale price among visible variants. */
+export function getProductCardPricing(product: {
+  price?: number;
+  variants?: VariantPriceSource[];
+  Variants?: VariantPriceSource[];
+} & PromoDiscountSource): EffectivePriceResult {
+  const variants = product.variants || product.Variants || [];
+  const visible = variants.filter((v) => (v as { isvisible?: boolean }).isvisible !== false);
+
+  if (visible.length === 0) {
+    return getVariantEffectivePrice({ price: product.price }, product);
+  }
+
+  let best: EffectivePriceResult | null = null;
+  let maxPromoPercent = 0;
+  let anyPromo = false;
+
+  for (const variant of visible) {
+    const pricing = getVariantEffectivePrice(variant, product);
+    if (!best || pricing.sale < best.sale) {
+      best = pricing;
+    }
+    if (pricing.promoActive) {
+      anyPromo = true;
+      maxPromoPercent = Math.max(maxPromoPercent, pricing.promoPercent);
+    }
+  }
+
+  const result = best || getVariantEffectivePrice({ price: product.price }, product);
+  if (anyPromo) {
+    return { ...result, promoActive: true, promoPercent: Math.max(result.promoPercent, maxPromoPercent) };
+  }
+  return result;
+}
+
+/** Server-side: pick checkout price for a variant row. */
+export function getVariantCheckoutPrice(
+  variant: VariantPriceSource,
+  product?: PromoDiscountSource | null
+): number {
+  return getVariantEffectivePrice(variant, product).sale;
+}
+

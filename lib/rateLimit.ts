@@ -6,6 +6,7 @@
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 import { NextRequest } from 'next/server'
+import { logger } from '@/lib/logger';
 
 // Initialize Redis client (only if env vars are set)
 let redis: Redis | null = null
@@ -46,7 +47,7 @@ try {
     }
   }
 } catch (error) {
-  console.error('❌ Failed to initialize rate limiting:', error)
+  logger.error('Failed to initialize rate limiting', error);
 }
 
 /**
@@ -84,7 +85,7 @@ export async function checkRateLimit(
 ): Promise<{ success: boolean; limit?: number; remaining?: number; reset?: number; retryAfter?: number }> {
   // If rate limiting is not configured, allow all requests
   if (!rateLimiters || !rateLimiters[limiterType]) {
-    console.warn(`⚠️ Rate limiting bypassed for ${limiterType} - not configured`)
+    logger.warn(`Rate limiting bypassed for ${limiterType} — not configured`);
     return { success: true }
   }
 
@@ -93,12 +94,7 @@ export async function checkRateLimit(
     
     if (!result.success) {
       const retryAfter = Math.ceil((result.reset - Date.now()) / 1000)
-      console.warn(`🚫 Rate limit exceeded for ${limiterType}:${identifier}`, {
-        limit: result.limit,
-        remaining: result.remaining,
-        reset: new Date(result.reset).toISOString(),
-        retryAfter
-      })
+      logger.warn(`Rate limit exceeded for ${limiterType}`);
       
       return {
         success: false,
@@ -116,7 +112,7 @@ export async function checkRateLimit(
       reset: result.reset
     }
   } catch (error) {
-    console.error(`❌ Rate limit check failed for ${limiterType}:${identifier}:`, error)
+    logger.error(`Rate limit check failed for ${limiterType}`, error);
     // On error, allow the request but log the issue
     return { success: true }
   }

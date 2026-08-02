@@ -104,7 +104,6 @@ export default function PropertiesPage() {
           setDeleteProducts({ loading: false, items: [] });
         }
       } catch (error) {
-        console.error('Failed to load products for property delete:', error);
         setDeleteProducts({ loading: false, items: [] });
       }
     };
@@ -123,7 +122,6 @@ export default function PropertiesPage() {
           setAvailableProductTypes(result.productTypes || []);
         }
       } catch (error) {
-        console.error('Failed to load product types:', error);
       } finally {
         setLoadingProductTypes(false);
       }
@@ -155,7 +153,6 @@ export default function PropertiesPage() {
         setProperties(propertiesWithLocalValues);
       }
     } catch (error) {
-      console.error('Failed to load properties:', error);
       // As a last resort, try to load from local storage only
       try {
         const localData = PropertyValuesStorage.getAllPropertyValues();
@@ -170,7 +167,6 @@ export default function PropertiesPage() {
         }));
         setProperties(localProperties);
       } catch (localError) {
-        console.error('Failed to load local properties:', localError);
       }
     } finally {
       setLoading(false);
@@ -213,7 +209,6 @@ export default function PropertiesPage() {
         alert('Error: ' + result.error);
       }
     } catch (error) {
-      console.error('Failed to save property:', error);
       alert('Failed to save property');
     }
   };
@@ -255,7 +250,6 @@ export default function PropertiesPage() {
         alert('Error: ' + result.error);
       }
     } catch (error) {
-      console.error('Failed to delete property:', error);
       alert('Failed to delete property');
     } finally {
       setDeleting(false);
@@ -319,7 +313,6 @@ export default function PropertiesPage() {
         return;
       }
     } catch (error) {
-      console.error('Failed to bulk delete properties:', error);
       alert(language === 'bg' ? 'Неуспешно масово изтриване' : 'Bulk delete failed');
     } finally {
       setBulkDeleting(false);
@@ -387,7 +380,6 @@ export default function PropertiesPage() {
         alert('Error: ' + result.error);
       }
     } catch (error) {
-      console.error('Failed to delete property value via API, using local storage:', error);
 
       // Fallback to local storage
       const allLocalData = PropertyValuesStorage.getAllPropertyValues();
@@ -459,7 +451,6 @@ export default function PropertiesPage() {
         alert('Error: ' + result.error);
       }
     } catch (error) {
-      console.error('Failed to save property value via API, using local storage:', error);
 
       // Fallback to local storage
       const value: PropertyValue = {
@@ -539,7 +530,6 @@ export default function PropertiesPage() {
         alert('Error: ' + result.error);
       }
     } catch (error) {
-      console.error('Failed to save property value via API, using local storage:', error);
 
       // Fallback to local storage
       const value: PropertyValue = {

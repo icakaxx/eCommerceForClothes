@@ -118,86 +118,48 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
               }
               setPropertyValues(values);
 
-              // DEBUG: Log all available property values
-              console.log('🔍 DEBUG: All available property values:', values);
-              for (const property of properties) {
-                if (property.datatype === 'select' && values[property.propertyid]) {
-                  console.log(`  Property "${property.name}" (${property.propertyid}):`, 
-                    values[property.propertyid].map(pv => ({
-                      id: pv.propertyvalueid,
-                      value: pv.value,
-                      isactive: pv.isactive
-                    }))
-                  );
-                }
-              }
-
-              // Auto-populate selectedPropertyValues from existing variants
-              // Use product?.variants directly to avoid stale closure issues
               const existingVariants = product?.variants || [];
-              console.log('🔍 DEBUG: Existing variants from product:', existingVariants);
-              
+
               if (existingVariants.length > 0 && Object.keys(values).length > 0) {
                 const selected: Record<string, string[]> = {};
-                
-                // For each property, collect all unique values used in variants
+
                 for (const property of properties) {
                   if (property.datatype === 'select' && values[property.propertyid]) {
                     const usedValues = new Set<string>();
-                    
-                    console.log(`🔍 DEBUG: Processing property "${property.name}" (${property.propertyid})`);
-                    
-                    // Check all variants for this property
+
                     for (const variant of existingVariants) {
-                      console.log(`  Variant:`, variant);
-                      console.log(`  Variant propertyvalues:`, variant.propertyvalues);
-                      
-                      // Extract property values from variant
                       const variantPropertyValues = variant.propertyvalues?.reduce((acc: Record<string, string>, pv: any) => {
                         if (pv.property) {
                           acc[pv.property.propertyid] = pv.value;
                         }
                         return acc;
                       }, {} as Record<string, string>) || {};
-                      
-                      console.log(`  Extracted variant property values:`, variantPropertyValues);
-                      
+
                       const variantValue = variantPropertyValues[property.propertyid];
-                      console.log(`  Looking for value in property "${property.name}": "${variantValue}"`);
-                      
+
                       if (variantValue) {
-                        // Find the propertyvalueid that matches this value string
                         const matchingValue = values[property.propertyid].find(
                           pv => pv.value === variantValue && pv.isactive
                         );
-                        console.log(`  Matching value found:`, matchingValue);
                         if (matchingValue) {
                           usedValues.add(matchingValue.propertyvalueid);
-                          console.log(`  Added to usedValues: ${matchingValue.propertyvalueid}`);
-                        } else {
-                          console.log(`  ❌ No matching value found for "${variantValue}"`);
-                          console.log(`  Available values:`, values[property.propertyid].map(pv => pv.value));
                         }
                       }
                     }
-                    
+
                     if (usedValues.size > 0) {
                       selected[property.propertyid] = Array.from(usedValues);
-                      console.log(`  ✅ Selected IDs for "${property.name}":`, Array.from(usedValues));
-                    } else {
-                      console.log(`  ⚠️ No values selected for "${property.name}"`);
                     }
                   }
                 }
-                
-                console.log('🔍 DEBUG: Final selected property values:', selected);
+
                 if (Object.keys(selected).length > 0) {
                   setSelectedPropertyValues(selected);
                 }
               }
             }
           })
-          .catch(console.error);
+          .catch(() => {});
       }
     } else {
       setAvailableProperties([]);
@@ -207,80 +169,43 @@ export default function EditProductVariantsModal({ product, onClose, onSave }: E
 
   // Auto-populate selectedPropertyValues from existing variants when property values are loaded
   useEffect(() => {
-    console.log('🔍 DEBUG useEffect: Checking auto-population conditions');
-    console.log('  product:', product);
-    console.log('  variants.length:', variants.length);
-    console.log('  propertyValues keys:', Object.keys(propertyValues));
-    console.log('  availableProperties.length:', availableProperties.length);
-    
-    // Only auto-populate if we have variants, property values, and this is an existing product
     if (product && variants.length > 0 && Object.keys(propertyValues).length > 0 && availableProperties.length > 0) {
-      console.log('🔍 DEBUG useEffect: Conditions met, processing...');
       const selected: Record<string, string[]> = {};
-      
-      // For each property, collect all unique values used in variants
+
       for (const property of availableProperties) {
         if (property.datatype === 'select' && propertyValues[property.propertyid]) {
           const usedValues = new Set<string>();
-          
-          console.log(`🔍 DEBUG useEffect: Processing property "${property.name}" (${property.propertyid})`);
-          
-          // Check all variants for this property
+
           for (const variant of variants) {
-            console.log(`  Checking variant:`, variant);
             const variantValue = variant.propertyvalues[property.propertyid];
-            console.log(`  Variant value for "${property.name}": "${variantValue}"`);
-            
+
             if (variantValue) {
-              // Find the propertyvalueid that matches this value string
               const matchingValue = propertyValues[property.propertyid].find(
                 pv => pv.value === variantValue && pv.isactive
               );
-              console.log(`  Matching value:`, matchingValue);
               if (matchingValue) {
                 usedValues.add(matchingValue.propertyvalueid);
-                console.log(`  Added ID: ${matchingValue.propertyvalueid}`);
-              } else {
-                console.log(`  ❌ No match found for "${variantValue}"`);
-                console.log(`  Available values:`, propertyValues[property.propertyid].map(pv => ({ id: pv.propertyvalueid, value: pv.value, isactive: pv.isactive })));
               }
             }
           }
-          
+
           if (usedValues.size > 0) {
             selected[property.propertyid] = Array.from(usedValues);
-            console.log(`  ✅ Selected IDs for "${property.name}":`, Array.from(usedValues));
-          } else {
-            console.log(`  ⚠️ No values selected for "${property.name}"`);
           }
         }
       }
-      
-      console.log('🔍 DEBUG useEffect: Final selected:', selected);
-      console.log('🔍 DEBUG useEffect: Current selectedPropertyValues:', selectedPropertyValues);
-      
-      // Only update if we found selections and current selection is empty for those properties
+
       if (Object.keys(selected).length > 0) {
         setSelectedPropertyValues(prev => {
-          console.log('🔍 DEBUG useEffect: Updating selectedPropertyValues');
-          console.log('  Previous:', prev);
-          // Only update properties that are empty or need updating
           const merged = { ...prev };
           Object.keys(selected).forEach(propId => {
-            // Only update if empty or if the selection is different
             if (!prev[propId] || prev[propId].length === 0) {
               merged[propId] = selected[propId];
-              console.log(`  Setting ${propId} to:`, selected[propId]);
-            } else {
-              console.log(`  Skipping ${propId} (already has values):`, prev[propId]);
             }
           });
-          console.log('  Merged result:', merged);
           return merged;
         });
       }
-    } else {
-      console.log('🔍 DEBUG useEffect: Conditions not met, skipping auto-population');
     }
   }, [product, variants, propertyValues, availableProperties]);
 
@@ -970,12 +895,10 @@ function VariantModal({
           ? `Грешка при качване: ${result.error || 'Неуспешно качване'}` 
           : `Upload error: ${result.error || 'Upload failed'}`);
       }
-    } catch (error) {
-      // Remove temporary preview on error
+    } catch {
       const currentImages = variant.images || [];
       updateVariant('images', currentImages.filter(img => img !== tempPreviewUrl));
       URL.revokeObjectURL(tempPreviewUrl);
-      console.error('❌ Upload error:', error);
       alert(language === 'bg' 
         ? 'Грешка при качване на снимка' 
         : 'Error uploading image');

@@ -2,6 +2,8 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
+
 
 type DateFilter = 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear';
 
@@ -74,7 +76,7 @@ export async function GET(request: NextRequest) {
       .lte('createdat', end.toISOString());
 
     if (salesError) {
-      console.error('Error fetching sales:', salesError);
+      logger.error('Error fetching sales:', salesError);
       return NextResponse.json({
         success: false,
         error: 'Failed to fetch sales data'
@@ -91,7 +93,7 @@ export async function GET(request: NextRequest) {
       .lte('createdat', end.toISOString());
 
     if (ordersError) {
-      console.error('Error fetching orders count:', ordersError);
+      logger.error('Error fetching orders count:', ordersError);
       return NextResponse.json({
         success: false,
         error: 'Failed to fetch orders count'
@@ -105,7 +107,7 @@ export async function GET(request: NextRequest) {
       .or('isdeleted.is.null,isdeleted.eq.false');
 
     if (productsError) {
-      console.error('Error fetching products count:', productsError);
+      logger.error('Error fetching products count:', productsError);
       return NextResponse.json({
         success: false,
         error: 'Failed to fetch products count'
@@ -120,7 +122,7 @@ export async function GET(request: NextRequest) {
       .lte('createdat', end.toISOString());
 
     if (customersError) {
-      console.error('Error fetching customers:', customersError);
+      logger.error('Error fetching customers:', customersError);
       return NextResponse.json({
         success: false,
         error: 'Failed to fetch customers data'
@@ -565,7 +567,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Dashboard API error:', error);
+    logger.error('Dashboard API error:', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error'

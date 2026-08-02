@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 // GET - Fetch all properties with their values (with fallback for missing table)
 export async function GET(request: NextRequest) {
@@ -23,18 +26,15 @@ export async function GET(request: NextRequest) {
 
       if (error) {
         // If property_values table doesn't exist, fetch properties without values
-        console.warn('property_values table not found, falling back to properties only:', error.message);
+        logger.warn('property_values table not found, falling back to properties only:');
         const { data: fallbackProperties, error: fallbackError } = await supabase
           .from('properties')
           .select('*')
           .order('name', { ascending: true });
 
         if (fallbackError) {
-          console.error('Error fetching properties:', fallbackError);
-          return NextResponse.json(
-            { error: fallbackError.message },
-            { status: 500 }
-          );
+          logger.error('Error fetching properties:', fallbackError);
+          return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: fallbackError });
         }
 
         // Add empty values array for compatibility
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 
     } catch (dbError) {
       // Complete fallback - return properties without values if database issues
-      console.error('Database error, using minimal fallback:', dbError);
+      logger.error('Database error, using minimal fallback:', dbError);
       try {
         const { data: minimalProperties, error: minimalError } = await supabase
           .from('properties')
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
           properties: propertiesWithEmptyvalues
         });
       } catch (minimalError) {
-        console.error('Minimal fallback also failed:', minimalError);
+        logger.error('Minimal fallback also failed:', minimalError);
         return NextResponse.json(
           { error: 'Database connection issues' },
           { status: 500 }
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Failed to fetch properties:', error);
+    logger.error('Failed to fetch properties:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -130,11 +130,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating property:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error creating property:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     if (Array.isArray(productTypeIds) && productTypeIds.length > 0) {
@@ -148,11 +145,8 @@ export async function POST(request: NextRequest) {
         );
 
       if (linksError) {
-        console.error('Error linking property to product types:', linksError);
-        return NextResponse.json(
-          { error: linksError.message },
-          { status: 500 }
-        );
+        logger.error('Error linking property to product types:', linksError);
+        return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: linksError });
       }
     }
 
@@ -162,11 +156,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Failed to create property:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
+    logger.error('Failed to create property:', error);
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }
 

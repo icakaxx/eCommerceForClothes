@@ -14,9 +14,7 @@ import { ShoppingCart, Heart, ShoppingBag } from 'lucide-react';
 import { isAwaitingRestock } from '@/lib/product-availability';
 import { normalizeProductImages } from '@/lib/product-images';
 import {
-  getPromoDiscountPercent,
-  getPromoSalePrice,
-  hasActivePromo,
+  getProductCardPricing,
 } from '@/lib/product-promo';
 
 interface ProductCardProps {
@@ -35,12 +33,12 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
   const [isFavorited, setIsFavorited] = useState(initialIsFavorited || false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const showOutOfStockOverlay = isAwaitingRestock(product);
-  const promoActive = hasActivePromo(product);
-  const promoPercent = getPromoDiscountPercent(product);
-  const salePrice = getPromoSalePrice(product.price, product);
-  const displayPrice = promoActive ? salePrice : product.price;
+  const cardPricing = getProductCardPricing(product);
+  const promoActive = cardPricing.promoActive;
+  const promoPercent = cardPricing.promoPercent;
+  const displayPrice = cardPricing.sale;
   const bgnPrice = displayPrice * 1.95;
-  const originalBgnPrice = product.price * 1.95;
+  const originalBgnPrice = cardPricing.original * 1.95;
 
   const uniqueImages = normalizeProductImages(product.images);
 
@@ -73,7 +71,6 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
             setIsFavorited(data.isFavorited);
           }
         } catch (error) {
-          console.error('Error checking favorite:', error);
         }
       };
       checkFavorite();
@@ -107,7 +104,6 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
         setIsFavorited(data.isFavorited);
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error);
     } finally {
       setIsTogglingFavorite(false);
     }
@@ -267,7 +263,7 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
                   className="text-xs sm:text-sm line-through transition-colors duration-300"
                   style={{ color: theme.colors.textSecondary }}
                 >
-                  €{product.price.toFixed(2)} / {originalBgnPrice.toFixed(2)} лв
+                  €{cardPricing.original.toFixed(2)} / {originalBgnPrice.toFixed(2)} лв
                 </div>
                 <div
                   className="text-base sm:text-lg font-bold transition-colors duration-300"
@@ -344,7 +340,6 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
                   setIsFavorited(data.isFavorited);
                 }
               } catch (error) {
-                console.error('Error checking favorite:', error);
               }
             };
             checkFavorite();

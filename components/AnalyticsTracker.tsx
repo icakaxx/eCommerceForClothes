@@ -180,7 +180,6 @@ function AnalyticsTrackerContent() {
         body: JSON.stringify(payload),
       });
     } catch (error) {
-      console.error('Analytics tracking error:', error);
     } finally {
       isTracking.current = false;
     }
@@ -207,7 +206,6 @@ function AnalyticsTrackerContent() {
         }),
       });
     } catch (error) {
-      console.error('Failed to update exit page:', error);
     }
   };
 

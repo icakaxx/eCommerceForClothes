@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { logger } from '@/lib/logger';
+
 
 // GET - Get favorite count for a product
 export async function GET(
@@ -23,7 +25,7 @@ export async function GET(
       .eq('productid', productId)
 
     if (countError) {
-      console.error('Error counting favorites:', countError)
+      logger.error('Error counting favorites:', countError)
       return NextResponse.json(
         { error: 'Failed to get favorite count' },
         { status: 500 }
@@ -36,7 +38,7 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error('Favorite count API error:', error)
+    logger.error('Favorite count API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { adjustVariantQuantityByDelta, isReturnedStatus, normalizeOrderStatus } from '@/lib/admin-order-stock';
+import { logger } from '@/lib/logger';
 
 type OrderItemRow = {
   productvariantid?: string | null;
@@ -64,11 +65,11 @@ export async function deleteOrderByOrderId(orderId: string): Promise<{ ok: boole
 
   const { error: histErr } = await supabaseAdmin.from('order_status_history').delete().eq('order_id', orderId);
   if (histErr && histErr.code !== '42P01') {
-    console.warn('order_status_history delete:', histErr.message);
+    logger.warn('order_status_history delete failed');
   }
   const { error: movErr } = await supabaseAdmin.from('stock_movements').delete().eq('related_order_id', orderId);
   if (movErr && movErr.code !== '42P01') {
-    console.warn('stock_movements delete:', movErr.message);
+    logger.warn('stock_movements delete failed');
   }
 
   const { error: itemsErr } = await supabaseAdmin.from('order_items').delete().eq('orderid', orderId);

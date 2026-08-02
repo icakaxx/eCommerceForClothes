@@ -20,20 +20,16 @@ export function PropertiesProvider({ children }: { children: ReactNode }) {
   const loadProperties = async () => {
     try {
       setIsLoading(true);
-      console.log('📦 Loading properties from Supabase...');
 
       const response = await fetch('/api/properties');
       const result = await response.json();
 
       if (result.success && result.properties) {
         setProperties(result.properties);
-        console.log(`✅ Loaded ${result.properties.length} properties from database`);
       } else {
-        console.warn('⚠️ No properties found');
         setProperties([]);
       }
-    } catch (error) {
-      console.error('❌ Failed to load properties:', error);
+    } catch {
       setProperties([]);
     } finally {
       setIsLoading(false);

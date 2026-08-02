@@ -28,7 +28,6 @@ export function useAdminSearch() {
           setRecentSearches(parsed);
         }
       } catch (error) {
-        console.error('Failed to load recent searches:', error);
       }
     }
   }, []);
@@ -155,7 +154,6 @@ export function useAdminSearch() {
       try {
         localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(searches));
       } catch (error) {
-        console.error('Failed to save recent searches:', error);
       }
     }
   }, []);

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 // GET - Get all values for a property (with fallback for missing table)
 export async function GET(
@@ -21,7 +24,7 @@ export async function GET(
 
       if (error) {
         // Table doesn't exist, return empty array
-        console.warn('property_values table not found, returning empty values:', error.message);
+        logger.warn('property_values table not found, returning empty values:');
         return NextResponse.json({
           success: true,
           values: []
@@ -35,7 +38,7 @@ export async function GET(
 
     } catch (dbError) {
       // Database error, return empty array
-      console.warn('Database error fetching property values, returning empty:', dbError);
+      logger.warn('Database error fetching property values, returning empty:');
       return NextResponse.json({
         success: true,
         values: []
@@ -43,7 +46,7 @@ export async function GET(
     }
 
   } catch (error) {
-    console.error('Failed to fetch property values:', error);
+    logger.error('Failed to fetch property values:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -84,7 +87,7 @@ export async function POST(
 
       if (error) {
         // Table doesn't exist, provide temporary success response
-        console.warn('property_values table not found, returning mock success:', error.message);
+        logger.warn('property_values table not found, returning mock success:');
 
         // Generate a temporary ID for frontend compatibility
         const tempvalue = {
@@ -111,7 +114,7 @@ export async function POST(
 
     } catch (dbError) {
       // Database error, return temporary success
-      console.warn('Database error creating property value, returning temporary success:', dbError);
+      logger.warn('Database error creating property value, returning temporary success:');
 
       const tempvalue = {
         PropertyvalueID: `temp-${Date.now()}-${Math.random()}`,
@@ -131,10 +134,7 @@ export async function POST(
     }
 
   } catch (error) {
-    console.error('Failed to create property value:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
+    logger.error('Failed to create property value:', error);
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }

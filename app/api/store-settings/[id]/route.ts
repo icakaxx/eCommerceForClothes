@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 // PUT - Update store settings by ID
 export async function PUT(
@@ -22,11 +25,8 @@ export async function PUT(
       .single()
 
     if (error) {
-      console.error('Error updating store settings:', error)
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      )
+      logger.error('Error updating store settings:', error)
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error })
     }
 
     return NextResponse.json({
@@ -35,10 +35,7 @@ export async function PUT(
     })
 
   } catch (error) {
-    console.error('Failed to update store settings:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('Failed to update store settings:', error)
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error })
   }
 }

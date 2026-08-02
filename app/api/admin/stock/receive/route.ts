@@ -2,6 +2,8 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adjustVariantQuantityByDelta } from '@/lib/admin-order-stock';
+import { logger } from '@/lib/logger';
+
 
 /**
  * Register incoming stock (заприхождаване) for an existing variant.
@@ -39,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, newQuantity: res.newQuantity });
   } catch (e) {
-    console.error('stock receive:', e);
+    logger.error('stock receive:', e);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

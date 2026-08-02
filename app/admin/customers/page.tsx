@@ -45,7 +45,6 @@ export default function CustomersPage() {
         }
         setIsAuthenticated(true);
       } catch (error) {
-        console.error('Auth check error:', error);
         router.push('/admin/login');
       } finally {
         setIsLoading(false);
@@ -70,7 +69,6 @@ export default function CustomersPage() {
         setCustomers(result.customers || []);
       }
     } catch (error) {
-      console.error('Failed to load customers:', error);
     } finally {
       setLoading(false);
     }

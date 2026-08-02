@@ -53,7 +53,6 @@ export function StoreSettingsProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
 
       if (!response.ok) {
-        console.error('Error loading store settings:', result.error);
         setError('Failed to load store settings');
         return;
       }
@@ -61,11 +60,9 @@ export function StoreSettingsProvider({ children }: { children: ReactNode }) {
       if (result.settings) {
         setSettings(result.settings);
       } else {
-        console.error('❌ No store settings found in database');
         setError('Store settings not found in database');
       }
     } catch (err) {
-      console.error('Error loading store settings:', err);
       setError('Failed to load store settings');
     } finally {
       setIsLoading(false);

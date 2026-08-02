@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
 import { Resend } from 'resend';
 import {
   getAdminNotificationEmails,
@@ -50,11 +52,11 @@ export async function POST(request: NextRequest) {
         webhookSecret,
       }) as typeof event;
     } catch (error) {
-      console.error('Resend inbound webhook verification failed:', error);
+      logger.error('Resend inbound webhook verification failed:', error);
       return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 });
     }
   } else {
-    console.warn('RESEND_WEBHOOK_SECRET is not set — inbound webhook is not verified');
+    logger.warn('RESEND_WEBHOOK_SECRET is not set — inbound webhook is not verified');
     try {
       event = JSON.parse(payload);
     } catch {
@@ -91,8 +93,8 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) {
-    console.error('Failed to forward inbound email:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    logger.error('Failed to forward inbound email:', error);
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
   }
 
   return NextResponse.json({

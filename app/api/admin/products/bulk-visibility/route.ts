@@ -2,6 +2,9 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 /** Bulk set storefront visibility (isdisabled) for multiple products. */
 export async function PATCH(request: NextRequest) {
@@ -43,11 +46,8 @@ export async function PATCH(request: NextRequest) {
       .select('productid');
 
     if (error) {
-      console.error('Bulk visibility update error:', error);
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 }
-      );
+      logger.error('Bulk visibility update error:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({
@@ -56,7 +56,7 @@ export async function PATCH(request: NextRequest) {
       isdisabled,
     });
   } catch (error) {
-    console.error('Bulk visibility update failed:', error);
+    logger.error('Bulk visibility update failed:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 // GET - Fetch all product types with counts
 // First tries to use PostgreSQL function with LEFT OUTER JOINs and GROUP BY (if exists)
@@ -112,7 +115,6 @@ export async function GET(request: NextRequest) {
       }
     } catch (rpcErr) {
       // Function doesn't exist, fall through to batch query approach
-      console.log('RPC function not available, using batch queries');
     }
 
     // Fallback: Use optimized batch queries (much better than N+1 queries)
@@ -128,11 +130,8 @@ export async function GET(request: NextRequest) {
       .order('name', { ascending: true });
 
     if (error) {
-      console.error('Error fetching product types:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error fetching product types:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     if (!productTypes || productTypes.length === 0) {
@@ -170,11 +169,11 @@ export async function GET(request: NextRequest) {
       .eq('isdeleted', false);
 
     if (propertiesError) {
-      console.error('Error fetching property counts:', propertiesError);
+      logger.error('Error fetching property counts:', propertiesError);
     }
 
     if (productsError) {
-      console.error('Error fetching product counts:', productsError);
+      logger.error('Error fetching product counts:', productsError);
     }
 
     // Count occurrences for each product type
@@ -277,7 +276,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Failed to fetch product types:', error);
+    logger.error('Failed to fetch product types:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -333,7 +332,7 @@ export async function POST(request: NextRequest) {
         .limit(1);
 
       if (productsError) {
-        console.error('Error checking parent products:', productsError);
+        logger.error('Error checking parent products:', productsError);
       } else if (parentProducts && parentProducts.length > 0) {
         return NextResponse.json(
           { error: 'Parent category has products. Categories with products cannot have child categories.' },
@@ -358,11 +357,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating product type:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error creating product type:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({
@@ -371,11 +367,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Failed to create product type:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
+    logger.error('Failed to create product type:', error);
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }
 

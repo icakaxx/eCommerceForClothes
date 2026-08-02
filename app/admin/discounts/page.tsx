@@ -71,7 +71,6 @@ export default function DiscountsPage() {
         }
         setIsAuthenticated(true);
       } catch (error) {
-        console.error('Auth check error:', error);
         router.push('/admin/login');
       } finally {
         setIsLoading(false);
@@ -96,7 +95,6 @@ export default function DiscountsPage() {
         setDiscounts(result.discounts || []);
       }
     } catch (error) {
-      console.error('Failed to load discounts:', error);
     } finally {
       setLoading(false);
     }
@@ -227,7 +225,6 @@ export default function DiscountsPage() {
         }, 1200);
       }
     } catch (error) {
-      console.error('Failed to save discount:', error);
       setFormErrors([t.unexpectedError]);
     } finally {
       setSubmitting(false);
@@ -252,7 +249,6 @@ export default function DiscountsPage() {
         alert(`${t.failedToDeleteDiscount}: ${result.error}`);
       }
     } catch (error) {
-      console.error('Failed to delete discount:', error);
       alert(t.unexpectedErrorDeleting);
     }
   };

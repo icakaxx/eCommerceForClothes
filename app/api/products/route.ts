@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { isVerifiedAdminRequest } from '@/lib/api/is-verified-admin-request';
 import { normalizePromoDiscountPercent } from '@/lib/product-promo';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
 
 // Type-safe Supabase client for this module
 const getSupabase = () => supabaseAdmin as any;
@@ -102,11 +104,8 @@ export async function GET(request: NextRequest) {
         .eq('propertyid', propertyid);
 
       if (propertyValuesError) {
-        console.error('Error fetching product property values:', propertyValuesError);
-        return NextResponse.json(
-          { error: propertyValuesError.message },
-          { status: 500 }
-        );
+        logger.error('Error fetching product property values', propertyValuesError);
+        return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: propertyValuesError });
       }
 
       const { data: variantPropertyValues, error: variantPropertyError } = await supabase
@@ -115,11 +114,8 @@ export async function GET(request: NextRequest) {
         .eq('propertyid', propertyid);
 
       if (variantPropertyError) {
-        console.error('Error fetching product variant property values:', variantPropertyError);
-        return NextResponse.json(
-          { error: variantPropertyError.message },
-          { status: 500 }
-        );
+        logger.error('Error fetching product variant property values', variantPropertyError);
+        return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: variantPropertyError });
       }
 
       const productIds = new Set<string>();
@@ -153,11 +149,8 @@ export async function GET(request: NextRequest) {
         const { data: basicProducts, error: basicError } = await basicQuery.order('name', { ascending: true });
 
         if (basicError) {
-          console.error('Error fetching basic products:', basicError);
-          return NextResponse.json(
-            { error: basicError.message },
-            { status: 500 }
-          );
+          logger.error('Error fetching basic products', basicError);
+          return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: basicError });
         }
 
         return NextResponse.json({
@@ -188,11 +181,8 @@ export async function GET(request: NextRequest) {
       .order('createdat', { ascending: false });
 
     if (productsError) {
-      console.error('Error fetching products:', productsError);
-      return NextResponse.json(
-        { error: productsError.message },
-        { status: 500 }
-      );
+      logger.error('Error fetching products', productsError);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: productsError });
     }
 
     // For each product, get variants and images
@@ -290,11 +280,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Failed to fetch products:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }
 
@@ -303,8 +289,6 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = getSupabase();
     const body = await request.json();
-
-    console.log('📝 POST /api/products - Received body:', JSON.stringify(body, null, 2));
 
     const {
       name,
@@ -340,11 +324,8 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (childrenError) {
-      console.error('Error checking category children:', childrenError);
-      return NextResponse.json(
-        { error: 'Failed to validate category' },
-        { status: 500 }
-      );
+      logger.error('Error checking category children', childrenError);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: childrenError });
     }
 
     if (categoryChildren && categoryChildren.length > 0) {
@@ -353,15 +334,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    Variants.forEach((v: any, i: number) => {
-      console.log(`  Variant ${i}:`, {
-        sku: v.sku,
-        price: v.price,
-        quantity: v.quantity,
-        propertyvalues: v.propertyvalues
-      });
-    });
 
     // Create the product
     const { data: product, error: productError } = await supabase
@@ -383,11 +355,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (productError) {
-      console.error('Error creating product:', productError);
-      return NextResponse.json(
-        { error: productError.message },
-        { status: 500 }
-      );
+      logger.error('Error creating product', productError);
+      return apiErrorResponse({ code: 'PRODUCT_SAVE_FAILED', status: 500, error: productError });
     }
 
     if (productImages.length > 0) {
@@ -405,7 +374,7 @@ export async function POST(request: NextRequest) {
         .insert(imageRows);
 
       if (productImagesError) {
-        console.error('Error creating product images:', productImagesError);
+        logger.error('Error creating product images', productImagesError);
       }
     }
 
@@ -426,11 +395,8 @@ export async function POST(request: NextRequest) {
           .select();
 
         if (variantError) {
-          console.error('❌ Error creating variants:', variantError);
-          return NextResponse.json(
-            { error: variantError.message },
-            { status: 500 }
-          );
+          logger.error('Error creating variants', variantError);
+          return apiErrorResponse({ code: 'PRODUCT_SAVE_FAILED', status: 500, error: variantError });
         }
 
         // Batch insert all property values
@@ -454,7 +420,7 @@ export async function POST(request: NextRequest) {
             .insert(allPropertyValues);
 
           if (pvError) {
-            console.error('Error creating property values:', pvError);
+            logger.error('Error creating property values', pvError);
           }
         }
 
@@ -490,9 +456,7 @@ export async function POST(request: NextRequest) {
             .insert(allVariantImages);
 
           if (imageError) {
-            console.error('❌ Error creating variant images:', imageError);
-          } else {
-            console.log(`✅ Saved ${allVariantImages.length} variant image(s) in batch`);
+            logger.error('Error creating variant images', imageError);
           }
         }
       }
@@ -503,10 +467,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Failed to create product:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
+    return apiErrorResponse({ code: 'PRODUCT_SAVE_FAILED', status: 500, error });
   }
 }

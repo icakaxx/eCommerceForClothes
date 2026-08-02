@@ -228,7 +228,6 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
             setFavoriteStatus(data.favorites);
           }
         } catch (error) {
-          console.error('Error checking favorites:', error);
         }
       };
 

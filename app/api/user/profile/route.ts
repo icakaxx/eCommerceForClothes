@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { updateProfileSchema } from '@/lib/zodSchemas'
 import { ValidationService } from '@/lib/validation'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { logger } from '@/lib/logger';
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,7 +25,7 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (userError || !user) {
-      console.error('Error fetching user profile:', userError)
+      logger.error('Error fetching user profile:', userError)
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
@@ -38,7 +40,7 @@ export async function GET(request: NextRequest) {
           ? JSON.parse(user.locationcoordinates) 
           : user.locationcoordinates
       } catch (error) {
-        console.warn('Failed to parse coordinates:', user.locationcoordinates)
+        logger.warn('Failed to parse coordinates:')
       }
     }
 
@@ -65,7 +67,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Profile API error:', error)
+    logger.error('Profile API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -96,7 +98,7 @@ export async function PUT(request: NextRequest) {
 
     const validationResult = updateProfileSchema.safeParse(validationData)
     if (!validationResult.success) {
-      console.error('❌ Profile update validation failed:', validationResult.error.flatten())
+      logger.error('Validation failed')
       return NextResponse.json(
         { 
           error: 'Invalid input format',
@@ -183,7 +185,7 @@ export async function PUT(request: NextRequest) {
       .single()
 
     if (updateError) {
-      console.error('Error updating user profile:', updateError)
+      logger.error('Error updating user profile:', updateError)
       return NextResponse.json(
         { error: 'Failed to update profile' },
         { status: 500 }
@@ -221,7 +223,7 @@ export async function PUT(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Profile update API error:', error)
+    logger.error('Profile update API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

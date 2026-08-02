@@ -1,24 +1,14 @@
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import {
+  groupVariantsIntoProducts,
+  type StockVariant,
+} from '@/lib/admin-stock-utils';
 
-interface StockVariant {
-  productvariantid: string;
-  productid: string;
-  product_name: string;
-  sku: string | null;
-  price: number;
-  quantity: number;
-  trackquantity: boolean;
-  primary_image?: string | null;
-  characteristics: Array<{
-    property_name: string;
-    value: string;
-  }>;
-}
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { data: variants, error: variantsError } = await supabaseAdmin
       .from('product_variants')
@@ -28,8 +18,10 @@ export async function GET(request: NextRequest) {
         productid,
         sku,
         price,
+        promotional_price,
         quantity,
         trackquantity,
+        isvisible,
         products!inner (
           productid,
           name,
@@ -40,22 +32,26 @@ export async function GET(request: NextRequest) {
       .eq('products.isdeleted', false);
 
     if (variantsError) {
-      console.error('Error fetching variants:', variantsError);
-      return NextResponse.json({
-        success: false,
-        error: 'Failed to fetch variants',
-      }, { status: 500 });
+      logger.error('Error fetching variants:', variantsError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to fetch variants',
+        },
+        { status: 500 }
+      );
     }
 
     if (!variants || variants.length === 0) {
       return NextResponse.json({
         success: true,
         variants: [],
+        products: [],
       });
     }
 
     const variantIds = variants.map((v) => v.productvariantid);
-    const productIds = [...new Set(variants.map((v: any) => v.productid).filter(Boolean))];
+    const productIds = [...new Set(variants.map((v: { productid: string }) => v.productid).filter(Boolean))];
 
     const { data: propertyValues, error: propertyValuesError } = await supabaseAdmin
       .from('product_variant_property_values')
@@ -72,14 +68,19 @@ export async function GET(request: NextRequest) {
       .in('productvariantid', variantIds);
 
     if (propertyValuesError) {
-      console.error('Error fetching property values:', propertyValuesError);
+      logger.error('Error fetching property values:', propertyValuesError);
     }
 
     const propsByVariant: Record<string, Array<{ property_name: string; value: string }>> = {};
-    (propertyValues || []).forEach((pv: any) => {
+    (propertyValues || []).forEach((pv: {
+      productvariantid?: string;
+      value?: string;
+      properties?: { name?: string } | { name?: string }[];
+    }) => {
       const variantId = pv.productvariantid;
-      const propertyName = pv.properties?.name || pv.Property?.name || 'Unknown';
-      const value = pv.value || pv.Value || '';
+      const property = Array.isArray(pv.properties) ? pv.properties[0] : pv.properties;
+      const propertyName = property?.name || 'Unknown';
+      const value = pv.value || '';
 
       if (variantId && propertyName && value) {
         if (!propsByVariant[variantId]) {
@@ -122,7 +123,17 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const stockVariants: StockVariant[] = variants.map((variant: any) => {
+    const stockVariants: StockVariant[] = variants.map((variant: {
+      productvariantid: string;
+      productid: string;
+      sku?: string | null;
+      price?: number | null;
+      promotional_price?: number | null;
+      quantity?: number | null;
+      trackquantity?: boolean | null;
+      isvisible?: boolean | null;
+      products?: { name?: string } | { name?: string }[];
+    }) => {
       const product = Array.isArray(variant.products) ? variant.products[0] : variant.products;
       const vid = variant.productvariantid;
       const pid = variant.productid;
@@ -135,22 +146,33 @@ export async function GET(request: NextRequest) {
         product_name: product?.name || 'Unknown Product',
         sku: variant.sku || null,
         price: Number(variant.price) || 0,
+        promotional_price:
+          variant.promotional_price != null && Number(variant.promotional_price) > 0
+            ? Number(variant.promotional_price)
+            : null,
         quantity: variant.quantity || 0,
         trackquantity: variant.trackquantity !== false,
+        isvisible: variant.isvisible !== false,
         primary_image: primary,
         characteristics: propsByVariant[variant.productvariantid] || [],
       };
     });
 
+    const products = groupVariantsIntoProducts(stockVariants);
+
     return NextResponse.json({
       success: true,
       variants: stockVariants,
+      products,
     });
   } catch (error) {
-    console.error('API error:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Internal server error',
-    }, { status: 500 });
+    logger.error('API error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Internal server error',
+      },
+      { status: 500 }
+    );
   }
 }

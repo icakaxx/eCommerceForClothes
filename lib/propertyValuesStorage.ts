@@ -16,8 +16,7 @@ export class PropertyValuesStorage {
     try {
       const data = localStorage.getItem(STORAGE_KEY);
       return data ? JSON.parse(data) : {};
-    } catch (error) {
-      console.error('Error reading property values from localStorage:', error);
+    } catch {
       return {};
     }
   }
@@ -27,8 +26,8 @@ export class PropertyValuesStorage {
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (error) {
-      console.error('Error writing property values to localStorage:', error);
+    } catch {
+      // Ignore localStorage write failures (quota, private mode)
     }
   }
 

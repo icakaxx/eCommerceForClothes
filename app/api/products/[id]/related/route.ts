@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 // GET - Get related products for a product
 export async function GET(
@@ -24,11 +27,8 @@ export async function GET(
       .order('displayorder', { ascending: true });
 
     if (error) {
-      console.error('Error fetching related products:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error fetching related products:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     // For each related product, get variants and images
@@ -100,7 +100,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Failed to get related products:', error);
+    logger.error('Failed to get related products:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -127,11 +127,8 @@ export async function PUT(
       .eq('productid', id);
 
     if (deleteError) {
-      console.error('Error deleting existing related products:', deleteError);
-      return NextResponse.json(
-        { error: deleteError.message },
-        { status: 500 }
-      );
+      logger.error('Error deleting existing related products:', deleteError);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: deleteError });
     }
 
     // Insert new related products
@@ -147,11 +144,8 @@ export async function PUT(
         .insert(relatedProductsData);
 
       if (insertError) {
-        console.error('Error inserting related products:', insertError);
-        return NextResponse.json(
-          { error: insertError.message },
-          { status: 500 }
-        );
+        logger.error('Error inserting related products:', insertError);
+        return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: insertError });
       }
     }
 
@@ -161,7 +155,7 @@ export async function PUT(
     });
 
   } catch (error) {
-    console.error('Failed to update related products:', error);
+    logger.error('Failed to update related products:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

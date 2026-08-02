@@ -94,7 +94,6 @@ export default function AdminSettingsPage() {
         localStorage.setItem('isAdmin', 'true');
         localStorage.setItem('admin_user_email', session.user.email || '');
       } catch (error) {
-        console.error('Auth check error:', error);
         router.push('/admin/login');
       } finally {
         setIsAuthLoading(false);
@@ -133,7 +132,6 @@ export default function AdminSettingsPage() {
         const result = await response.json();
 
         if (!response.ok) {
-          console.error('Error loading settings:', result.error);
           return;
         }
 
@@ -183,14 +181,12 @@ export default function AdminSettingsPage() {
           const createResult = await createResponse.json();
 
           if (!createResponse.ok || !createResult.success) {
-            console.error('Error creating default settings:', createResult.error);
             return;
           }
 
           setSettings(createResult.settings);
         }
       } catch (error) {
-        console.error('Error loading settings:', error);
       } finally {
         setIsLoading(false);
       }
@@ -211,7 +207,6 @@ export default function AdminSettingsPage() {
           setTestimonials(result.testimonials || []);
         }
       } catch (error) {
-        console.error('Error loading testimonials:', error);
       } finally {
         setIsLoadingTestimonials(false);
       }
@@ -273,7 +268,6 @@ export default function AdminSettingsPage() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        console.error('Error saving settings:', result.error);
         alert(t.errorSavingSettings);
         return;
       }
@@ -283,7 +277,6 @@ export default function AdminSettingsPage() {
       await refreshSettings();
       alert(t.settingsSaved);
     } catch (error) {
-      console.error('Error saving settings:', error);
       alert(language === 'bg' ? 'Грешка при запазване на настройките' : 'Error saving settings');
     } finally {
       setIsSaving(false);
@@ -312,13 +305,12 @@ export default function AdminSettingsPage() {
       const result = await uploadFile('logos', fileName, file);
 
       if (result.success && result.url) {
-        setSettings(prev => prev ? { ...prev, logourl: result.url } : null);
+        setSettings(prev => prev ? { ...prev, logourl: result.url ?? null } : null);
         setHasChanges(true);
       } else {
         alert(t.errorUploadingLogo);
       }
     } catch (error) {
-      console.error('Logo upload error:', error);
       alert(t.errorUploadingLogo);
     }
 
@@ -350,7 +342,7 @@ export default function AdminSettingsPage() {
       if (result.success && result.url) {
         setSettings(prev => prev ? { 
           ...prev, 
-          heroimageurl: result.url,
+          heroimageurl: result.url ?? null,
           heroimagefocusx: 50,
           heroimagefocusy: 50
         } : null);
@@ -359,7 +351,6 @@ export default function AdminSettingsPage() {
         alert(language === 'bg' ? 'Грешка при качване на hero изображение' : 'Error uploading hero image');
       }
     } catch (error) {
-      console.error('Hero image upload error:', error);
       alert(language === 'bg' ? 'Грешка при качване на hero изображение' : 'Error uploading hero image');
     }
 
@@ -389,13 +380,12 @@ export default function AdminSettingsPage() {
       const result = await uploadFile('images', fileName, file);
 
       if (result.success && result.url) {
-        setSettings(prev => prev ? { ...prev, aboutusphoto: result.url } : null);
+        setSettings(prev => prev ? { ...prev, aboutusphoto: result.url ?? null } : null);
         setHasChanges(true);
       } else {
         alert(language === 'bg' ? 'Грешка при качване на изображение' : 'Error uploading image');
       }
     } catch (error) {
-      console.error('About us photo upload error:', error);
       alert(language === 'bg' ? 'Грешка при качване на изображение' : 'Error uploading image');
     }
 
@@ -460,13 +450,10 @@ export default function AdminSettingsPage() {
             if (createResult.success) {
               uploadedTestimonials.push(createResult.testimonial);
             } else {
-              console.error(`Error creating testimonial for ${file.name}:`, createResult.error);
             }
           } else {
-            console.error(`Error uploading ${file.name}`);
           }
         } catch (error) {
-          console.error(`Error processing ${file.name}:`, error);
         }
       }
 
@@ -481,7 +468,6 @@ export default function AdminSettingsPage() {
         alert(language === 'bg' ? 'Грешка при качване на изображения' : 'Error uploading images');
       }
     } catch (error) {
-      console.error('Testimonial upload error:', error);
       alert(language === 'bg' ? 'Грешка при качване на отзиви' : 'Error uploading testimonials');
     } finally {
       setIsUploadingTestimonial(false);
@@ -506,7 +492,6 @@ export default function AdminSettingsPage() {
         alert(language === 'bg' ? 'Грешка при изтриване на отзив' : 'Error deleting testimonial');
       }
     } catch (error) {
-      console.error('Error deleting testimonial:', error);
       alert(language === 'bg' ? 'Грешка при изтриване на отзив' : 'Error deleting testimonial');
     }
   };
@@ -542,7 +527,6 @@ export default function AdminSettingsPage() {
 
       setTestimonials(updates);
     } catch (error) {
-      console.error('Error reordering testimonials:', error);
       alert(language === 'bg' ? 'Грешка при пренареждане на отзиви' : 'Error reordering testimonials');
     }
   };

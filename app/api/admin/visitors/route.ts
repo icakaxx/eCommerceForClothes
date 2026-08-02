@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
 import { getAdminSession } from '@/lib/auth';
+import { logger } from '@/lib/logger';
+
 
 /**
  * GET endpoint to retrieve visitor analytics data
@@ -62,7 +64,7 @@ export async function GET(request: NextRequest) {
       .lte('date', endDate);
 
     if (statsError) {
-      console.error('Failed to fetch stats:', statsError);
+      logger.error('Failed to fetch stats:', statsError);
       return NextResponse.json(
         { error: 'Failed to fetch visitor stats' },
         { status: 500 }
@@ -77,7 +79,7 @@ export async function GET(request: NextRequest) {
       .lte('created_at', `${endDate}T23:59:59Z`);
 
     if (sessionsError) {
-      console.error('Failed to fetch recent sessions:', sessionsError);
+      logger.error('Failed to fetch recent sessions:', sessionsError);
     }
 
     // Combine and process data
@@ -89,7 +91,7 @@ export async function GET(request: NextRequest) {
       dateRange: { startDate, endDate, timeRange },
     });
   } catch (error) {
-    console.error('Visitor analytics error:', error);
+    logger.error('Visitor analytics error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

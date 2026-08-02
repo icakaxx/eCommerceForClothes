@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 // GET - Get single product type with properties
 export async function GET(
@@ -63,7 +66,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Failed to get product type:', error);
+    logger.error('Failed to get product type:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -149,7 +152,7 @@ export async function PUT(
           .limit(1);
 
         if (productsError) {
-          console.error('Error checking parent products:', productsError);
+          logger.error('Error checking parent products:', productsError);
         } else if (parentProducts && parentProducts.length > 0) {
           return NextResponse.json(
             { error: 'Parent category has products. Categories with products cannot have child categories.' },
@@ -169,7 +172,7 @@ export async function PUT(
         .limit(1);
 
       if (childrenError) {
-        console.error('Error checking current category children:', childrenError);
+        logger.error('Error checking current category children:', childrenError);
       } else if (currentCategoryChildren && currentCategoryChildren.length > 0) {
         return NextResponse.json(
           { error: 'This category has child categories. Parent categories cannot have a parent. Only leaf categories (categories with products) can have a parent.' },
@@ -198,11 +201,8 @@ export async function PUT(
       .single();
 
     if (error) {
-      console.error('Error updating product type:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error updating product type:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({
@@ -211,11 +211,8 @@ export async function PUT(
     });
 
   } catch (error) {
-    console.error('Failed to update product type:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
+    logger.error('Failed to update product type:', error);
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }
 
@@ -234,11 +231,8 @@ export async function DELETE(
       .eq('producttypeid', id);
 
     if (productsForTypeError) {
-      console.error('Error loading products for product type:', productsForTypeError);
-      return NextResponse.json(
-        { error: productsForTypeError.message },
-        { status: 500 }
-      );
+      logger.error('Error loading products for product type:', productsForTypeError);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: productsForTypeError });
     }
 
     const productIds = (productsForType || []).map((product) => product.productid);
@@ -251,11 +245,8 @@ export async function DELETE(
         .in('productid', productIds);
 
       if (favoriteProductsError) {
-        console.error('Error deleting favorite products:', favoriteProductsError);
-        return NextResponse.json(
-          { error: favoriteProductsError.message },
-          { status: 500 }
-        );
+        logger.error('Error deleting favorite products:', favoriteProductsError);
+        return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: favoriteProductsError });
       }
 
       const { data: variants, error: variantsError } = await supabase
@@ -264,11 +255,8 @@ export async function DELETE(
         .in('productid', productIds);
 
       if (variantsError) {
-        console.error('Error loading variants for product type:', variantsError);
-        return NextResponse.json(
-          { error: variantsError.message },
-          { status: 500 }
-        );
+        logger.error('Error loading variants for product type:', variantsError);
+        return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: variantsError });
       }
 
       const variantIds = (variants || []).map((variant) => variant.productvariantid);
@@ -279,11 +267,8 @@ export async function DELETE(
         .in('productid', productIds);
 
       if (relatedProductsError) {
-        console.error('Error deleting related products (productid):', relatedProductsError);
-        return NextResponse.json(
-          { error: relatedProductsError.message },
-          { status: 500 }
-        );
+        logger.error('Error deleting related products (productid):', relatedProductsError);
+        return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: relatedProductsError });
       }
 
       const { error: relatedProductRefsError } = await supabase
@@ -292,11 +277,8 @@ export async function DELETE(
         .in('relatedproductid_ref', productIds);
 
       if (relatedProductRefsError) {
-        console.error('Error deleting related products (relatedproductid_ref):', relatedProductRefsError);
-        return NextResponse.json(
-          { error: relatedProductRefsError.message },
-          { status: 500 }
-        );
+        logger.error('Error deleting related products (relatedproductid_ref):', relatedProductRefsError);
+        return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: relatedProductRefsError });
       }
 
       const { error: productImagesError } = await supabase
@@ -305,11 +287,8 @@ export async function DELETE(
         .in('productid', productIds);
 
       if (productImagesError) {
-        console.error('Error deleting product images:', productImagesError);
-        return NextResponse.json(
-          { error: productImagesError.message },
-          { status: 500 }
-        );
+        logger.error('Error deleting product images:', productImagesError);
+        return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: productImagesError });
       }
 
       if (variantIds.length > 0) {
@@ -319,11 +298,8 @@ export async function DELETE(
           .in('productvariantid', variantIds);
 
         if (variantPropertyValuesError) {
-          console.error('Error deleting variant property values:', variantPropertyValuesError);
-          return NextResponse.json(
-            { error: variantPropertyValuesError.message },
-            { status: 500 }
-          );
+          logger.error('Error deleting variant property values:', variantPropertyValuesError);
+          return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: variantPropertyValuesError });
         }
       }
 
@@ -333,11 +309,8 @@ export async function DELETE(
         .in('productid', productIds);
 
       if (productPropertyValuesError) {
-        console.error('Error deleting product property values:', productPropertyValuesError);
-        return NextResponse.json(
-          { error: productPropertyValuesError.message },
-          { status: 500 }
-        );
+        logger.error('Error deleting product property values:', productPropertyValuesError);
+        return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: productPropertyValuesError });
       }
 
       const { error: variantsDeleteError } = await supabase
@@ -346,11 +319,8 @@ export async function DELETE(
         .in('productid', productIds);
 
       if (variantsDeleteError) {
-        console.error('Error deleting product variants:', variantsDeleteError);
-        return NextResponse.json(
-          { error: variantsDeleteError.message },
-          { status: 500 }
-        );
+        logger.error('Error deleting product variants:', variantsDeleteError);
+        return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: variantsDeleteError });
       }
 
       const { error: productsDeleteError } = await supabase
@@ -359,11 +329,8 @@ export async function DELETE(
         .in('productid', productIds);
 
       if (productsDeleteError) {
-        console.error('Error deleting products for product type:', productsDeleteError);
-        return NextResponse.json(
-          { error: productsDeleteError.message },
-          { status: 500 }
-        );
+        logger.error('Error deleting products for product type:', productsDeleteError);
+        return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: productsDeleteError });
       }
     }
 
@@ -373,11 +340,8 @@ export async function DELETE(
       .eq('producttypeid', id);
 
     if (linksError) {
-      console.error('Error deleting product type properties:', linksError);
-      return NextResponse.json(
-        { error: linksError.message },
-        { status: 500 }
-      );
+      logger.error('Error deleting product type properties:', linksError);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: linksError });
     }
 
     const { error } = await supabase
@@ -386,11 +350,8 @@ export async function DELETE(
       .eq('producttypeid', id);
 
     if (error) {
-      console.error('Error deleting product type:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error deleting product type:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({
@@ -399,7 +360,7 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('Failed to delete product type:', error);
+    logger.error('Failed to delete product type:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

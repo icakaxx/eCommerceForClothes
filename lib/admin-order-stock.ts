@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
 
 export {
   TRACKING_ORDER_STATUSES,
@@ -30,7 +31,7 @@ export async function recordStockMovement(params: {
     created_by: params.created_by ?? null,
   });
   if (error && error.code !== '42P01') {
-    console.warn('stock_movements insert failed (table may not exist yet):', error.message);
+    logger.warn('stock_movements insert failed (table may not exist yet)');
   }
 }
 

@@ -3,6 +3,9 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { deleteOrderByOrderId } from '@/lib/admin-delete-order';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 const CONFIRM_PHRASE = 'DELETE_ALL_ORDERS';
 
@@ -25,7 +28,7 @@ export async function POST(request: NextRequest) {
     const { data: rows, error: listError } = await supabaseAdmin.from('orders').select('orderid');
 
     if (listError) {
-      return NextResponse.json({ success: false, error: listError.message }, { status: 500 });
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: listError });
     }
 
     const ids = (rows || []).map((r: { orderid: string }) => r.orderid).filter(Boolean);
@@ -45,7 +48,7 @@ export async function POST(request: NextRequest) {
       errors: errors.length ? errors.slice(0, 20) : undefined,
     });
   } catch (e) {
-    console.error('clear-all orders:', e);
+    logger.error('clear-all orders:', e);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -92,7 +92,6 @@ export default function ProductTypesPage() {
           }))
         });
       } catch (error) {
-        console.error('Failed to load delete dependencies:', error);
         setDeleteDependencies({ loading: false, properties: [], products: [] });
       }
     };
@@ -111,7 +110,6 @@ export default function ProductTypesPage() {
           setAvailableProperties(result.properties || []);
         }
       } catch (error) {
-        console.error('Failed to load properties:', error);
       } finally {
         setLoadingProperties(false);
       }
@@ -131,17 +129,10 @@ export default function ProductTypesPage() {
       const response = await fetch('/api/product-types');
       const result = await response.json();
       if (result.success) {
-        // Debug: Log to verify counts are coming through
-        console.log('Product types with counts:', result.productTypes.map((pt: any) => ({
-          name: pt.name,
-          propertiesCount: pt.propertiesCount,
-          productsCount: pt.productsCount
-        })));
         setProductTypes(result.productTypes);
       } else {
       }
     } catch (error) {
-      console.error('Failed to load product types:', error);
     } finally {
       setLoading(false);
     }
@@ -199,7 +190,6 @@ export default function ProductTypesPage() {
         alert('Error: ' + result.error);
       }
     } catch (error) {
-      console.error('Failed to save product type:', error);
       alert('Failed to save product type');
     }
   };
@@ -240,7 +230,6 @@ export default function ProductTypesPage() {
         alert('Error: ' + result.error);
       }
     } catch (error) {
-      console.error('Failed to delete product type:', error);
       alert('Failed to delete product type');
     } finally {
       setDeleting(false);
@@ -304,7 +293,6 @@ export default function ProductTypesPage() {
         return;
       }
     } catch (error) {
-      console.error('Failed to bulk delete product types:', error);
       alert(language === 'bg' ? 'Неуспешно масово изтриване' : 'Bulk delete failed');
     } finally {
       setBulkDeleting(false);

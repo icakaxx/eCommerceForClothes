@@ -26,20 +26,16 @@ export function ProductTypeProvider({ children }: { children: ReactNode }) {
   const loadProductTypes = async () => {
     try {
       setIsLoading(true);
-      console.log('📦 Loading product types from Supabase...');
 
       const response = await fetch('/api/product-types');
       const result = await response.json();
 
       if (result.success && result.productTypes) {
         setProductTypes(result.productTypes);
-        console.log(`✅ Loaded ${result.productTypes.length} product types from database`);
       } else {
-        console.warn('⚠️ No product types found');
         setProductTypes([]);
       }
-    } catch (error) {
-      console.error('❌ Failed to load product types:', error);
+    } catch {
       setProductTypes([]);
     } finally {
       setIsLoading(false);

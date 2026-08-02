@@ -80,7 +80,6 @@ export default function Home() {
           : [];
         setFeaturedProducts(visible);
       } catch (error) {
-        console.error('Failed to load home products:', error);
       } finally {
         setLoadingFeatured(false);
       }
@@ -110,7 +109,6 @@ export default function Home() {
           }
         }
       } catch (error) {
-        console.error('Failed to load favorite products:', error);
       }
     };
 
@@ -141,7 +139,6 @@ export default function Home() {
             setFeaturedFavorites(data.favorites);
           }
         } catch (error) {
-          console.error('Error checking featured favorites:', error);
         }
       };
 
@@ -161,7 +158,6 @@ export default function Home() {
           setTestimonials(result.testimonials || []);
         }
       } catch (error) {
-        console.error('Failed to load testimonials:', error);
       } finally {
         setLoadingTestimonials(false);
       }

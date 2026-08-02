@@ -58,8 +58,7 @@ export default function ProductDetailPage() {
         } else {
           throw new Error('Invalid product data');
         }
-      } catch (error) {
-        console.error('Error fetching product:', error);
+      } catch {
         router.push('/');
       } finally {
         setIsLoading(false);

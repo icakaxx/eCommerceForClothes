@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 // GET - Get all property values for a product
 export async function GET(
@@ -26,11 +29,8 @@ export async function GET(
       .eq('productid', id);
 
     if (error) {
-      console.error('Error fetching product property values:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error fetching product property values:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({
@@ -39,7 +39,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Failed to fetch product property values:', error);
+    logger.error('Failed to fetch product property values:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -81,11 +81,8 @@ export async function POST(
       .single();
 
     if (error) {
-      console.error('Error setting product property value:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error setting product property value:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({
@@ -94,11 +91,8 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Failed to set product property value:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
+    logger.error('Failed to set product property value:', error);
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }
 
@@ -127,11 +121,8 @@ export async function DELETE(
       .eq('propertyid', propertyId);
 
     if (error) {
-      console.error('Error removing product property value:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error removing product property value:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({
@@ -140,7 +131,7 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('Failed to remove product property value:', error);
+    logger.error('Failed to remove product property value:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

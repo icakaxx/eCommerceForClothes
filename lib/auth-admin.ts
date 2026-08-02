@@ -1,6 +1,7 @@
 import 'server-only'
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { supabase as browserClient } from '@/lib/supabase-browser'
+import { logger } from '@/lib/logger';
 
 export interface AdminUser {
   id: string
@@ -22,7 +23,7 @@ export async function verifyAdminAccess(userId: string): Promise<{ isAdmin: bool
       .single()
 
     if (error || !profile) {
-      console.error('Profile lookup error:', error)
+      logger.error('Profile lookup failed');
       return { isAdmin: false }
     }
 
@@ -38,7 +39,7 @@ export async function verifyAdminAccess(userId: string): Promise<{ isAdmin: bool
       }
     }
   } catch (error) {
-    console.error('Admin verification error:', error)
+    logger.error('Admin verification failed');
     return { isAdmin: false }
   }
 }
@@ -66,8 +67,7 @@ export async function getAdminSession(): Promise<AdminUser | null> {
     }
 
     return result.user
-  } catch (error) {
-    console.error('Admin session error:', error)
+  } catch {
     return null
   }
 }

@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 // GET - Fetch all RF product types (main categories)
 export async function GET() {
@@ -12,11 +15,8 @@ export async function GET() {
       .order('rfproducttypeid', { ascending: true });
 
     if (error) {
-      console.error('Error fetching RF product types:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error fetching RF product types:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({
@@ -25,7 +25,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('Failed to fetch RF product types:', error);
+    logger.error('Failed to fetch RF product types:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

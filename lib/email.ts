@@ -1,4 +1,5 @@
 import { sendEmail, getContactEmail, getAdminNotificationEmails, isEmailConfigured } from '@/lib/mail';
+import { logger } from '@/lib/logger';
 import { translations, Language } from '@/lib/translations';
 import { getShippingEstimateMessage } from '@/lib/order-shipping-estimate';
 
@@ -69,13 +70,13 @@ function getValidCustomerEmail(email?: string): string | null {
 
 export async function sendCustomerOrderEmail(orderDetails: OrderDetails, language: Language = 'en'): Promise<void> {
   if (!isEmailConfigured()) {
-    console.warn('Skipping customer order email: email not configured');
+    logger.warn('Skipping customer order email: email not configured');
     return;
   }
 
   const customerEmail = getValidCustomerEmail(orderDetails.customer.email);
   if (!customerEmail) {
-    console.log('Skipping customer order email: no valid customer email provided');
+    logger.debug('Skipping customer order email: no valid customer email');
     return;
   }
 
@@ -199,12 +200,12 @@ export async function sendCustomerOrderEmail(orderDetails: OrderDetails, languag
     replyTo: contactEmail,
   });
 
-  console.log('Customer order email sent successfully to', customerEmail);
+  logger.debug('Customer order email sent');
 }
 
 export async function sendAdminOrderEmail(orderDetails: OrderDetails, language: Language = 'en'): Promise<void> {
   if (!isEmailConfigured()) {
-    console.warn('Skipping admin order email: email not configured');
+    logger.warn('Skipping admin order email: email not configured');
     return;
   }
 
@@ -333,7 +334,7 @@ export async function sendAdminOrderEmail(orderDetails: OrderDetails, language: 
     html: adminEmailHtml,
   });
 
-  console.log('Admin order email sent successfully');
+  logger.debug('Admin order email sent');
 }
 
 export async function sendOrderStatusEmail(
@@ -342,13 +343,13 @@ export async function sendOrderStatusEmail(
   language: Language = 'en'
 ): Promise<void> {
   if (!isEmailConfigured()) {
-    console.warn('Skipping order status email: email not configured');
+    logger.warn('Skipping order status email: email not configured');
     return;
   }
 
   const customerEmail = getValidCustomerEmail(orderDetails.customer.email);
   if (!customerEmail) {
-    console.log('Skipping order status email: no valid customer email provided');
+    logger.debug('Skipping order status email: no valid customer email');
     return;
   }
 
@@ -490,5 +491,5 @@ export async function sendOrderStatusEmail(
     replyTo: contactEmail,
   });
 
-  console.log(`Order ${status} email sent successfully to ${customerEmail}`);
+  logger.debug('Order status email sent', { status });
 }

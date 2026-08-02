@@ -5,6 +5,8 @@ import { withRateLimit, createRateLimitResponse } from '@/lib/rateLimit'
 import { emailService } from '@/lib/emailService'
 import { ValidationService } from '@/lib/validation'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { logger } from '@/lib/logger';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +21,7 @@ export async function POST(request: NextRequest) {
     // Validate input with Zod
     const validationResult = registerSchema.safeParse(body)
     if (!validationResult.success) {
-      console.error('❌ Register validation failed:', validationResult.error.flatten())
+      logger.error('Validation failed')
       return NextResponse.json(
         { 
           error: 'Invalid input format',
@@ -97,7 +99,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (insertError || !newUser) {
-      console.error('Registration error:', insertError)
+      logger.error('Registration error:', insertError)
       return NextResponse.json(
         { error: 'Failed to create account' },
         { 
@@ -114,7 +116,7 @@ export async function POST(request: NextRequest) {
         name
       })
     } catch (emailError) {
-      console.error('Failed to send welcome email:', emailError)
+      logger.error('Failed to send welcome email:', emailError)
       // Don't fail registration if email fails
     }
 
@@ -134,7 +136,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Registration error:', error)
+    logger.error('Registration error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

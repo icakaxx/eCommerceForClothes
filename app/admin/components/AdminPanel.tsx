@@ -38,76 +38,27 @@ export default function AdminPanel() {
 
     const testConnections = async () => {
       try {
-        console.log('🔌 AdminPanel: Testing Supabase connections...');
-        
-        // Check session first
         const { getAdminSession } = await import('@/lib/auth');
-        const session = await getAdminSession();
-        
-        if (session) {
-          console.log('✅ AdminPanel: Active session found!');
-          console.log('Session info:', {
-            email: session.user.email,
-            userId: session.user.id,
-            expiresAt: new Date(session.expires_at! * 1000).toLocaleString(),
-            role: session.user.user_metadata?.role
-          });
-        } else {
-          console.warn('⚠️ AdminPanel: No active session found');
-        }
-        
-        // Check if environment variables are available
+        await getAdminSession();
+
         const hasUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
         const hasKey = !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        
+
         if (!hasUrl || !hasKey) {
-          console.error('❌ AdminPanel: Missing Supabase environment variables');
-          console.error('Please create .env.local file with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY');
           return;
         }
-        
-        // Database connection testing is now done server-side only
-        console.log('✅ AdminPanel: Browser client ready for auth and public reads');
 
-        // Test Storage bucket connection and create if needed
-        console.log('📦 Testing Storage bucket connection...');
         const storageResult = await testStorageConnection(DEFAULT_BUCKET);
-        
-        if (storageResult.success) {
-          console.log('✅ AdminPanel: Storage bucket connection successful!');
-          console.log(`Bucket "${DEFAULT_BUCKET}" is accessible with ${storageResult.fileCount} items`);
-        } else {
-          console.warn('⚠️ AdminPanel: Storage bucket connection issue:', storageResult.message);
-          if (storageResult.availableBuckets) {
-            console.log('Available buckets:', storageResult.availableBuckets);
-          }
-          
-          // Try to create bucket if it doesn't exist
-          console.log('📦 Attempting to create bucket...');
+
+        if (!storageResult.success) {
           try {
-            const createResponse = await fetch('/api/storage/setup', { method: 'POST' });
-            const createResult = await createResponse.json();
-            
-            if (createResult.success) {
-              console.log('✅ Bucket created successfully:', createResult.bucket);
-              console.log('📋 Bucket details:', createResult);
-            } else {
-              console.error('❌ Failed to create bucket:', {
-                error: createResult.error,
-                details: createResult.details,
-                bucketName: createResult.bucketName
-              });
-              console.error('💡 Tip: Make sure SUPABASE_SERVICE_ROLE_KEY is set in .env.local');
-            }
-          } catch (createError) {
-            console.error('❌ Error creating bucket:', createError);
+            await fetch('/api/storage/setup', { method: 'POST' });
+          } catch {
+            // Bucket setup is best-effort on panel load
           }
         }
-      } catch (err) {
-        console.error('❌ AdminPanel: Failed to connect to Supabase:', err);
-        if (err instanceof Error) {
-          console.error('Error message:', err.message);
-        }
+      } catch {
+        // Connection test is best-effort on panel load
       }
     };
 
@@ -148,12 +99,9 @@ export default function AdminPanel() {
         setProducts(products.map(p => 
           p.id === id ? updatedProduct : p
         ));
-        console.log('✅ Product visibility updated');
-      } else {
-        console.error('Failed to update product visibility');
       }
-    } catch (error) {
-      console.error('Error updating visibility:', error);
+    } catch {
+      // Visibility update failed
     }
   };
 
@@ -172,11 +120,9 @@ export default function AdminPanel() {
         const result = await response.json();
 
         if (result.success) {
-          console.log('✅ Product created:', result.product.id);
-          await loadProducts(); // Reload products from database
+          await loadProducts();
           setEditingProduct(null);
         } else {
-          console.error('Failed to create product:', result.error);
           alert(language === 'bg' ? 'Грешка при създаване на продукт' : 'Error creating product');
         }
       } else {
@@ -190,16 +136,13 @@ export default function AdminPanel() {
         const result = await response.json();
 
         if (result.success) {
-          console.log('✅ Product updated:', updatedProduct.id);
-          await loadProducts(); // Reload products from database
+          await loadProducts();
           setEditingProduct(null);
         } else {
-          console.error('Failed to update product:', result.error);
           alert(language === 'bg' ? 'Грешка при обновяване на продукт' : 'Error updating product');
         }
       }
-    } catch (error) {
-      console.error('Error saving product:', error);
+    } catch {
       alert(language === 'bg' ? 'Грешка при записване на продукт' : 'Error saving product');
     }
   };
@@ -217,14 +160,11 @@ export default function AdminPanel() {
       });
 
       if (response.ok) {
-        console.log('✅ Product deleted:', id);
-        await loadProducts(); // Reload products from database
+        await loadProducts();
       } else {
-        console.error('Failed to delete product');
         alert(language === 'bg' ? 'Грешка при изтриване на продукт' : 'Error deleting product');
       }
-    } catch (error) {
-      console.error('Error deleting product:', error);
+    } catch {
       alert(language === 'bg' ? 'Грешка при изтриване на продукт' : 'Error deleting product');
     }
   };
@@ -246,10 +186,9 @@ export default function AdminPanel() {
             url: getStorageUrl(DEFAULT_BUCKET, file.name)
           }));
           setUploadedFiles(filesWithUrls);
-          console.log('📁 Loaded files from storage:', filesWithUrls.length);
         }
-      } catch (err) {
-        console.error('Failed to load files:', err);
+      } catch {
+        // File list unavailable
       }
     };
     loadFiles();
@@ -269,9 +208,6 @@ export default function AdminPanel() {
     setUploadProgress('Качване на снимка...');
 
     try {
-      console.log(`📤 Uploading file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
-
-      // Use API route for upload (bypasses RLS)
       const formData = new FormData();
       formData.append('file', file);
       formData.append('folder', 'images');
@@ -293,10 +229,6 @@ export default function AdminPanel() {
           url: result.url
         }, ...prev]);
 
-        console.log('✅ Upload successful!');
-        console.log('📎 File path:', result.path);
-        console.log('🔗 Public URL:', result.url);
-        
         // Clear input
         event.target.value = '';
         
@@ -306,11 +238,9 @@ export default function AdminPanel() {
         }, 2000);
       } else {
         setUploadProgress(`❌ Грешка: ${result.error || 'Неуспешно качване'}`);
-        console.error('Upload failed:', result.error);
       }
     } catch (error) {
       setUploadProgress(`❌ Грешка: ${error instanceof Error ? error.message : 'Неочаквана грешка'}`);
-      console.error('Upload error:', error);
     } finally {
       setUploading(false);
     }

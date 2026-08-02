@@ -109,7 +109,6 @@ export default function FilterDrawer({
           setAllowedPropertyIds(null);
         }
       } catch (error) {
-        console.error('Failed to load product type properties:', error);
         setAllowedPropertyIds(null);
       }
     };

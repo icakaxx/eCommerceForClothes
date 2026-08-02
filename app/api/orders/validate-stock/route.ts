@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
+
 
 interface StockValidationItem {
   id: string | number;
@@ -22,7 +24,7 @@ async function validateStock(items: StockValidationItem[]): Promise<{ valid: boo
           .single();
 
         if (error) {
-          console.error('Error checking variant stock:', error);
+          logger.error('Error checking variant stock:', error);
           insufficientStock.push({ id: item.id, requested: item.quantity, available: 0 });
           continue;
         }
@@ -38,10 +40,9 @@ async function validateStock(items: StockValidationItem[]): Promise<{ valid: boo
         // For products without variants, assume sufficient stock
         // (The products table doesn't have a quantity column in the current schema)
         // In a full implementation, products table should also have quantity column
-        console.log(`Skipping stock check for product ${item.id} (no variants)`);
       }
     } catch (error) {
-      console.error('Stock validation error:', error);
+      logger.error('Stock validation error:', error);
       insufficientStock.push({ id: item.id, requested: item.quantity, available: 0 });
     }
   }
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Stock validation API error:', error);
+    logger.error('Stock validation API error:', error);
     return NextResponse.json({
       success: false,
       error: 'Failed to validate stock'

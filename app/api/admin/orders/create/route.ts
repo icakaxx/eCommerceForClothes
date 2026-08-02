@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { decreaseStockForOrderItems, normalizeOrderStatus } from '@/lib/admin-order-stock';
 import { generateUniqueOrderId } from '@/lib/order-id';
+import { logger } from '@/lib/logger';
+
 
 interface CreateAdminOrderBody {
   customer: {
@@ -121,7 +123,7 @@ async function insertStatusHistory(params: {
     changed_by: params.changedBy ?? null,
   });
   if (error && error.code !== '42P01') {
-    console.warn('order_status_history insert skipped:', error.message);
+    logger.warn('order_status_history insert skipped:');
   }
 }
 
@@ -162,7 +164,7 @@ export async function POST(request: NextRequest) {
 
     const { error: orderErr } = await supabaseAdmin.from('orders').insert(orderRecord);
     if (orderErr) {
-      console.error('admin create order insert error:', orderErr);
+      logger.error('admin create order insert error:', orderErr);
       return NextResponse.json(
         { success: false, error: orderErr.message || 'Неуспешно създаване на поръчка' },
         { status: 500 }
@@ -220,7 +222,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, orderId });
   } catch (e) {
-    console.error('admin order create:', e);
+    logger.error('admin order create:', e);
     return NextResponse.json(
       { success: false, error: e instanceof Error ? e.message : 'Internal error' },
       { status: 500 }

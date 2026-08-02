@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
+import { apiErrorResponse } from '@/lib/api-error';
+
 
 // GET - Get single property
 export async function GET(
@@ -29,7 +32,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Failed to get property:', error);
+    logger.error('Failed to get property:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -62,11 +65,8 @@ export async function PUT(
       .single();
 
     if (error) {
-      console.error('Error updating property:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error updating property:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({
@@ -75,11 +75,8 @@ export async function PUT(
     });
 
   } catch (error) {
-    console.error('Failed to update property:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
+    logger.error('Failed to update property:', error);
+    return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
   }
 }
 
@@ -98,11 +95,8 @@ export async function DELETE(
       .eq('propertyid', id);
 
     if (productPropertyError) {
-      console.error('Error fetching product property values:', productPropertyError);
-      return NextResponse.json(
-        { error: productPropertyError.message },
-        { status: 500 }
-      );
+      logger.error('Error fetching product property values:', productPropertyError);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: productPropertyError });
     }
 
     const { data: variantPropertyValues, error: variantPropertyError } = await supabase
@@ -111,11 +105,8 @@ export async function DELETE(
       .eq('propertyid', id);
 
     if (variantPropertyError) {
-      console.error('Error fetching product variant property values:', variantPropertyError);
-      return NextResponse.json(
-        { error: variantPropertyError.message },
-        { status: 500 }
-      );
+      logger.error('Error fetching product variant property values:', variantPropertyError);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: variantPropertyError });
     }
 
     const productIds = new Set<string>();
@@ -135,11 +126,8 @@ export async function DELETE(
         .in('productid', productIdList);
 
       if (variantsError) {
-        console.error('Error deleting product variants:', variantsError);
-        return NextResponse.json(
-          { error: variantsError.message },
-          { status: 500 }
-        );
+        logger.error('Error deleting product variants:', variantsError);
+        return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: variantsError });
       }
 
       const { error: productsError } = await supabase
@@ -148,11 +136,8 @@ export async function DELETE(
         .in('productid', productIdList);
 
       if (productsError) {
-        console.error('Error deleting products:', productsError);
-        return NextResponse.json(
-          { error: productsError.message },
-          { status: 500 }
-        );
+        logger.error('Error deleting products:', productsError);
+        return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: productsError });
       }
     }
 
@@ -162,11 +147,8 @@ export async function DELETE(
       .eq('propertyid', id);
 
     if (variantLinksError) {
-      console.error('Error deleting product variant property links:', variantLinksError);
-      return NextResponse.json(
-        { error: variantLinksError.message },
-        { status: 500 }
-      );
+      logger.error('Error deleting product variant property links:', variantLinksError);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: variantLinksError });
     }
 
     const { error: productLinksError } = await supabase
@@ -175,11 +157,8 @@ export async function DELETE(
       .eq('propertyid', id);
 
     if (productLinksError) {
-      console.error('Error deleting product property links:', productLinksError);
-      return NextResponse.json(
-        { error: productLinksError.message },
-        { status: 500 }
-      );
+      logger.error('Error deleting product property links:', productLinksError);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: productLinksError });
     }
 
     const { error: typeLinksError } = await supabase
@@ -188,11 +167,8 @@ export async function DELETE(
       .eq('propertyid', id);
 
     if (typeLinksError) {
-      console.error('Error deleting product type property links:', typeLinksError);
-      return NextResponse.json(
-        { error: typeLinksError.message },
-        { status: 500 }
-      );
+      logger.error('Error deleting product type property links:', typeLinksError);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: typeLinksError });
     }
 
     const { error: valuesError } = await supabase
@@ -201,11 +177,8 @@ export async function DELETE(
       .eq('propertyid', id);
 
     if (valuesError) {
-      console.error('Error deleting property values:', valuesError);
-      return NextResponse.json(
-        { error: valuesError.message },
-        { status: 500 }
-      );
+      logger.error('Error deleting property values:', valuesError);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: valuesError });
     }
 
     const { error } = await supabase
@@ -214,11 +187,8 @@ export async function DELETE(
       .eq('propertyid', id);
 
     if (error) {
-      console.error('Error deleting property:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      logger.error('Error deleting property:', error);
+      return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error: error });
     }
 
     return NextResponse.json({
@@ -227,7 +197,7 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('Failed to delete property:', error);
+    logger.error('Failed to delete property:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
