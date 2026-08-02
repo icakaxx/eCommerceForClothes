@@ -1321,10 +1321,10 @@ export default function ProductsPage() {
               <SectionSurface tone="soft" padding="md">
                 {/* Desktop Table View */}
                 <div className="hidden md:block overflow-hidden">
-                  <DataTableShell>
+                  <DataTableShell columnStorageKey="admin-products-table-columns">
                     <TableHeader>
                       <TableHeaderRow>
-                        <TableHeaderCell align="center">
+                        <TableHeaderCell align="center" defaultWidth={52} columnId="select" resizable={false}>
                           <input
                             type="checkbox"
                             checked={allSelectedOnPage}
@@ -1333,18 +1333,24 @@ export default function ProductsPage() {
                             aria-label={language === 'bg' ? 'Избери всички' : 'Select all'}
                           />
                         </TableHeaderCell>
-                        <TableHeaderCell>{t.name}</TableHeaderCell>
-                        <TableHeaderCell>{t.productType}</TableHeaderCell>
-                        <TableHeaderCell align="center">
+                        <TableHeaderCell columnId="name" defaultWidth={360} minWidth={160}>
+                          {t.name}
+                        </TableHeaderCell>
+                        <TableHeaderCell columnId="type" defaultWidth={220} minWidth={120}>
+                          {t.productType}
+                        </TableHeaderCell>
+                        <TableHeaderCell align="center" columnId="shop" defaultWidth={150} minWidth={110}>
                           {language === 'bg' ? 'Магазин' : 'Shop'}
                         </TableHeaderCell>
-                        <TableHeaderCell align="right">{t.actions}</TableHeaderCell>
+                        <TableHeaderCell align="right" columnId="actions" defaultWidth={128} resizable={false}>
+                          {t.actions}
+                        </TableHeaderCell>
                       </TableHeaderRow>
                     </TableHeader>
                     <TableBody>
                       {currentProducts.map((product) => (
                         <TableRow key={product.productid}>
-                          <TableCell align="center">
+                          <TableCell align="center" columnId="select" defaultWidth={52}>
                             <input
                               type="checkbox"
                               checked={selectedProductIds.includes(product.productid)}
@@ -1353,13 +1359,17 @@ export default function ProductsPage() {
                               aria-label={language === 'bg' ? 'Избери продукт' : 'Select product'}
                             />
                           </TableCell>
-                          <TableCell>
-                            <div className="truncate max-w-xs font-medium">{product.name}</div>
+                          <TableCell columnId="name" defaultWidth={360}>
+                            <div className="font-medium whitespace-normal break-words leading-snug">
+                              {product.name}
+                            </div>
                           </TableCell>
-                          <TableCell>
-                            {productTypes.find(pt => pt.producttypeid === product.producttypeid)?.name || '-'}
+                          <TableCell columnId="type" defaultWidth={220}>
+                            <div className="whitespace-normal break-words leading-snug">
+                              {productTypes.find(pt => pt.producttypeid === product.producttypeid)?.name || '-'}
+                            </div>
                           </TableCell>
-                          <TableCell align="center">
+                          <TableCell align="center" columnId="shop" defaultWidth={150}>
                             <div className="flex flex-col items-center gap-1">
                               {product.isdisabled ? (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900 border border-amber-200">
@@ -1383,7 +1393,7 @@ export default function ProductsPage() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell align="right">
+                          <TableCell align="right" columnId="actions" defaultWidth={128}>
                             <div className="flex justify-end gap-2">
                               <button
                                 onClick={() => window.open(`/products/${product.productid}`, '_blank', 'noopener,noreferrer')}
