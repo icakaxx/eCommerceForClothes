@@ -15,6 +15,8 @@ export interface StockVariant {
   quantity: number;
   trackquantity: boolean;
   isvisible: boolean;
+  product_isdisabled?: boolean;
+  product_awaitingrestock?: boolean;
   primary_image?: string | null;
   characteristics: StockCharacteristic[];
 }
@@ -29,6 +31,8 @@ export interface GroupedStockProduct {
   has_out_of_stock: boolean;
   has_low_stock: boolean;
   has_negative_stock: boolean;
+  isdisabled: boolean;
+  awaitingrestock: boolean;
   variants: StockVariant[];
 }
 
@@ -123,12 +127,13 @@ export function groupVariantsIntoProducts(variants: StockVariant[]): GroupedStoc
     const totalStock = sortedVariants.reduce((sum, v) => sum + (v.trackquantity ? v.quantity : 0), 0);
     const statuses = sortedVariants.map(getVariantStockStatus);
 
+    const first = sortedVariants[0];
     products.push({
       productid,
-      product_name: sortedVariants[0]?.product_name || 'Unknown Product',
+      product_name: first?.product_name || 'Unknown Product',
       primary_image:
         sortedVariants.find((v) => v.primary_image)?.primary_image ||
-        sortedVariants[0]?.primary_image ||
+        first?.primary_image ||
         null,
       colors,
       total_stock: totalStock,
@@ -136,6 +141,8 @@ export function groupVariantsIntoProducts(variants: StockVariant[]): GroupedStoc
       has_out_of_stock: statuses.some((s) => s === 'out_of_stock'),
       has_low_stock: statuses.some((s) => s === 'low_stock'),
       has_negative_stock: statuses.some((s) => s === 'negative'),
+      isdisabled: first?.product_isdisabled === true,
+      awaitingrestock: first?.product_awaitingrestock === true,
       variants: sortedVariants,
     });
   }

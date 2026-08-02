@@ -25,7 +25,9 @@ export async function GET() {
         products!inner (
           productid,
           name,
-          isdeleted
+          isdeleted,
+          isdisabled,
+          awaitingrestock
         )
       `
       )
@@ -132,7 +134,15 @@ export async function GET() {
       quantity?: number | null;
       trackquantity?: boolean | null;
       isvisible?: boolean | null;
-      products?: { name?: string } | { name?: string }[];
+      products?: {
+        name?: string;
+        isdisabled?: boolean | null;
+        awaitingrestock?: boolean | null;
+      } | Array<{
+        name?: string;
+        isdisabled?: boolean | null;
+        awaitingrestock?: boolean | null;
+      }>;
     }) => {
       const product = Array.isArray(variant.products) ? variant.products[0] : variant.products;
       const vid = variant.productvariantid;
@@ -153,6 +163,8 @@ export async function GET() {
         quantity: variant.quantity || 0,
         trackquantity: variant.trackquantity !== false,
         isvisible: variant.isvisible !== false,
+        product_isdisabled: product?.isdisabled === true,
+        product_awaitingrestock: product?.awaitingrestock === true,
         primary_image: primary,
         characteristics: propsByVariant[variant.productvariantid] || [],
       };

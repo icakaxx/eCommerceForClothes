@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AdminLayout from '../components/AdminLayout';
+import ProductBulkControls, {
+  type ProductBulkCompleteResult,
+} from '../components/ProductBulkControls';
 import ProductStockCard, { LARGE_REDUCTION_THRESHOLD } from './components/ProductStockCard';
 import { getAdminSession } from '@/lib/auth';
 import { useLanguage } from '@/context/LanguageContext';
@@ -14,7 +17,7 @@ import {
   getStockSummary,
   groupVariantsIntoProducts,
 } from '@/lib/admin-stock-utils';
-import { Search, Save, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Search, Save, AlertCircle, CheckCircle2, CheckSquare, Square } from 'lucide-react';
 
 type StockFilter = 'all' | 'low' | 'out' | 'negative';
 type BulkAction = 'add' | 'remove';
@@ -39,6 +42,7 @@ export default function StockPage() {
   const [stockFilter, setStockFilter] = useState<StockFilter>('all');
   const [expandedProductIds, setExpandedProductIds] = useState<Set<string>>(new Set());
   const [selectedVariantIds, setSelectedVariantIds] = useState<Set<string>>(new Set());
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [bulkQuantity, setBulkQuantity] = useState(1);
   const [bulkAction, setBulkAction] = useState<BulkAction>('add');
   const [isSaving, setIsSaving] = useState(false);
@@ -149,6 +153,72 @@ export default function StockPage() {
   }, [autoExpandProductIds]);
 
   const summary = useMemo(() => getStockSummary(allVariants), [allVariants]);
+
+  const currentProductIds = useMemo(
+    () => filteredProducts.map((p) => p.productid),
+    [filteredProducts]
+  );
+
+  const allSelectedOnPage =
+    currentProductIds.length > 0 &&
+    currentProductIds.every((id) => selectedProductIds.includes(id));
+
+  const handleBulkComplete = useCallback((result: ProductBulkCompleteResult) => {
+    if (result.action === 'delete') {
+      const deletedSet = new Set(result.productIds);
+      const deletedVariantIds = products
+        .filter((p) => deletedSet.has(p.productid))
+        .flatMap((p) => p.variants.map((v) => v.productvariantid));
+
+      setProducts((prev) => prev.filter((p) => !deletedSet.has(p.productid)));
+
+      if (deletedVariantIds.length > 0) {
+        const stripKeys = <T,>(record: Record<string, T>) => {
+          const next = { ...record };
+          deletedVariantIds.forEach((id) => delete next[id]);
+          return next;
+        };
+
+        setSelectedVariantIds((prev) => {
+          const next = new Set(prev);
+          deletedVariantIds.forEach((id) => next.delete(id));
+          return next;
+        });
+        setSavedQuantities(stripKeys);
+        setEditedQuantities(stripKeys);
+        setSavedPrices(stripKeys);
+        setEditedPrices(stripKeys);
+        setSavedPromoPrices(stripKeys);
+        setEditedPromoPrices(stripKeys);
+      }
+      return;
+    }
+
+    const idSet = new Set(result.productIds);
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (!idSet.has(p.productid)) return p;
+        if (result.action === 'visibility') {
+          return {
+            ...p,
+            isdisabled: result.isdisabled,
+            variants: p.variants.map((v) => ({
+              ...v,
+              product_isdisabled: result.isdisabled,
+            })),
+          };
+        }
+        return {
+          ...p,
+          awaitingrestock: result.awaitingrestock,
+          variants: p.variants.map((v) => ({
+            ...v,
+            product_awaitingrestock: result.awaitingrestock,
+          })),
+        };
+      })
+    );
+  }, [products]);
 
   const pendingUpdates = useMemo(() => {
     const variantIds = new Set<string>([
@@ -510,6 +580,25 @@ export default function StockPage() {
 
   const clearSelection = () => setSelectedVariantIds(new Set());
 
+  const toggleProductSelection = (productId: string) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
+    );
+  };
+
+  const toggleSelectAllProductsOnPage = () => {
+    setSelectedProductIds((prev) => {
+      if (allSelectedOnPage) {
+        return prev.filter((id) => !currentProductIds.includes(id));
+      }
+      const next = new Set(prev);
+      currentProductIds.forEach((id) => next.add(id));
+      return Array.from(next);
+    });
+  };
+
+  const clearProductSelection = () => setSelectedProductIds([]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -524,21 +613,32 @@ export default function StockPage() {
     <AdminLayout currentPath="/admin/stock">
       <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
         <div className="mb-4 sm:mb-6 lg:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: theme.colors.text }}>
-            {lang === 'bg' ? 'Наличности' : 'Stock Management'}
-          </h1>
-          <p className="mt-1 sm:mt-2 text-sm sm:text-base" style={{ color: theme.colors.textSecondary }}>
-            {lang === 'bg'
-              ? 'Управление на наличностите по продукти и варианти'
-              : 'Manage stock by product and variant'}
-          </p>
-          <Link
-            href="/admin/stock-in"
-            className="inline-block mt-3 text-sm font-medium underline touch-manipulation min-h-[44px] py-2"
-            style={{ color: theme.colors.primary }}
-          >
-            {lang === 'bg' ? '→ Заприхождаване' : '→ Receive stock'}
-          </Link>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: theme.colors.text }}>
+                {lang === 'bg' ? 'Наличности' : 'Stock Management'}
+              </h1>
+              <p className="mt-1 sm:mt-2 text-sm sm:text-base" style={{ color: theme.colors.textSecondary }}>
+                {lang === 'bg'
+                  ? 'Управление на наличностите по продукти и варианти'
+                  : 'Manage stock by product and variant'}
+              </p>
+              <Link
+                href="/admin/stock-in"
+                className="inline-block mt-3 text-sm font-medium underline touch-manipulation min-h-[44px] py-2"
+                style={{ color: theme.colors.primary }}
+              >
+                {lang === 'bg' ? '→ Заприхождаване' : '→ Receive stock'}
+              </Link>
+            </div>
+            <ProductBulkControls
+              language={lang}
+              selectedProductIds={selectedProductIds}
+              onClearSelection={clearProductSelection}
+              onComplete={handleBulkComplete}
+              className="lg:justify-end"
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
@@ -771,6 +871,29 @@ export default function StockPage() {
           </div>
         ) : (
           <div className="space-y-4">
+            {filteredProducts.length > 0 && (
+              <div
+                className="flex flex-wrap items-center gap-3 px-1"
+                style={{ color: theme.colors.textSecondary }}
+              >
+                <button
+                  type="button"
+                  onClick={toggleSelectAllProductsOnPage}
+                  className="inline-flex items-center gap-2 text-sm touch-manipulation"
+                  style={{ color: theme.colors.text }}
+                >
+                  {allSelectedOnPage ? <CheckSquare size={18} /> : <Square size={18} />}
+                  {lang === 'bg' ? 'Избери всички на страницата' : 'Select all on page'}
+                </button>
+                {selectedProductIds.length > 0 && (
+                  <span className="text-sm">
+                    {lang === 'bg'
+                      ? `${selectedProductIds.length} избрани продукта`
+                      : `${selectedProductIds.length} products selected`}
+                  </span>
+                )}
+              </div>
+            )}
             {filteredProducts.map((product) => (
               <ProductStockCard
                 key={product.productid}
@@ -791,6 +914,8 @@ export default function StockPage() {
                 selectedVariantIds={selectedVariantIds}
                 onToggleVariantSelection={toggleVariantSelection}
                 onSelectAllVariants={handleSelectAllVariants}
+                isProductSelected={selectedProductIds.includes(product.productid)}
+                onToggleProductSelection={toggleProductSelection}
                 isSaving={isSaving}
                 language={lang}
               />

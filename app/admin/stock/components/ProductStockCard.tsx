@@ -42,6 +42,8 @@ interface ProductStockCardProps {
   selectedVariantIds: Set<string>;
   onToggleVariantSelection: (variantId: string) => void;
   onSelectAllVariants: (productId: string, variantIds: string[]) => void;
+  isProductSelected: boolean;
+  onToggleProductSelection: (productId: string) => void;
   isSaving: boolean;
   language: 'bg' | 'en';
 }
@@ -359,6 +361,8 @@ export default function ProductStockCard({
   selectedVariantIds,
   onToggleVariantSelection,
   onSelectAllVariants,
+  isProductSelected,
+  onToggleProductSelection,
   isSaving,
   language,
 }: ProductStockCardProps) {
@@ -387,6 +391,15 @@ export default function ProductStockCard({
     >
       <div className="p-4 sm:p-5">
         <div className="flex gap-3 sm:gap-4">
+          <button
+            type="button"
+            onClick={() => onToggleProductSelection(product.productid)}
+            className="mt-1 shrink-0 self-start touch-manipulation"
+            aria-label={language === 'bg' ? 'Избор на продукт' : 'Select product'}
+          >
+            {isProductSelected ? <CheckSquare size={20} /> : <Square size={20} />}
+          </button>
+
           {product.primary_image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -420,6 +433,18 @@ export default function ProductStockCard({
                     {product.colors.join(', ')}
                   </p>
                 )}
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {product.isdisabled && (
+                    <Badge variant="neutral">
+                      {language === 'bg' ? 'Скрит от магазина' : 'Hidden from shop'}
+                    </Badge>
+                  )}
+                  {product.awaitingrestock && (
+                    <Badge variant="warning">
+                      {language === 'bg' ? 'Изчерпана наличност' : 'Out of stock display'}
+                    </Badge>
+                  )}
+                </div>
               </div>
               {hasWarning && (
                 <AlertCircle
