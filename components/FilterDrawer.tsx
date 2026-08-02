@@ -7,6 +7,12 @@ import { useTheme } from '@/context/ThemeContext';
 import { useProperties } from '@/context/PropertiesContext';
 import { translations } from '@/lib/translations';
 import { Product } from '@/lib/data';
+import {
+  countProductsWithSizeInStock,
+  isSizePropertyKey,
+  productHasSizeInStock,
+  sortSizeValues,
+} from '@/lib/variant-stock';
 
 interface FilterDrawerProps {
   products: Product[];
@@ -196,11 +202,21 @@ export default function FilterDrawer({
           if (pvA?.displayorder !== undefined && pvB?.displayorder !== undefined) {
             return pvA.displayorder - pvB.displayorder;
           }
+          if (isSizePropertyKey(propertyId, propertyName)) {
+            return sortSizeValues([a, b])[0] === a ? -1 : 1;
+          }
           return a.localeCompare(b);
         });
+
+        let valuesForProperty = sortedValues;
+        if (isSizePropertyKey(propertyId, propertyName)) {
+          valuesForProperty = sortedValues.filter((value: string) =>
+            products.some((product) => productHasSizeInStock(product, value))
+          );
+        }
         
-        if (sortedValues.length > 0) {
-          values[propertyId] = sortedValues;
+        if (valuesForProperty.length > 0) {
+          values[propertyId] = valuesForProperty;
         }
       }
     });
@@ -208,7 +224,14 @@ export default function FilterDrawer({
     const propertiesWithValues = new Set(Object.keys(values));
     Object.entries(productValues).forEach(([propertyName, valueSet]) => {
       if (!propertiesWithValues.has(propertyName)) {
-        const valueArray = Array.from(valueSet).sort();
+        let valueArray = Array.from(valueSet);
+        if (isSizePropertyKey(propertyName)) {
+          valueArray = sortSizeValues(valueArray).filter((value) =>
+            products.some((product) => productHasSizeInStock(product, value))
+          );
+        } else {
+          valueArray = valueArray.sort();
+        }
         if (valueArray.length > 0) {
           values[propertyName] = valueArray;
         }
@@ -286,6 +309,15 @@ export default function FilterDrawer({
     const currentValue = selectedFilters[propertyId] || '';
     const values = (propertyId && availableValues[propertyId]) || [];
     const dropdownState = dropdownStates[propertyId] || { isOpen: false, searchTerm: '' };
+    const isSizeFilter = isSizePropertyKey(propertyId, propertyName);
+
+    const formatOptionLabel = (value: string) => {
+      if (!isSizeFilter) return value;
+      const productCount = countProductsWithSizeInStock(products, value);
+      return language === 'bg'
+        ? `${value} (${productCount} арт.)`
+        : `${value} (${productCount})`;
+    };
 
     const filteredValues = values.filter((value: string) =>
       value.toLowerCase().includes(dropdownState.searchTerm.toLowerCase())
@@ -340,7 +372,11 @@ export default function FilterDrawer({
               }}
             >
               <span className={currentValue ? '' : 'opacity-50'}>
-                {currentValue || (language === 'bg' ? 'Изберете...' : 'Select...')}
+                {currentValue
+                  ? formatOptionLabel(currentValue)
+                  : language === 'bg'
+                    ? 'Изберете...'
+                    : 'Select...'}
               </span>
               <div className="flex items-center gap-1">
                 {currentValue && (
@@ -422,7 +458,7 @@ export default function FilterDrawer({
                             backgroundColor: currentValue === value ? theme.colors.secondary : 'transparent'
                           }}
                         >
-                          {value}
+                          {formatOptionLabel(value)}
                         </button>
                       ))}
                     </>

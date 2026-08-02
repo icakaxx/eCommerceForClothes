@@ -16,6 +16,10 @@ import { normalizeProductImages } from '@/lib/product-images';
 import {
   getProductCardPricing,
 } from '@/lib/product-promo';
+import {
+  getProductCardStockDisplay,
+  productHasAnyVariantInStock,
+} from '@/lib/variant-stock';
 
 interface ProductCardProps {
   product: Product;
@@ -127,6 +131,9 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
   const productTitle = `${product.brand} ${product.model}`.trim();
   const categoryLabel = getCategoryLabel();
   const showNewBadge = product.isfeatured;
+  const stockUnit = product.category === 'shoes' ? t.pairs : t.pcs;
+  const stockDisplay = getProductCardStockDisplay(product, language, stockUnit);
+  const canPurchase = product.visible && productHasAnyVariantInStock(product) && !showOutOfStockOverlay;
 
   return (
     <>
@@ -243,16 +250,14 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
             style={{ color: theme.colors.textSecondary }}
           >
             {t.available}:{' '}
-            <span style={{ color: theme.colors.text }}>
-              {product.quantity} {product.category === 'shoes' ? t.pairs : t.pcs}
-            </span>
+            <span style={{ color: theme.colors.text }}>{stockDisplay}</span>
           </p>
 
           <p
             className="text-xs mb-3 transition-colors duration-300 sm:hidden"
             style={{ color: theme.colors.textSecondary }}
           >
-            {product.quantity} {product.category === 'shoes' ? t.pairs : t.pcs}{' '}
+            {stockDisplay}{' '}
             {language === 'bg' ? 'налични' : 'available'}
           </p>
 
@@ -288,7 +293,7 @@ export default function ProductCard({ product, isFavorited: initialIsFavorited }
             </div>
           </div>
 
-          {product.visible && product.quantity > 0 && !showOutOfStockOverlay && (
+          {canPurchase && (
             <div data-express-checkout className="relative z-10 mt-3">
               <button
                 onClick={(e) => {

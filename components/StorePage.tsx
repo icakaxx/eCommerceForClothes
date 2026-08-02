@@ -15,6 +15,7 @@ import { useProperties } from '@/context/PropertiesContext';
 import { useAuth } from '@/context/AuthContext';
 import { translations } from '@/lib/translations';
 import { isListedOnStorefront } from '@/lib/product-availability';
+import { isSizePropertyKey, productHasSizeInStock } from '@/lib/variant-stock';
 
 interface StorePageProps {
   products: Product[];
@@ -122,6 +123,15 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
       // Regular property filtering
       // filterKey is propertyId, map it to property name first
       const propertyName = propertyIdToNameMap.get(filterKey) || filterKey;
+
+      if (
+        isSizePropertyKey(filterKey, propertyName) &&
+        typeof filterValue === 'string' &&
+        filterValue
+      ) {
+        if (!productHasSizeInStock(p, filterValue)) return false;
+        continue;
+      }
       
       // Try propertyValues using property name first
       let propertyValue = p.propertyValues?.[propertyName];
@@ -174,6 +184,10 @@ export default function StorePage({ products, currentPage }: StorePageProps) {
         let legacyField = filterKey.toLowerCase();
         if (legacyField.startsWith('legacy-')) {
           legacyField = legacyField.replace('legacy-', '');
+        }
+        if (legacyField === 'size' && typeof filterValue === 'string' && filterValue) {
+          if (!productHasSizeInStock(p, filterValue)) return false;
+          continue;
         }
         const legacyValue = (p as any)[legacyField];
         if (legacyValue && typeof filterValue === 'string') {

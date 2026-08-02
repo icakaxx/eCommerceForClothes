@@ -2,6 +2,8 @@ import { Product } from '@/lib/data';
 
 export const LOW_STOCK_MAX = 3;
 
+const SIZE_ORDER = ['xxs', 'xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl', '2xl', '3xl', '4xl', '5xl'];
+
 export type OptionStockStatus = 'in_stock' | 'low_stock' | 'out_of_stock' | 'untracked';
 
 export function getVariantPropertyValues(variant: any): Array<{ nameKey: string; value: string }> {
@@ -129,6 +131,76 @@ export function productHasSizeInStock(product: Product, sizeValue: string): bool
     if (!variantHasSizeValue(variant, sizeValue)) return false;
     return effectiveQuantity(variant) > 0;
   });
+}
+
+function compareSizeValues(a: string, b: string): number {
+  const aKey = a.trim().toLowerCase();
+  const bKey = b.trim().toLowerCase();
+  const aIndex = SIZE_ORDER.indexOf(aKey);
+  const bIndex = SIZE_ORDER.indexOf(bKey);
+
+  if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+  if (aIndex !== -1) return -1;
+  if (bIndex !== -1) return 1;
+
+  const aNum = parseFloat(a);
+  const bNum = parseFloat(b);
+  if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) return aNum - bNum;
+
+  return a.localeCompare(b, 'bg');
+}
+
+export function getVariantSizeLabel(variant: any): string | null {
+  for (const { nameKey, value } of getVariantPropertyValues(variant)) {
+    if (isSizePropertyKey(nameKey)) return value;
+  }
+  return null;
+}
+
+export function getInStockSizeEntries(product: Product): Array<{ size: string; quantity: number }> {
+  const variants = (product.variants || product.Variants || []) as any[];
+  const entries: Array<{ size: string; quantity: number }> = [];
+
+  for (const variant of variants) {
+    if (variant.isvisible === false) continue;
+    const qty = effectiveQuantity(variant);
+    if (qty <= 0 || qty >= Number.MAX_SAFE_INTEGER / 2) continue;
+    const size = getVariantSizeLabel(variant);
+    if (!size) continue;
+    entries.push({ size, quantity: qty });
+  }
+
+  return entries.sort((a, b) => compareSizeValues(a.size, b.size));
+}
+
+/** Card label: "L размер 2 бр." when only one size has stock, otherwise total in stock. */
+export function getProductCardStockDisplay(
+  product: Product,
+  language: 'bg' | 'en',
+  unitLabel: string
+): string {
+  const entries = getInStockSizeEntries(product);
+  if (entries.length === 0) {
+    return `0 ${unitLabel}`;
+  }
+  if (entries.length === 1) {
+    const { size, quantity } = entries[0];
+    if (language === 'bg') {
+      return `${size} размер ${quantity} ${unitLabel}`;
+    }
+    return `${size}: ${quantity} ${unitLabel}`;
+  }
+
+  const total = entries.reduce((sum, entry) => sum + entry.quantity, 0);
+  return `${total} ${unitLabel}`;
+}
+
+export function countProductsWithSizeInStock(products: Product[], sizeValue: string): number {
+  return products.filter((product) => productHasSizeInStock(product, sizeValue)).length;
+}
+
+export function sortSizeValues(values: string[]): string[] {
+  return [...values].sort(compareSizeValues);
 }
 
 export function findSameSizeAlternatives(
