@@ -24,6 +24,7 @@ import { getVariantEffectivePrice } from '@/lib/product-promo';
 interface ProductDetailsProps {
   product: Product;
   onVariantChange?: (images: string[] | string | undefined) => void;
+  hideTitleOnMobile?: boolean;
 }
 
 
@@ -60,7 +61,7 @@ interface Variant {
   }>;
 }
 
-export default function ProductDetails({ product, onVariantChange }: ProductDetailsProps) {
+export default function ProductDetails({ product, onVariantChange, hideTitleOnMobile }: ProductDetailsProps) {
   const { theme } = useTheme();
   const { language } = useLanguage();
   const { addItem, openCart } = useCart();
@@ -510,91 +511,94 @@ export default function ProductDetails({ product, onVariantChange }: ProductDeta
 
   return (
     <div className="product-details flex flex-col">
-      {/* Back button - order 1 */}
-      <button
-        onClick={handleBackToStore}
-        className="mb-4 flex items-center gap-2 text-sm transition-colors duration-300 hover:underline order-1"
-        style={{ color: theme.colors.textSecondary }}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M19 12H5M12 19l-7-7 7-7" />
-        </svg>
-        {t.backTo} {getCategoryLabel()}
-      </button>
-
-      {/* Product Name and Actions - order 2 */}
-      <div className="flex items-start justify-between gap-4 mb-2 order-2">
-        <h1 
-          className="product__single__name text-3xl md:text-4xl font-bold capitalize transition-colors duration-300 flex-1"
-          style={{ color: theme.colors.text }}
-        >
-          {product.brand} {product.model}
-        </h1>
-        
-        {/* Share and Wishlist Buttons */}
-        <div className="flex gap-2">
-          <button
-            onClick={handleShare}
-            className="p-2 rounded-full hover:opacity-80 transition-all duration-200"
-            style={{ 
-              backgroundColor: theme.colors.surface,
-              border: `1px solid ${theme.colors.border}`
-            }}
-            title={t.share}
-          >
-            <Share2 size={20} style={{ color: theme.colors.text }} />
-          </button>
-          <button
-            onClick={handleFavorite}
-            disabled={isTogglingFavorite}
-            className="p-2 rounded-full hover:opacity-80 transition-all duration-200 disabled:opacity-50"
-            style={{ 
-              backgroundColor: theme.colors.surface,
-              border: `1px solid ${theme.colors.border}`
-            }}
-            title={isFavorited ? t.removeFromFavorites : t.addToFavorites}
-          >
-            <Heart 
-              size={20} 
-              style={{ color: isFavorited ? '#ef4444' : theme.colors.text }}
-              fill={isFavorited ? '#ef4444' : 'none'}
-            />
-          </button>
-        </div>
-      </div>
-
-      {/* Share Message */}
-      {shareMessage && (
-        <div 
-          className="mb-2 px-3 py-1.5 text-sm rounded-md order-2"
-          style={{
-            backgroundColor: theme.colors.surface,
-            color: theme.colors.text
-          }}
-        >
-          {shareMessage}
-        </div>
-      )}
-
-      {/* Product Subtitle (if available) */}
-      {product.subtitle && (
-        <p 
-          className="text-lg mb-2 transition-colors duration-300 order-2"
+      {/* Back button + Title + Subtitle — hidden on mobile when hideTitleOnMobile is set */}
+      <div className={hideTitleOnMobile ? 'hidden md:block' : ''}>
+        {/* Back button - order 1 */}
+        <button
+          onClick={handleBackToStore}
+          className="mb-4 flex items-center gap-2 text-sm transition-colors duration-300 hover:underline order-1"
           style={{ color: theme.colors.textSecondary }}
         >
-          {product.subtitle}
-        </p>
-      )}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          {t.backTo} {getCategoryLabel()}
+        </button>
+
+        {/* Product Name and Actions - order 2 */}
+        <div className="flex items-start justify-between gap-4 mb-2 order-2">
+          <h1 
+            className="product__single__name text-3xl md:text-4xl font-bold capitalize transition-colors duration-300 flex-1"
+            style={{ color: theme.colors.text }}
+          >
+            {product.brand} {product.model}
+          </h1>
+          
+          {/* Share and Wishlist Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={handleShare}
+              className="p-2 rounded-full hover:opacity-80 transition-all duration-200"
+              style={{ 
+                backgroundColor: theme.colors.surface,
+                border: `1px solid ${theme.colors.border}`
+              }}
+              title={t.share}
+            >
+              <Share2 size={20} style={{ color: theme.colors.text }} />
+            </button>
+            <button
+              onClick={handleFavorite}
+              disabled={isTogglingFavorite}
+              className="p-2 rounded-full hover:opacity-80 transition-all duration-200 disabled:opacity-50"
+              style={{ 
+                backgroundColor: theme.colors.surface,
+                border: `1px solid ${theme.colors.border}`
+              }}
+              title={isFavorited ? t.removeFromFavorites : t.addToFavorites}
+            >
+              <Heart 
+                size={20} 
+                style={{ color: isFavorited ? '#ef4444' : theme.colors.text }}
+                fill={isFavorited ? '#ef4444' : 'none'}
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Share Message */}
+        {shareMessage && (
+          <div 
+            className="mb-2 px-3 py-1.5 text-sm rounded-md order-2"
+            style={{
+              backgroundColor: theme.colors.surface,
+              color: theme.colors.text
+            }}
+          >
+            {shareMessage}
+          </div>
+        )}
+
+        {/* Product Subtitle (if available) */}
+        {product.subtitle && (
+          <p 
+            className="text-lg mb-2 transition-colors duration-300 order-2"
+            style={{ color: theme.colors.textSecondary }}
+          >
+            {product.subtitle}
+          </p>
+        )}
+      </div>
 
       {/* Price - order 4 */}
       <div 

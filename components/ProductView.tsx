@@ -192,6 +192,31 @@ export default function ProductView({ product }: ProductViewProps) {
       style={{ backgroundColor: theme.colors.background }}
     >
       <div className="product__page__middle max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        {/* Mobile-only title strip: shown above the image on small screens */}
+        <div className="md:hidden mb-4">
+          <button
+            onClick={() => window.history.back()}
+            className="mb-3 flex items-center gap-2 text-sm hover:underline transition-colors duration-300"
+            style={{ color: theme.colors.textSecondary }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            Назад
+          </button>
+          <h1
+            className="product__single__name text-2xl font-bold capitalize transition-colors duration-300"
+            style={{ color: theme.colors.text }}
+          >
+            {product.brand} {product.model}
+          </h1>
+          {product.subtitle && (
+            <p className="text-base mt-1" style={{ color: theme.colors.textSecondary }}>
+              {product.subtitle}
+            </p>
+          )}
+        </div>
+
         {/* Two-column layout - reordered for mobile */}
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:gap-16">
           {/* Left column - Product Images (all breakpoints, up to 4 photos) */}
@@ -202,10 +227,10 @@ export default function ProductView({ product }: ProductViewProps) {
               focusImage={focusImage}
             />
             
-            {/* Expandable Product Description Section (order 8 on mobile) */}
+            {/* Expandable Product Description Section — desktop only (mobile version is below the grid) */}
             {product.description && (
               <div 
-                className="mt-8 md:mt-8 border rounded-lg overflow-hidden order-8 md:order-none"
+                className="hidden md:block mt-8 border rounded-lg overflow-hidden"
                 style={{ borderColor: theme.colors.border }}
               >
                 <button
@@ -239,9 +264,9 @@ export default function ProductView({ product }: ProductViewProps) {
               </div>
             )}
 
-            {/* Expandable Delivery Information Section (order 9 on mobile) */}
+            {/* Expandable Delivery Information Section — desktop only (mobile version is below the grid) */}
             <div 
-              className="mt-4 border rounded-lg overflow-hidden order-9 md:order-none"
+              className="hidden md:block mt-4 border rounded-lg overflow-hidden"
               style={{ borderColor: theme.colors.border }}
             >
               <button
@@ -281,7 +306,82 @@ export default function ProductView({ product }: ProductViewProps) {
             <ProductDetails
               product={product}
               onVariantChange={handleVariantImageChange}
+              hideTitleOnMobile
             />
+          </div>
+        </div>
+
+        {/* Mobile-only accordions — rendered after the grid so they appear below Add to Cart */}
+        <div className="md:hidden mt-4 space-y-4">
+          {product.description && (
+            <div 
+              className="border rounded-lg overflow-hidden"
+              style={{ borderColor: theme.colors.border }}
+            >
+              <button
+                onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                className="w-full px-6 py-4 flex items-center justify-between hover:opacity-80 transition-opacity"
+                style={{ backgroundColor: theme.colors.surface }}
+              >
+                <h2 
+                  className="text-lg font-semibold"
+                  style={{ color: theme.colors.text }}
+                >
+                  {t.productDescriptionHeading}
+                </h2>
+                {isDescriptionExpanded ? (
+                  <ChevronUp size={20} style={{ color: theme.colors.text }} />
+                ) : (
+                  <ChevronDown size={20} style={{ color: theme.colors.text }} />
+                )}
+              </button>
+              {isDescriptionExpanded && (
+                <div 
+                  className="px-6 py-4 border-t"
+                  style={{ 
+                    borderColor: theme.colors.border,
+                    color: theme.colors.textSecondary 
+                  }}
+                >
+                  <p>{product.description}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div 
+            className="border rounded-lg overflow-hidden"
+            style={{ borderColor: theme.colors.border }}
+          >
+            <button
+              onClick={() => setIsDeliveryExpanded(!isDeliveryExpanded)}
+              className="w-full px-6 py-4 flex items-center justify-between hover:opacity-80 transition-opacity"
+              style={{ backgroundColor: theme.colors.surface }}
+            >
+              <h2 
+                className="text-lg font-semibold"
+                style={{ color: theme.colors.text }}
+              >
+                {t.deliveryInfo}
+              </h2>
+              {isDeliveryExpanded ? (
+                <ChevronUp size={20} style={{ color: theme.colors.text }} />
+              ) : (
+                <ChevronDown size={20} style={{ color: theme.colors.text }} />
+              )}
+            </button>
+            {isDeliveryExpanded && (
+              <div 
+                className="px-6 py-4 border-t space-y-2"
+                style={{ 
+                  borderColor: theme.colors.border,
+                  color: theme.colors.textSecondary 
+                }}
+              >
+                <p>{t.deliveryTime}</p>
+                <p>{t.deliveryMethods}</p>
+              </div>
+            )}
           </div>
         </div>
 
