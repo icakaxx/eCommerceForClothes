@@ -12,6 +12,8 @@ import { AuthProvider } from '@/context/AuthContext';
 import CookieConsentBanner from '@/components/CookieConsentBanner';
 import AnalyticsTracker from '@/components/AnalyticsTracker';
 import HtmlLangSync from '@/components/HtmlLangSync';
+import VercelAnalyticsFlags from '@/components/VercelAnalyticsFlags';
+import VercelAnalytics from '@/components/VercelAnalytics';
 import MaintenanceMode from '@/components/MaintenanceMode';
 
 function InnerProviders({ children }: { children: React.ReactNode }) {
@@ -32,9 +34,11 @@ function InnerProviders({ children }: { children: React.ReactNode }) {
                 <PropertiesProvider>
                   <ProductProvider>
                     <HtmlLangSync />
+                    <VercelAnalyticsFlags />
                     {children}
                     <CookieConsentBanner />
                     <AnalyticsTracker />
+                    <VercelAnalytics />
                   </ProductProvider>
                 </PropertiesProvider>
               </ProductTypeProvider>

@@ -12,6 +12,7 @@ import { useCheckoutStore, type DeliveryType, type CityOption } from '@/store/ch
 import { translations } from '@/lib/translations';
 import { ShoppingBag, Truck, MapPin, Package } from 'lucide-react';
 import FomoBadge, { type FomoMessage } from '@/components/FomoBadge';
+import { trackStoreEvent } from '@/lib/vercel-analytics';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -63,6 +64,7 @@ export default function CheckoutPage() {
   const cityDropdownRef = useRef<HTMLDivElement>(null);
   const hasAutoPopulated = useRef(false);
   const placeOrderButtonRef = useRef<HTMLButtonElement>(null);
+  const beginCheckoutTracked = useRef(false);
 
   const scrollToCheckoutIssue = () => {
     const firstInvalid = document.querySelector('[data-checkout-field-error], .border-red-500');
@@ -93,6 +95,16 @@ export default function CheckoutPage() {
     // Load cities data
     loadCities();
   }, [hasHydrated, totalItems, router]);
+
+  useEffect(() => {
+    if (!hasHydrated || totalItems === 0 || beginCheckoutTracked.current) return;
+    beginCheckoutTracked.current = true;
+    trackStoreEvent('Begin Checkout', {
+      itemCount: totalItems,
+      cartValue: Math.round(totalPrice * 100) / 100,
+      currency: 'EUR',
+    });
+  }, [hasHydrated, totalItems, totalPrice]);
 
   // Auto-populate form with user data when logged in (only once)
   useEffect(() => {
@@ -453,6 +465,15 @@ export default function CheckoutPage() {
       if (!orderResult.success) {
         throw new Error(orderResult.error || 'Failed to place order');
       }
+
+      trackStoreEvent('Purchase', {
+        orderId: String(orderResult.orderId),
+        itemCount: totalItems,
+        value: Math.round(finalTotal * 100) / 100,
+        currency: 'EUR',
+        deliveryType: formData.deliveryType,
+        hasDiscount: Boolean(appliedDiscount),
+      });
 
       // Save delivery preferences if user is logged in and preferences are different or empty
       if (isAuthenticated && user) {

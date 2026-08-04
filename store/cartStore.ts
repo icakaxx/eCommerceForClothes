@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { CartItem, CartState } from '@/types/cart';
+import { trackStoreEvent } from '@/lib/vercel-analytics';
 
 const generateCartItemId = (id: string | number, size?: string): string => {
   return `${id}${size ? `_${size}` : ''}`;
@@ -35,6 +36,13 @@ export const useCartStore = create<CartState>()(
             quantity: updatedItems[existingItemIndex].quantity + (newItem.quantity || 1)
           };
           set({ items: updatedItems });
+          trackStoreEvent('Add To Cart', {
+            productId: String(newItem.id),
+            productName: newItem.name,
+            quantity: newItem.quantity || 1,
+            price: normalizePrice(newItem.price),
+            addedToExisting: true,
+          });
         } else {
           // Add new item
           const itemToAdd: CartItem = {
@@ -43,6 +51,13 @@ export const useCartStore = create<CartState>()(
             quantity: newItem.quantity || 1
           };
           set({ items: [...items, itemToAdd] });
+          trackStoreEvent('Add To Cart', {
+            productId: String(newItem.id),
+            productName: newItem.name,
+            quantity: itemToAdd.quantity,
+            price: itemToAdd.price,
+            addedToExisting: false,
+          });
         }
       },
 

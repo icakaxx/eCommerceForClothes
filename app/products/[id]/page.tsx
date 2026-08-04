@@ -9,6 +9,7 @@ import { Product } from '@/lib/data';
 import { useLanguage } from '@/context/LanguageContext';
 import { useStoreSettings } from '@/context/StoreSettingsContext';
 import { translations } from '@/lib/translations';
+import { trackStoreEvent } from '@/lib/vercel-analytics';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -55,6 +56,11 @@ export default function ProductDetailPage() {
             propertyValues: data.product.propertyValues || data.product.propertyvalues || {}
           };
           setProduct(productData);
+          trackStoreEvent('Product View', {
+            productId: String(params.id),
+            productName: productData.name || productData.model || 'Product',
+            category: productData.category || 'clothes',
+          });
         } else {
           throw new Error('Invalid product data');
         }

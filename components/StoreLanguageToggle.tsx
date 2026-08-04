@@ -3,6 +3,7 @@
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import type { Language } from '@/lib/translations';
+import { trackStoreEvent } from '@/lib/vercel-analytics';
 
 function BulgariaFlag({ className }: { className?: string }) {
   return (
@@ -22,7 +23,9 @@ export default function StoreLanguageToggle() {
     'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold transition-all duration-200 touch-manipulation';
 
   const setLang = (lang: Language) => {
-    if (language !== lang) setLanguage(lang);
+    if (language === lang) return;
+    setLanguage(lang);
+    trackStoreEvent('Language Changed', { language: lang });
   };
 
   return (

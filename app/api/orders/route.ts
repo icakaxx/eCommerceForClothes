@@ -7,6 +7,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { generateUniqueOrderId } from '@/lib/order-id';
 import { logger } from '@/lib/logger';
 import { apiErrorResponse } from '@/lib/api-error';
+import { trackServerEvent } from '@/lib/vercel-analytics';
 
 interface OrderData {
   customer: {
@@ -523,6 +524,16 @@ export async function POST(request: NextRequest) {
     if (adminEmailResult.status === 'rejected') {
       logger.error('Admin order email failed', adminEmailResult.reason);
     }
+
+    void trackServerEvent('Purchase', {
+      orderId,
+      itemCount: orderData.items.length,
+      value: Math.round((orderData.totals.total || 0) * 100) / 100,
+      currency: 'EUR',
+      deliveryType: orderData.delivery.type,
+      hasDiscount: Boolean(orderData.discount?.code),
+      language,
+    });
 
     return NextResponse.json({
       success: true,

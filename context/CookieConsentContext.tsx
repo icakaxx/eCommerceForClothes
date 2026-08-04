@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { trackStoreEvent } from '@/lib/vercel-analytics';
 
 export type ConsentStatus = 'not-asked' | 'accepted' | 'rejected';
 
@@ -42,6 +43,7 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
     setConsentStatus('accepted');
     localStorage.setItem(CONSENT_STORAGE_KEY, 'accepted');
     setCookie(CONSENT_COOKIE_NAME, 'accepted', 365); // 1 year expiry
+    trackStoreEvent('Cookie Consent', { status: 'accepted' });
   };
 
   const rejectConsent = () => {
@@ -49,6 +51,7 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(CONSENT_STORAGE_KEY, 'rejected');
     // Don't set cookie if rejected, but store in sessionStorage to not ask again this session
     sessionStorage.setItem('consent_asked_this_session', 'true');
+    // No Vercel track here — analytics not loaded until accepted
   };
 
   const hasConsent = consentStatus === 'accepted';
