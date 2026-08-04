@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import LoadingScreen from '@/components/LoadingScreen';
 import PublicPageLayout from '@/components/PublicPageLayout';
@@ -36,6 +36,8 @@ export default function Home() {
   }>>([]);
   const [loadingTestimonials, setLoadingTestimonials] = useState(true);
   const [visibleCount, setVisibleCount] = useState(MOBILE_INITIAL_VISIBLE);
+  const loadMoreScrollRef = useRef<number | null>(null);
+  const loadMoreButtonRef = useRef<HTMLButtonElement>(null);
   const { settings, isLoading: settingsLoading } = useStoreSettings();
   const { language } = useLanguage();
   const { theme } = useTheme();
@@ -55,17 +57,29 @@ export default function Home() {
     }
   }, []);
 
+  // Set initial visible count once — do NOT reset on window resize (mobile address bar
+  // resize during scroll/tap was resetting the list and jumping scroll to page bottom).
   useEffect(() => {
-    const updateVisibleCount = () => {
-      setVisibleCount(
-        window.innerWidth >= 768 ? DESKTOP_INITIAL_VISIBLE : MOBILE_INITIAL_VISIBLE
-      );
-    };
-
-    updateVisibleCount();
-    window.addEventListener('resize', updateVisibleCount);
-    return () => window.removeEventListener('resize', updateVisibleCount);
+    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+    setVisibleCount(isDesktop ? DESKTOP_INITIAL_VISIBLE : MOBILE_INITIAL_VISIBLE);
   }, []);
+
+  const handleLoadMore = useCallback(() => {
+    loadMoreScrollRef.current = window.scrollY;
+    loadMoreButtonRef.current?.blur();
+
+    setVisibleCount((prev) =>
+      Math.min(prev + LOAD_MORE_STEP, featuredProducts.length)
+    );
+  }, [featuredProducts.length]);
+
+  useLayoutEffect(() => {
+    if (loadMoreScrollRef.current === null) return;
+
+    const savedScrollY = loadMoreScrollRef.current;
+    loadMoreScrollRef.current = null;
+    window.scrollTo(0, savedScrollY);
+  }, [visibleCount]);
 
   useEffect(() => {
     const loadHomeProducts = async () => {
@@ -243,13 +257,10 @@ export default function Home() {
             {hasMoreProducts && (
               <div className="mt-8 flex justify-center">
                 <button
+                  ref={loadMoreButtonRef}
                   type="button"
-                  onClick={() =>
-                    setVisibleCount(prev =>
-                      Math.min(prev + LOAD_MORE_STEP, featuredProducts.length)
-                    )
-                  }
-                  className="w-full sm:w-auto px-8 py-3.5 rounded-xl text-sm font-medium transition-colors duration-200"
+                  onClick={handleLoadMore}
+                  className="w-full sm:w-auto px-8 py-3.5 rounded-xl text-sm font-medium transition-colors duration-200 touch-manipulation"
                   style={{
                     backgroundColor: theme.colors.secondary,
                     color: theme.colors.text,
