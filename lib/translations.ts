@@ -8,6 +8,16 @@ export interface Translations {
   admin: string;
   exitAdmin: string;
   backToAdmin: string;
+  forHim: string;
+  forHer: string;
+  menu: string;
+  search: string;
+  close: string;
+  profile: string;
+  back: string;
+  noCategoriesAvailable: string;
+  welcomeTo: string;
+  footerTagline: string;
 
   // Store Page
   ourCurrentStock: string;
@@ -737,6 +747,16 @@ export const translations: Record<Language, Translations> = {
     admin: 'Admin',
     exitAdmin: 'Exit Admin',
     backToAdmin: 'Back to Admin',
+    forHim: 'For Him',
+    forHer: 'For Her',
+    menu: 'Menu',
+    search: 'Search',
+    close: 'Close',
+    profile: 'Profile',
+    back: 'Back',
+    noCategoriesAvailable: 'No categories available',
+    welcomeTo: 'Welcome to',
+    footerTagline: 'Your trusted partner for fashionable clothing and accessories.',
 
     // Store Page
     ourCurrentStock: 'Our Current Stock',
@@ -1460,6 +1480,16 @@ export const translations: Record<Language, Translations> = {
     admin: 'Админ',
     exitAdmin: 'Изход от Админ',
     backToAdmin: 'Обратно към Админ',
+    forHim: 'За него',
+    forHer: 'За нея',
+    menu: 'Меню',
+    search: 'Търсене',
+    close: 'Затвори',
+    profile: 'Профил',
+    back: 'Назад',
+    noCategoriesAvailable: 'Няма налични категории',
+    welcomeTo: 'Добре дошли в',
+    footerTagline: 'Вашият надежден партньор за модни дрехи и аксесоари.',
 
     // Store Page
     ourCurrentStock: 'Нашата наличност',

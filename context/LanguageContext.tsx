@@ -16,25 +16,38 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   
   // Fixed initial value so server and client markup match; hydrate prefs after mount
   const [language, setLanguageState] = useState<Language>('bg');
+  const [hasHydrated, setHasHydrated] = useState(false);
 
   useEffect(() => {
     const savedLanguage = localStorage.getItem('language') as Language;
-    if (savedLanguage === 'en' || savedLanguage === 'bg') {
+    const userChoseLanguage = localStorage.getItem('language-user-preference') === 'true';
+
+    if (userChoseLanguage && (savedLanguage === 'en' || savedLanguage === 'bg')) {
+      setLanguageState(savedLanguage);
+    } else if (settings?.language === 'en' || settings?.language === 'bg') {
+      setLanguageState(settings.language);
+      localStorage.setItem('language', settings.language);
+    } else if (savedLanguage === 'en' || savedLanguage === 'bg') {
       setLanguageState(savedLanguage);
     }
-  }, []);
 
-  // Sync with StoreSettings from DB (DB is source of truth)
+    setHasHydrated(true);
+  }, [settings?.language]);
+
+  // Store default from DB only before the shopper picks a language
   useEffect(() => {
-    if (settings?.language) {
+    if (!hasHydrated) return;
+    if (localStorage.getItem('language-user-preference') === 'true') return;
+    if (settings?.language === 'en' || settings?.language === 'bg') {
       setLanguageState(settings.language);
       localStorage.setItem('language', settings.language);
     }
-  }, [settings?.language]);
+  }, [settings?.language, hasHydrated]);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem('language', lang);
+    localStorage.setItem('language-user-preference', 'true');
   };
 
   return (

@@ -14,6 +14,7 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useProducts } from '@/context/ProductContext';
 import { isAwaitingRestock, isListedOnStorefront } from '@/lib/product-availability';
+import StoreLanguageToggle from '@/components/StoreLanguageToggle';
 
 interface HeaderProps {
   isAdmin: boolean;
@@ -40,9 +41,9 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
 
   // Create nav items - For Him, For Her, Accessories
   const allNavItems = [
-    { id: 'for-him', label: language === 'bg' ? 'За него' : 'For Him', path: '/for-him' },
-    { id: 'for-her', label: language === 'bg' ? 'За нея' : 'For Her', path: '/for-her' },
-    { id: 'accessories', label: language === 'bg' ? 'Аксесоари' : 'Accessories', path: '/accessories' }
+    { id: 'for-him', label: t.forHim, path: '/for-him' },
+    { id: 'for-her', label: t.forHer, path: '/for-her' },
+    { id: 'accessories', label: t.accessories, path: '/accessories' }
   ];
 
   const getCurrentPage = () => {
@@ -443,7 +444,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                           <div className="flex-1 p-6">
                             <div className="mb-4 pb-3 border-b" style={{ borderColor: theme.colors.border }}>
                               <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: theme.colors.textSecondary }}>
-                                {language === 'bg' ? 'Категории' : 'Categories'}
+                                {t.categories}
                               </h3>
                             </div>
                             <div className="flex gap-8">
@@ -568,7 +569,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                         <div className="p-6">
                           <div className="text-center py-8">
                             <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
-                              {language === 'bg' ? 'Няма налични категории' : 'No categories available'}
+                              {t.noCategoriesAvailable}
                             </p>
                           </div>
                         </div>
@@ -583,13 +584,14 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
           <div className="flex items-center gap-0.5 sm:gap-2 ml-auto shrink-0">
             {!isAdmin && (
               <>
+                <StoreLanguageToggle />
                 <Link
                   href="/products"
                   className="p-2 transition-colors duration-300 hidden sm:block"
                   style={{ color: theme.colors.text }}
                   onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.primary}
                   onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.text}
-                  aria-label={language === 'bg' ? 'Търсене' : 'Search'}
+                  aria-label={t.search}
                 >
                   <Search size={20} />
                 </Link>
@@ -599,7 +601,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                   style={{ color: theme.colors.text }}
                   onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.primary}
                   onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.text}
-                  aria-label="Shopping Cart"
+                  aria-label={t.shoppingCart}
                 >
                   <ShoppingCart size={20} />
                   {totalItems > 0 && (
@@ -617,7 +619,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                   style={{ color: theme.colors.text }}
                   onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.primary}
                   onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.text}
-                  aria-label={isAuthenticated && user ? "User Dashboard" : "Login"}
+                  aria-label={isAuthenticated && user ? t.profile : t.login}
                 >
                   <UserIcon size={20} />
                 </Link>
@@ -631,7 +633,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                     style={{ color: theme.colors.textSecondary }}
                     onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text}
                     onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textSecondary}
-                    aria-label="Logout"
+                    aria-label={t.logout}
                   >
                     <LogOut size={20} />
                   </button>
@@ -717,7 +719,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                 onClick={closeMobileMenu}
                 className="absolute right-5 top-5 p-1 transition-opacity hover:opacity-70"
                 style={{ color: theme.colors.text }}
-                aria-label={language === 'bg' ? 'Затвори' : 'Close'}
+                aria-label={t.close}
               >
                 <X size={22} />
               </button>
@@ -737,9 +739,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                     className="text-[11px] font-serif-display italic"
                     style={{ color: theme.colors.primary }}
                   >
-                    {language === 'bg'
-                      ? `Добре дошли в ${storeName}`
-                      : `Welcome to ${storeName}`}
+                    {t.welcomeTo} {storeName}
                   </span>
                   <span className="h-px w-6" style={{ backgroundColor: theme.colors.primary }} />
                 </div>
@@ -749,7 +749,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                 className="font-serif-display mt-6 text-3xl"
                 style={{ color: theme.colors.text }}
               >
-                {language === 'bg' ? 'Меню' : 'Menu'}
+                {t.menu}
               </h2>
             </div>
 
@@ -822,7 +822,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                             <UserIcon size={18} style={{ color: theme.colors.text }} />
                           </span>
                           <span className="flex-1 text-[15px] font-medium" style={{ color: theme.colors.text }}>
-                            {language === 'bg' ? 'Профил' : 'Profile'}
+                            {t.profile}
                           </span>
                         </Link>
                         <button
@@ -841,7 +841,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                             <LogOut size={18} style={{ color: theme.colors.text }} />
                           </span>
                           <span className="flex-1 text-[15px] font-medium" style={{ color: theme.colors.text }}>
-                            {language === 'bg' ? 'Изход' : 'Logout'}
+                            {t.logout}
                           </span>
                         </button>
                       </>
@@ -858,7 +858,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                           <UserIcon size={18} style={{ color: theme.colors.text }} />
                         </span>
                         <span className="flex-1 text-[15px] font-medium" style={{ color: theme.colors.text }}>
-                          {language === 'bg' ? 'Вход' : 'Login'}
+                          {t.login}
                         </span>
                       </Link>
                     )}
@@ -925,7 +925,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                 }}
                 className="p-1 transition-opacity hover:opacity-70"
                 style={{ color: theme.colors.text }}
-                aria-label={language === 'bg' ? 'Назад' : 'Back'}
+                aria-label={t.back}
               >
                 <ChevronLeft size={22} />
               </button>
@@ -934,14 +934,14 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                 style={{ color: theme.colors.text }}
               >
                 {navItems.find(item => item.id === selectedSectionForCategories)?.label ||
-                  (language === 'bg' ? 'Категории' : 'Categories')}
+                  t.categories}
               </h2>
               <button
                 type="button"
                 onClick={closeMobileMenu}
                 className="p-1 transition-opacity hover:opacity-70"
                 style={{ color: theme.colors.text }}
-                aria-label={language === 'bg' ? 'Затвори' : 'Close'}
+                aria-label={t.close}
               >
                 <X size={22} />
               </button>
@@ -953,7 +953,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                   className="text-[11px] font-semibold uppercase tracking-[0.18em]"
                   style={{ color: theme.colors.primary }}
                 >
-                  {language === 'bg' ? 'Категории' : 'Categories'}
+                  {t.categories}
                 </p>
               </div>
 
@@ -1008,7 +1008,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                 ) : (
                   <div className="py-12 text-center">
                     <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
-                      {language === 'bg' ? 'Няма налични категории' : 'No categories available'}
+                      {t.noCategoriesAvailable}
                     </p>
                   </div>
                 )}
@@ -1034,7 +1034,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                     onClick={() => setSelectedParentCategoryId(null)}
                     className="p-1 transition-opacity hover:opacity-70"
                     style={{ color: theme.colors.text }}
-                    aria-label={language === 'bg' ? 'Назад' : 'Back'}
+                    aria-label={t.back}
                   >
                     <ChevronLeft size={22} />
                   </button>
@@ -1049,7 +1049,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                     onClick={closeMobileMenu}
                     className="p-1 transition-opacity hover:opacity-70"
                     style={{ color: theme.colors.text }}
-                    aria-label={language === 'bg' ? 'Затвори' : 'Close'}
+                    aria-label={t.close}
                   >
                     <X size={22} />
                   </button>
@@ -1061,7 +1061,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
                       className="text-[11px] font-semibold uppercase tracking-[0.18em]"
                       style={{ color: theme.colors.primary }}
                     >
-                      {language === 'bg' ? 'Категории' : 'Categories'}
+                      {t.categories}
                     </p>
                   </div>
 

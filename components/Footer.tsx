@@ -35,9 +35,7 @@ export default function Footer() {
         const cleaned = stripHtml(settings.aboutustext);
         return cleaned.length > 150 ? cleaned.substring(0, 150) + '...' : cleaned;
       })()
-    : language === 'bg' 
-      ? 'Вашият надежден партньор за модни дрехи и аксесоари.'
-      : 'Your trusted partner for fashionable clothing and accessories.';
+    : t.footerTagline;
 
   // Social — TikTok only
   const tiktokUrl = TIKTOK_URL;
@@ -46,17 +44,17 @@ export default function Footer() {
   const secondaryLinks = [
     { 
       id: 'for-him', 
-      label: language === 'bg' ? 'За него' : 'For Him', 
+      label: t.forHim, 
       path: '/for-him' 
     },
     { 
       id: 'for-her', 
-      label: language === 'bg' ? 'За нея' : 'For Her', 
+      label: t.forHer, 
       path: '/for-her' 
     },
     { 
       id: 'accessories', 
-      label: language === 'bg' ? 'Аксесоари' : 'Accessories', 
+      label: t.accessories, 
       path: '/accessories' 
     }
   ];

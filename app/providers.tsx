@@ -11,6 +11,7 @@ import { CookieConsentProvider } from '@/context/CookieConsentContext';
 import { AuthProvider } from '@/context/AuthContext';
 import CookieConsentBanner from '@/components/CookieConsentBanner';
 import AnalyticsTracker from '@/components/AnalyticsTracker';
+import HtmlLangSync from '@/components/HtmlLangSync';
 import MaintenanceMode from '@/components/MaintenanceMode';
 
 function InnerProviders({ children }: { children: React.ReactNode }) {
@@ -30,6 +31,7 @@ function InnerProviders({ children }: { children: React.ReactNode }) {
               <ProductTypeProvider>
                 <PropertiesProvider>
                   <ProductProvider>
+                    <HtmlLangSync />
                     {children}
                     <CookieConsentBanner />
                     <AnalyticsTracker />
