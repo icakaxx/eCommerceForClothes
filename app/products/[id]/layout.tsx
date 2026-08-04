@@ -1,21 +1,42 @@
 import type { Metadata } from 'next';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@/lib/supabase';
 
 const SITE_URL = 'https://modabox.eu';
 const OG_IMAGE = 'https://static-b2c.loropiana.com/cms/resource/image/440282/portrait_ratio3x4/768/1024/fb215413f1cad8636d48b2f0c1eaa1ce/62B14DD519AB6DBA760C9CE121E9F924/lp-assouline-book-1080x1350-14-.jpg';
 
 async function fetchProduct(id: string) {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    const { data } = await supabase
+    const supabase = createServerClient();
+
+    const { data: product, error } = await supabase
       .from('products')
-      .select('id, name, description, brand, images')
-      .eq('id', id)
+      .select('productid, name, description')
+      .eq('productid', id)
+      .neq('isdeleted', true)
+      .eq('isdisabled', false)
       .single();
-    return data;
+
+    if (error || !product) {
+      return null;
+    }
+
+    const { data: images } = await supabase
+      .from('product_images')
+      .select('imageurl')
+      .eq('productid', id)
+      .is('productvariantid', null)
+      .order('sortorder', { ascending: true })
+      .limit(1);
+
+    const nameParts = product.name?.split(' ') || [];
+    const brand = nameParts[0] || '';
+
+    return {
+      name: product.name,
+      description: product.description,
+      brand,
+      images: (images ?? []).map((img) => img.imageurl).filter(Boolean),
+    };
   } catch {
     return null;
   }
