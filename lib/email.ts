@@ -2,6 +2,7 @@ import { sendEmail, getContactEmail, getAdminNotificationEmails, isEmailConfigur
 import { logger } from '@/lib/logger';
 import { translations, Language } from '@/lib/translations';
 import { getShippingEstimateMessage } from '@/lib/order-shipping-estimate';
+import type { OrderEmailItem } from '@/lib/order-email-items';
 
 interface OrderDetails {
   orderId: string;
@@ -23,18 +24,7 @@ interface OrderDetails {
     apartment?: string;
     econtOfficeId?: string;
   };
-  items: Array<{
-    id: string | number;
-    name: string;
-    brand: string;
-    model: string;
-    color: string;
-    size?: string;
-    type?: string;
-    price: number;
-    quantity: number;
-    imageUrl: string;
-  }>;
+  items: OrderEmailItem[];
   totals: {
     subtotal: number;
     delivery: number;
@@ -54,6 +44,51 @@ function getDeliveryTypeLabel(type: string, language: Language): string {
     return t.deliveryEcontomat || type;
   }
   return type;
+}
+
+function renderEmailOrderItemRow(
+  item: OrderEmailItem,
+  language: Language,
+  options: { showSku?: boolean; showProductLink?: boolean } = {}
+): string {
+  const t = translations[language];
+  const { showSku = false, showProductLink = false } = options;
+  const variantDetails = [
+    item.color,
+    item.size ? item.size : '',
+    item.type ? item.type : '',
+  ]
+    .filter(Boolean)
+    .join(' • ');
+  const productLink = item.productUrl
+    ? `<p style="margin: 8px 0 0;"><a href="${item.productUrl}" style="color: #667eea; text-decoration: none; font-weight: 600;">${t.emailViewProduct}</a><br><small style="color: #666;">${item.productUrl.replace(/^https?:\/\//, '')}</small></p>`
+    : '';
+  const productTitle = item.productUrl
+    ? `<a href="${item.productUrl}" style="color: #333; text-decoration: none;">${item.brand} ${item.model}</a>`
+    : `<strong>${item.brand} ${item.model}</strong>`;
+  const productImage = item.productUrl
+    ? `<a href="${item.productUrl}" style="text-decoration: none;"><img src="${item.imageUrl}" alt="${item.name}" width="72" height="72" style="display: block; object-fit: cover; border-radius: 8px; border: 1px solid #eee;" /></a>`
+    : `<img src="${item.imageUrl}" alt="${item.name}" width="72" height="72" style="display: block; object-fit: cover; border-radius: 8px; border: 1px solid #eee;" />`;
+
+  return `
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-bottom: 1px solid #eee;">
+      <tr>
+        <td width="84" valign="top" style="padding: 12px 12px 12px 0;">
+          ${productImage}
+        </td>
+        <td valign="top" style="padding: 12px 0;">
+          ${productTitle}<br>
+          <small>${variantDetails}</small>
+          ${showSku ? `<br><small>SKU: ${item.id}</small>` : ''}
+          ${showProductLink ? productLink : ''}
+        </td>
+        <td valign="top" align="right" style="padding: 12px 0; white-space: nowrap;">
+          <div>${item.quantity} × €${item.price.toFixed(2)}</div>
+          <div style="font-weight: bold;">€${(item.quantity * item.price).toFixed(2)}</div>
+        </td>
+      </tr>
+    </table>
+  `;
 }
 
 function getValidCustomerEmail(email?: string): string | null {
@@ -117,18 +152,7 @@ export async function sendCustomerOrderEmail(orderDetails: OrderDetails, languag
             <h3>${t.emailOrderSummary}</h3>
 
             <div style="margin: 20px 0;">
-              ${orderDetails.items.map(item => `
-                <div class="item">
-                  <div>
-                    <strong>${item.brand} ${item.model}</strong><br>
-                    <small>${item.color}${item.size ? ` • ${item.size}` : ''}${item.type ? ` • ${item.type}` : ''}</small>
-                  </div>
-                  <div style="text-align: right;">
-                    <div>${item.quantity} × €${item.price.toFixed(2)}</div>
-                    <div style="font-weight: bold;">€${(item.quantity * item.price).toFixed(2)}</div>
-                  </div>
-                </div>
-              `).join('')}
+              ${orderDetails.items.map(item => renderEmailOrderItemRow(item, language)).join('')}
             </div>
 
             <div class="item">
@@ -271,19 +295,7 @@ export async function sendAdminOrderEmail(orderDetails: OrderDetails, language: 
             <h3>${t.emailOrderDetails}</h3>
 
             <div style="margin: 20px 0;">
-              ${orderDetails.items.map(item => `
-                <div class="item">
-                  <div>
-                    <strong>${item.brand} ${item.model}</strong><br>
-                    <small>${item.color}${item.size ? ` • ${item.size}` : ''}${item.type ? ` • ${item.type}` : ''}</small><br>
-                    <small>SKU: ${item.id}</small>
-                  </div>
-                  <div style="text-align: right;">
-                    <div>${item.quantity} × €${item.price.toFixed(2)}</div>
-                    <div style="font-weight: bold;">€${(item.quantity * item.price).toFixed(2)}</div>
-                  </div>
-                </div>
-              `).join('')}
+              ${orderDetails.items.map(item => renderEmailOrderItemRow(item, language, { showSku: true, showProductLink: true })).join('')}
             </div>
 
             <div class="item">
@@ -431,18 +443,7 @@ export async function sendOrderStatusEmail(
             <div class="status-badge">${status === 'confirmed' ? t.confirmed : status === 'shipped' || status === 'dispatched' ? t.shipped : status === 'delivered' ? t.delivered : t.cancelled}</div>
 
             <div style="margin: 20px 0;">
-              ${orderDetails.items.map(item => `
-                <div class="item">
-                  <div>
-                    <strong>${item.brand} ${item.model}</strong><br>
-                    <small>${item.color}${item.size ? ` • ${item.size}` : ''}${item.type ? ` • ${item.type}` : ''}</small>
-                  </div>
-                  <div style="text-align: right;">
-                    <div>${item.quantity} × €${item.price.toFixed(2)}</div>
-                    <div style="font-weight: bold;">€${(item.quantity * item.price).toFixed(2)}</div>
-                  </div>
-                </div>
-              `).join('')}
+              ${orderDetails.items.map(item => renderEmailOrderItemRow(item, language)).join('')}
             </div>
 
             <div class="item total">

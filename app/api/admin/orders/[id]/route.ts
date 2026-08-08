@@ -3,6 +3,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { sendOrderStatusEmail } from '@/lib/email';
+import { buildOrderEmailItems } from '@/lib/order-email-items';
 import {
   decreaseStockForOrderItems,
   increaseStockForOrderItems,
@@ -203,7 +204,10 @@ export async function PUT(
           : existingOrder.customers;
 
         if (customer) {
-          const itemsWithDetails = await buildItemsForEmail(existingOrder);
+          const itemsWithDetails = await buildOrderEmailItems(
+            supabaseAdmin,
+            existingOrder.order_items || []
+          );
 
           const { data: storeSettings } = await supabaseAdmin
             .from('store_settings')
@@ -235,107 +239,6 @@ export async function PUT(
     logger.error('API error:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
-}
-
-async function buildItemsForEmail(existingOrder: any) {
-  return Promise.all(
-    (existingOrder.order_items || []).map(async (orderItem: any) => {
-      let productInfo = {
-        name: 'Unknown Product',
-        brand: '',
-        model: '',
-        color: '',
-        size: '',
-        type: undefined as string | undefined,
-        imageUrl: '/placeholder-image.jpg',
-      };
-
-      try {
-        if (orderItem.productvariantid) {
-          const { data: variant } = await supabaseAdmin
-            .from('product_variants')
-            .select(
-              `
-              sku,
-              productid,
-              price,
-              products!inner (
-                name
-              ),
-              product_variant_property_values (
-                value,
-                properties!inner (
-                  name
-                )
-              )
-            `
-            )
-            .eq('productvariantid', orderItem.productvariantid)
-            .single();
-
-          if (variant) {
-            const productData = variant.products;
-            productInfo.name = Array.isArray(productData)
-              ? productData[0]?.name || variant.sku || 'Unknown Product'
-              : (productData as any)?.name || variant.sku || 'Unknown Product';
-
-            if (variant.product_variant_property_values && Array.isArray(variant.product_variant_property_values)) {
-              variant.product_variant_property_values.forEach((pvv: any) => {
-                const propName = pvv.properties?.name?.toLowerCase() || '';
-                const value = pvv.value || '';
-
-                if (propName.includes('color') || propName.includes('colour') || propName.includes('цвят')) {
-                  productInfo.color = value;
-                } else if (propName.includes('size') || propName.includes('размер')) {
-                  productInfo.size = value;
-                } else if (propName.includes('brand') || propName.includes('марка')) {
-                  productInfo.brand = value;
-                } else if (propName.includes('model') || propName.includes('модел')) {
-                  productInfo.model = value;
-                } else if (propName.includes('type') || propName.includes('тип')) {
-                  productInfo.type = value;
-                }
-              });
-            }
-
-            if (!productInfo.brand && !productInfo.model) {
-              const nameParts = productInfo.name.split(' ');
-              productInfo.brand = nameParts[0] || '';
-              productInfo.model = nameParts.slice(1).join(' ') || productInfo.name;
-            }
-          }
-        } else if (orderItem.productid) {
-          const { data: product } = await supabaseAdmin
-            .from('products')
-            .select('name')
-            .eq('productid', orderItem.productid)
-            .single();
-
-          if (product) {
-            productInfo.name = product.name || 'Unknown Product';
-            const nameParts = productInfo.name.split(' ');
-            productInfo.brand = nameParts[0] || '';
-            productInfo.model = nameParts.slice(1).join(' ') || productInfo.name;
-          }
-        }
-      } catch (err) {
-        logger.error('Error fetching product details for email:', err);
-      }
-
-      return {
-        id: orderItem.productvariantid || orderItem.productid || '',
-        name: productInfo.name,
-        brand: productInfo.brand || 'Unknown',
-        model: productInfo.model || productInfo.name,
-        color: productInfo.color || '',
-        size: productInfo.size || '',
-        type: productInfo.type,
-        price: orderItem.price || 0,
-        quantity: orderItem.quantity,
-        imageUrl: productInfo.imageUrl,
-      };
-    })
-  );
 }
 
 function buildOrderDetailsForEmail(

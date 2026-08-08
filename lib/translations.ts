@@ -402,6 +402,7 @@ export interface Translations {
   emailCustomerInformation: string;
   emailName: string;
   emailOrderDetails: string;
+  emailViewProduct: string;
   emailOrderNotes: string;
   emailActionRequired: string;
   emailProcessOrder: string;
@@ -1130,6 +1131,7 @@ export const translations: Record<Language, Translations> = {
   emailCustomerInformation: 'Customer Information',
   emailName: 'Name:',
   emailOrderDetails: 'Order Details',
+  emailViewProduct: 'View on store',
   emailOrderNotes: 'Order Notes:',
   emailActionRequired: 'Action Required:',
   emailProcessOrder: 'Review the order and set status to Confirmed when ready',
@@ -1898,6 +1900,7 @@ export const translations: Record<Language, Translations> = {
   emailCustomerInformation: 'Информация за клиента',
   emailName: 'Име:',
   emailOrderDetails: 'Детайли на поръчката',
+  emailViewProduct: 'Виж в сайта',
   emailOrderNotes: 'Бележки към поръчката:',
   emailActionRequired: 'Необходимо действие:',
   emailProcessOrder: 'Прегледайте поръчката и задайте статус „Потвърдена“, когато е готова',
