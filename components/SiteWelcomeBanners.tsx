@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Sparkles, X } from 'lucide-react';
 import { useCookieConsent } from '@/context/CookieConsentContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/lib/translations';
 
-const SUPER_PROMO_WELCOME_KEY = 'super-promo-welcome-dismissed';
+const SUPER_PROMO_REMINDER_MS = 60_000;
+const INITIAL_SHOW_DELAY_MS = 1_000;
 
 export default function SiteWelcomeBanners() {
   const { consentStatus, acceptConsent, rejectConsent } = useCookieConsent();
@@ -17,43 +18,67 @@ export default function SiteWelcomeBanners() {
   const [isVisible, setIsVisible] = useState(false);
   const [askedThisSession, setAskedThisSession] = useState(false);
   const [showSuperPromoWelcome, setShowSuperPromoWelcome] = useState(false);
+  const hasSuperPromoItemsRef = useRef(false);
+  const superPromoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showCookieBanner = consentStatus === 'not-asked' && !askedThisSession;
   const showAnyBanner = isVisible && (showCookieBanner || showSuperPromoWelcome);
 
+  const clearSuperPromoTimer = useCallback(() => {
+    if (superPromoTimerRef.current) {
+      clearTimeout(superPromoTimerRef.current);
+      superPromoTimerRef.current = null;
+    }
+  }, []);
+
+  const openSuperPromoBanner = useCallback(() => {
+    if (!hasSuperPromoItemsRef.current) return;
+    setShowSuperPromoWelcome(true);
+    setIsVisible(true);
+  }, []);
+
+  const scheduleSuperPromoReminder = useCallback(() => {
+    clearSuperPromoTimer();
+    superPromoTimerRef.current = setTimeout(() => {
+      openSuperPromoBanner();
+    }, SUPER_PROMO_REMINDER_MS);
+  }, [clearSuperPromoTimer, openSuperPromoBanner]);
+
   useEffect(() => {
     let cancelled = false;
+    let initialTimer: ReturnType<typeof setTimeout> | null = null;
 
     const init = async () => {
       const sessionAsked = sessionStorage.getItem('consent_asked_this_session');
-      const superPromoDismissed = localStorage.getItem(SUPER_PROMO_WELCOME_KEY) === 'true';
 
       if (consentStatus === 'rejected' && sessionAsked) {
         setAskedThisSession(true);
       }
 
-      let shouldShowSuperPromo = false;
-      if (!superPromoDismissed) {
-        try {
-          const res = await fetch('/api/super-promo');
-          const data = await res.json();
-          shouldShowSuperPromo = Boolean(
-            data.success && Array.isArray(data.items) && data.items.length > 0
-          );
-        } catch {
-          shouldShowSuperPromo = false;
-        }
+      let hasItems = false;
+      try {
+        const res = await fetch('/api/super-promo');
+        const data = await res.json();
+        hasItems = Boolean(data.success && Array.isArray(data.items) && data.items.length > 0);
+      } catch {
+        hasItems = false;
       }
 
       if (cancelled) return;
 
-      setShowSuperPromoWelcome(shouldShowSuperPromo);
+      hasSuperPromoItemsRef.current = hasItems;
 
       const shouldShowCookie = consentStatus === 'not-asked' && !sessionAsked;
-      if (shouldShowCookie || shouldShowSuperPromo) {
-        setTimeout(() => {
-          if (!cancelled) setIsVisible(true);
-        }, 1000);
+      if (hasItems || shouldShowCookie) {
+        initialTimer = setTimeout(() => {
+          if (cancelled) return;
+          if (hasItems) {
+            setShowSuperPromoWelcome(true);
+          }
+          if (hasItems || shouldShowCookie) {
+            setIsVisible(true);
+          }
+        }, INITIAL_SHOW_DELAY_MS);
       }
     };
 
@@ -61,12 +86,17 @@ export default function SiteWelcomeBanners() {
 
     return () => {
       cancelled = true;
+      if (initialTimer) clearTimeout(initialTimer);
+      clearSuperPromoTimer();
     };
-  }, [consentStatus]);
+  }, [consentStatus, clearSuperPromoTimer]);
 
   const dismissSuperPromoWelcome = () => {
-    localStorage.setItem(SUPER_PROMO_WELCOME_KEY, 'true');
     setShowSuperPromoWelcome(false);
+    if (!showCookieBanner) {
+      setIsVisible(false);
+    }
+    scheduleSuperPromoReminder();
   };
 
   const handleAccept = () => {
