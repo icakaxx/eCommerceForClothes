@@ -1,4 +1,4 @@
-const DEFAULT_STOREFRONT_URL = 'https://modabox.eu';
+const DEFAULT_STOREFRONT_URL = 'https://www.modabox.eu';
 
 /** Public storefront origin for customer-facing links (never admin). */
 export function getStorefrontBaseUrl(): string {
@@ -22,4 +22,13 @@ export function getProductStorefrontUrl(
   if (variantId && cleanProductId === variantId) return '';
 
   return `${getStorefrontBaseUrl()}/products/${cleanProductId}`;
+}
+
+/** In-app link: opens product with SUPER PROMO variant pre-selected. */
+export function getSuperPromoProductPath(productId: string, variantId: string): string {
+  return `/products/${productId}?superPromo=${encodeURIComponent(variantId)}`;
+}
+
+export function getSuperPromoProductUrl(productId: string, variantId: string): string {
+  return `${getStorefrontBaseUrl()}${getSuperPromoProductPath(productId, variantId)}`;
 }

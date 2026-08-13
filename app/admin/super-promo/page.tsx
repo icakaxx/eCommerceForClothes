@@ -26,6 +26,8 @@ interface VariantOption {
 interface FormState {
   productid: string;
   productvariantid: string;
+  selectedVariantIds: string[];
+  multiSize: boolean;
   promoprice: string;
   sortorder: string;
   isactive: boolean;
@@ -34,6 +36,8 @@ interface FormState {
 const emptyForm: FormState = {
   productid: '',
   productvariantid: '',
+  selectedVariantIds: [],
+  multiSize: false,
   promoprice: '',
   sortorder: '0',
   isactive: true,
@@ -140,9 +144,17 @@ export default function AdminSuperPromoPage() {
         setVariants(options);
 
         if (selectedVariantId && options.some((v: VariantOption) => v.productvariantid === selectedVariantId)) {
-          setFormData((prev) => ({ ...prev, productvariantid: selectedVariantId }));
-        } else if (options.length === 1) {
-          setFormData((prev) => ({ ...prev, productvariantid: options[0].productvariantid }));
+          setFormData((prev) => ({
+            ...prev,
+            productvariantid: selectedVariantId,
+            selectedVariantIds: prev.multiSize ? [selectedVariantId] : prev.selectedVariantIds,
+          }));
+        } else if (options.length === 1 && !selectedVariantId) {
+          setFormData((prev) => ({
+            ...prev,
+            productvariantid: options[0].productvariantid,
+            selectedVariantIds: prev.multiSize ? [options[0].productvariantid] : prev.selectedVariantIds,
+          }));
         }
       } else {
         setVariants([]);
@@ -160,10 +172,12 @@ export default function AdminSuperPromoPage() {
     }
   }, [formData.productid]);
 
-  const selectedVariant = useMemo(
-    () => variants.find((v) => v.productvariantid === formData.productvariantid),
-    [variants, formData.productvariantid]
-  );
+  const selectedVariant = useMemo(() => {
+    if (formData.multiSize && formData.selectedVariantIds.length > 0) {
+      return variants.find((v) => v.productvariantid === formData.selectedVariantIds[0]);
+    }
+    return variants.find((v) => v.productvariantid === formData.productvariantid);
+  }, [variants, formData.productvariantid, formData.multiSize, formData.selectedVariantIds]);
 
   const resetForm = () => {
     setFormData(emptyForm);
@@ -177,11 +191,27 @@ export default function AdminSuperPromoPage() {
     setShowModal(true);
   };
 
+  const toggleVariantSelection = (variantId: string, checked: boolean) => {
+    setFormData((prev) => {
+      const selectedVariantIds = checked
+        ? [...new Set([...prev.selectedVariantIds, variantId])]
+        : prev.selectedVariantIds.filter((id) => id !== variantId);
+
+      return {
+        ...prev,
+        selectedVariantIds,
+        productvariantid: selectedVariantIds.length === 1 ? selectedVariantIds[0] : prev.productvariantid,
+      };
+    });
+  };
+
   const openEditModal = (item: SuperPromoDisplayItem) => {
     setEditingId(item.superpromoid);
     setFormData({
       productid: item.productid,
       productvariantid: item.productvariantid,
+      selectedVariantIds: [item.productvariantid],
+      multiSize: false,
       promoprice: item.promoPrice.toFixed(2),
       sortorder: String(item.sortorder),
       isactive: item.isactive,
@@ -194,8 +224,18 @@ export default function AdminSuperPromoPage() {
   const handleSubmit = async () => {
     setFormError('');
 
-    if (!formData.productid || !formData.productvariantid) {
-      setFormError(language === 'bg' ? 'Изберете продукт и вариант (размер).' : 'Select product and variant (size).');
+    const variantIds = formData.multiSize && !editingId
+      ? formData.selectedVariantIds
+      : formData.productvariantid
+        ? [formData.productvariantid]
+        : [];
+
+    if (!formData.productid || variantIds.length === 0) {
+      setFormError(
+        language === 'bg'
+          ? 'Изберете продукт и поне един размер.'
+          : 'Select a product and at least one size.'
+      );
       return;
     }
 
@@ -207,25 +247,86 @@ export default function AdminSuperPromoPage() {
 
     setSubmitting(true);
     try {
-      const payload = {
-        superpromoid: editingId || undefined,
-        productid: formData.productid,
-        productvariantid: formData.productvariantid,
-        promoprice: promoPrice,
-        sortorder: parseInt(formData.sortorder, 10) || 0,
-        isactive: formData.isactive,
-      };
+      const sortorder = parseInt(formData.sortorder, 10) || 0;
 
-      const response = await fetch('/api/admin/super-promo', {
-        method: editingId ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      if (editingId) {
+        const response = await fetch('/api/admin/super-promo', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            superpromoid: editingId,
+            productid: formData.productid,
+            productvariantid: variantIds[0],
+            promoprice: promoPrice,
+            sortorder,
+            isactive: formData.isactive,
+          }),
+        });
 
-      const result = await response.json();
-      if (!result.success) {
-        setFormError(result.error || 'Failed to save');
-        return;
+        const result = await response.json();
+        if (!result.success) {
+          setFormError(result.error || 'Failed to save');
+          return;
+        }
+      } else if (variantIds.length === 1) {
+        const response = await fetch('/api/admin/super-promo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productid: formData.productid,
+            productvariantid: variantIds[0],
+            promoprice: promoPrice,
+            sortorder,
+            isactive: formData.isactive,
+          }),
+        });
+
+        const result = await response.json();
+        if (!result.success) {
+          setFormError(result.error || 'Failed to save');
+          return;
+        }
+      } else {
+        const results = await Promise.all(
+          variantIds.map(async (productvariantid, index) => {
+            const response = await fetch('/api/admin/super-promo', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                productid: formData.productid,
+                productvariantid,
+                promoprice: promoPrice,
+                sortorder: sortorder + index,
+                isactive: formData.isactive,
+              }),
+            });
+            const result = await response.json();
+            return {
+              productvariantid,
+              success: Boolean(result.success),
+              error: result.error as string | undefined,
+            };
+          })
+        );
+
+        const failed = results.filter((r) => !r.success);
+        if (failed.length === results.length) {
+          setFormError(
+            failed[0]?.error ||
+              (language === 'bg' ? 'Неуспешен запис на офертите.' : 'Failed to save offers.')
+          );
+          return;
+        }
+
+        if (failed.length > 0) {
+          await loadItems();
+          setFormError(
+            language === 'bg'
+              ? `Записани ${results.length - failed.length} от ${results.length} размера. Някои вече са в SUPER PROMO.`
+              : `Saved ${results.length - failed.length} of ${results.length} sizes. Some were already in SUPER PROMO.`
+          );
+          return;
+        }
       }
 
       setShowModal(false);
@@ -385,6 +486,7 @@ export default function AdminSuperPromoPage() {
                   ...formData,
                   productid: e.target.value,
                   productvariantid: '',
+                  selectedVariantIds: [],
                 })
               }
               className="w-full border rounded-lg px-3 py-2 text-sm"
@@ -398,31 +500,123 @@ export default function AdminSuperPromoPage() {
             </select>
           </div>
 
+          {!editingId && (
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={formData.multiSize}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    multiSize: e.target.checked,
+                    productvariantid: e.target.checked ? '' : formData.productvariantid,
+                    selectedVariantIds: e.target.checked ? formData.selectedVariantIds : [],
+                  })
+                }
+                disabled={!formData.productid || variants.length === 0}
+              />
+              {language === 'bg'
+                ? 'Избери повече от един размер'
+                : 'Select more than one size'}
+            </label>
+          )}
+
           <div>
             <label className="block text-sm font-medium mb-1">
-              {language === 'bg' ? 'Вариант / размер' : 'Variant / size'}
+              {formData.multiSize && !editingId
+                ? language === 'bg'
+                  ? 'Размери'
+                  : 'Sizes'
+                : language === 'bg'
+                  ? 'Вариант / размер'
+                  : 'Variant / size'}
             </label>
-            <select
-              value={formData.productvariantid}
-              onChange={(e) => setFormData({ ...formData, productvariantid: e.target.value })}
-              disabled={!formData.productid || loadingVariants}
-              className="w-full border rounded-lg px-3 py-2 text-sm disabled:opacity-60"
-            >
-              <option value="">
-                {loadingVariants
-                  ? language === 'bg'
-                    ? 'Зареждане...'
-                    : 'Loading...'
-                  : language === 'bg'
-                    ? 'Изберете размер'
-                    : 'Select size'}
-              </option>
-              {variants.map((variant) => (
-                <option key={variant.productvariantid} value={variant.productvariantid}>
-                  {variant.label}
+
+            {formData.multiSize && !editingId ? (
+              <div
+                className="max-h-48 overflow-y-auto border rounded-lg p-3 space-y-2 disabled:opacity-60"
+                aria-disabled={!formData.productid || loadingVariants}
+              >
+                {loadingVariants ? (
+                  <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                    {language === 'bg' ? 'Зареждане...' : 'Loading...'}
+                  </p>
+                ) : variants.length === 0 ? (
+                  <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                    {language === 'bg' ? 'Няма налични размери.' : 'No sizes available.'}
+                  </p>
+                ) : (
+                  <>
+                    <label className="inline-flex items-center gap-2 text-sm font-medium pb-1 border-b w-full">
+                      <input
+                        type="checkbox"
+                        checked={
+                          variants.length > 0 &&
+                          variants.every((variant) =>
+                            formData.selectedVariantIds.includes(variant.productvariantid)
+                          )
+                        }
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            selectedVariantIds: e.target.checked
+                              ? variants.map((variant) => variant.productvariantid)
+                              : [],
+                            productvariantid: '',
+                          }))
+                        }
+                      />
+                      {language === 'bg' ? 'Маркирай всички' : 'Select all'}
+                    </label>
+                    {variants.map((variant) => (
+                      <label
+                        key={variant.productvariantid}
+                        className="flex items-center gap-2 text-sm cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.selectedVariantIds.includes(variant.productvariantid)}
+                          onChange={(e) =>
+                            toggleVariantSelection(variant.productvariantid, e.target.checked)
+                          }
+                        />
+                        <span>{variant.label}</span>
+                      </label>
+                    ))}
+                  </>
+                )}
+              </div>
+            ) : (
+              <select
+                value={formData.productvariantid}
+                onChange={(e) => setFormData({ ...formData, productvariantid: e.target.value })}
+                disabled={!formData.productid || loadingVariants}
+                className="w-full border rounded-lg px-3 py-2 text-sm disabled:opacity-60"
+              >
+                <option value="">
+                  {loadingVariants
+                    ? language === 'bg'
+                      ? 'Зареждане...'
+                      : 'Loading...'
+                    : language === 'bg'
+                      ? 'Изберете размер'
+                      : 'Select size'}
                 </option>
-              ))}
-            </select>
+                {variants.map((variant) => (
+                  <option key={variant.productvariantid} value={variant.productvariantid}>
+                    {variant.label}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {formData.multiSize && !editingId && formData.selectedVariantIds.length > 0 && (
+              <p className="text-xs mt-1" style={{ color: theme.colors.textSecondary }}>
+                {language === 'bg'
+                  ? `Избрани ${formData.selectedVariantIds.length} размера с една и съща промо цена.`
+                  : `${formData.selectedVariantIds.length} sizes selected with the same promo price.`}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

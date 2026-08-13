@@ -5,7 +5,7 @@ import {
   getVariantEffectivePrice,
   roundMoney,
 } from '@/lib/product-promo';
-import { getProductStorefrontUrl } from '@/lib/storefront-url';
+import { getProductStorefrontUrl, getSuperPromoProductPath } from '@/lib/storefront-url';
 import { getVariantPropertyValues, isSizePropertyKey } from '@/lib/variant-stock';
 import { normalizeProductImages } from '@/lib/product-images';
 
@@ -37,6 +37,7 @@ export interface SuperPromoDisplayItem {
   imageUrl: string;
   images: string[];
   productUrl: string;
+  productPath: string;
   inStock: boolean;
   quantity: number;
   category: 'clothes' | 'shoes' | 'accessories';
@@ -207,6 +208,7 @@ export async function enrichSuperPromoItems(
         imageUrl: images[0] || '/image.png',
         images,
         productUrl: getProductStorefrontUrl(row.productid),
+        productPath: getSuperPromoProductPath(row.productid, row.productvariantid),
         inStock,
         quantity,
         category: 'clothes',

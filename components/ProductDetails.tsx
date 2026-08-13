@@ -19,10 +19,12 @@ import {
   getOptionStockQuantity,
   getOptionStockStatus,
 } from '@/lib/variant-stock';
-import { getVariantEffectivePrice } from '@/lib/product-promo';
+import { getVariantEffectivePrice, getDiscountPercentFromPrices } from '@/lib/product-promo';
+import type { SuperPromoDisplayItem } from '@/lib/super-promo';
 
 interface ProductDetailsProps {
   product: Product;
+  superPromo?: SuperPromoDisplayItem | null;
   onVariantChange?: (images: string[] | string | undefined) => void;
   hideTitleOnMobile?: boolean;
 }
@@ -61,7 +63,7 @@ interface Variant {
   }>;
 }
 
-export default function ProductDetails({ product, onVariantChange, hideTitleOnMobile }: ProductDetailsProps) {
+export default function ProductDetails({ product, superPromo, onVariantChange, hideTitleOnMobile }: ProductDetailsProps) {
   const { theme } = useTheme();
   const { language } = useLanguage();
   const { addItem, openCart } = useCart();
@@ -168,9 +170,17 @@ export default function ProductDetails({ product, onVariantChange, hideTitleOnMo
       setAvailableOptions(optionsMap);
       setPropertyNameMap(nameMap);
 
-      // Select first variant by default (or primary variant if available)
+      // Select super promo variant, primary variant, or first available
       if (visibleVariants.length > 0) {
-        const primaryVariant = visibleVariants.find((v: any) => v.IsPrimaryImage) || visibleVariants[0];
+        const promoVariant = superPromo?.productvariantid
+          ? visibleVariants.find(
+              (v: any) => v.productvariantid === superPromo.productvariantid
+            )
+          : null;
+        const primaryVariant =
+          promoVariant ||
+          visibleVariants.find((v: any) => v.IsPrimaryImage) ||
+          visibleVariants[0];
         setSelectedVariant(primaryVariant);
 
         // Set initial selected options
@@ -205,7 +215,7 @@ export default function ProductDetails({ product, onVariantChange, hideTitleOnMo
         }
       }
     }
-  }, [product.variants, product.Variants]);
+  }, [product.variants, product.Variants, superPromo?.productvariantid]);
 
   const handleOptionChange = (propertyName: string, value: string) => {
     const newOptions = { ...selectedOptions, [propertyName]: value };
@@ -268,7 +278,21 @@ export default function ProductDetails({ product, onVariantChange, hideTitleOnMo
   };
 
   // Get current price and quantity
-  const selectedPricing = getVariantEffectivePrice(selectedVariant || { price: product.price }, product);
+  const basePricing = getVariantEffectivePrice(selectedVariant || { price: product.price }, product);
+  const superPromoActive = Boolean(
+    superPromo &&
+      selectedVariant?.productvariantid === superPromo.productvariantid
+  );
+  const selectedPricing = superPromoActive
+    ? {
+        original: superPromo!.originalPrice,
+        sale: superPromo!.promoPrice,
+        promoActive: true,
+        promoPercent:
+          superPromo!.discountPercent ||
+          getDiscountPercentFromPrices(superPromo!.originalPrice, superPromo!.promoPrice),
+      }
+    : basePricing;
   const originalPrice = selectedPricing.original;
   const promoActive = selectedPricing.promoActive;
   const promoPercent = selectedPricing.promoPercent;
@@ -607,12 +631,21 @@ export default function ProductDetails({ product, onVariantChange, hideTitleOnMo
       >
         {promoActive && (
           <div className="mb-2">
-            <span
-              className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-md text-white tracking-wide"
-              style={{ backgroundColor: '#b91c1c' }}
-            >
-              ПРОМОЦИЯ −{promoPercent}%
-            </span>
+            {superPromoActive ? (
+              <span
+                className="inline-flex items-center px-2.5 py-1 text-xs font-bold rounded-md text-white tracking-wider"
+                style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #dc2626 100%)' }}
+              >
+                SUPER PROMO −{promoPercent}%
+              </span>
+            ) : (
+              <span
+                className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-md text-white tracking-wide"
+                style={{ backgroundColor: '#b91c1c' }}
+              >
+                ПРОМОЦИЯ −{promoPercent}%
+              </span>
+            )}
           </div>
         )}
         {promoActive && (

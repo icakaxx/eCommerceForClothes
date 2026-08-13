@@ -50,7 +50,7 @@ export default function SuperPromoCard({ item }: SuperPromoCardProps) {
         boxShadow: theme.effects.shadow,
       }}
     >
-      <Link href={item.productUrl} className="relative block">
+      <Link href={item.productPath} className="relative block">
         <div
           className="relative aspect-[4/5] sm:aspect-square overflow-hidden"
           style={{ backgroundColor: theme.colors.secondary }}
@@ -80,7 +80,7 @@ export default function SuperPromoCard({ item }: SuperPromoCardProps) {
       </Link>
 
       <div className="p-4 flex flex-col flex-1">
-        <Link href={item.productUrl} className="group">
+        <Link href={item.productPath} className="group">
           <h3
             className="text-sm sm:text-base font-semibold mb-1 line-clamp-2 leading-snug group-hover:underline"
             style={{ color: theme.colors.text }}
@@ -131,7 +131,7 @@ export default function SuperPromoCard({ item }: SuperPromoCardProps) {
           )}
 
           <Link
-            href={item.productUrl}
+            href={item.productPath}
             className="inline-flex items-center justify-center gap-1.5 text-xs font-medium"
             style={{ color: theme.colors.primary }}
           >

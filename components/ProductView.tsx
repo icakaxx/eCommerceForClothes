@@ -11,12 +11,14 @@ import { translations } from '@/lib/translations';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import { normalizeProductImages } from '@/lib/product-images';
+import type { SuperPromoDisplayItem } from '@/lib/super-promo';
 
 interface ProductViewProps {
   product: Product;
+  superPromo?: SuperPromoDisplayItem | null;
 }
 
-export default function ProductView({ product }: ProductViewProps) {
+export default function ProductView({ product, superPromo }: ProductViewProps) {
   const { theme } = useTheme();
   const { language } = useLanguage();
   const t = translations[language];
@@ -305,6 +307,7 @@ export default function ProductView({ product }: ProductViewProps) {
           <div className="product__detail__right order-2 md:order-2">
             <ProductDetails
               product={product}
+              superPromo={superPromo}
               onVariantChange={handleVariantImageChange}
               hideTitleOnMobile
             />
