@@ -41,6 +41,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
 
   // Create nav items - For Him, For Her, Accessories
   const allNavItems = [
+    { id: 'super-promo', label: t.superPromo || 'SUPER PROMO', path: '/super-promo' },
     { id: 'for-him', label: t.forHim, path: '/for-him' },
     { id: 'for-her', label: t.forHer, path: '/for-her' },
     { id: 'accessories', label: t.accessories, path: '/accessories' }
@@ -48,6 +49,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
 
   const getCurrentPage = () => {
     if (pathname === '/for-him') return 'for-him';
+    if (pathname === '/super-promo') return 'super-promo';
     if (pathname === '/for-her') return 'for-her';
     if (pathname === '/accessories') return 'accessories';
     return '';
@@ -127,6 +129,7 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
 
   // Filter nav items to only show those with available categories
   const navItems = allNavItems.filter(item => {
+    if (item.id === 'super-promo') return true;
     const categories = getCategoriesForNavItem(item.id);
     return categories.length > 0;
   });

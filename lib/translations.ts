@@ -94,6 +94,11 @@ export interface Translations {
   readyToShop: string;
   readyToShopDesc: string;
   viewProducts: string;
+  superPromo: string;
+  superPromoTitle: string;
+  superPromoDescription: string;
+  superPromoEmpty: string;
+  viewProductDetails: string;
 
   // About Page
   aboutUs: string;
@@ -607,6 +612,9 @@ export interface Translations {
   cookieConsentAccept: string;
   cookieConsentReject: string;
   cookieConsentLearnMore: string;
+  superPromoWelcomeTitle: string;
+  superPromoWelcomeCta: string;
+  superPromoWelcomeClose: string;
 
   // Visitor Analytics
   visitors: string;
@@ -833,6 +841,11 @@ export const translations: Record<Language, Translations> = {
     readyToShop: 'Ready to Start Shopping?',
     readyToShopDesc: 'Explore our products and find your perfect style',
     viewProducts: 'View Products',
+    superPromo: 'SUPER PROMO',
+    superPromoTitle: 'SUPER PROMO',
+    superPromoDescription: 'Selected products and sizes with exclusive promo prices – for a limited time only.',
+    superPromoEmpty: 'There are no active SUPER PROMO offers at the moment.',
+    viewProductDetails: 'View product',
 
     // About Page
     aboutUs: 'About Us',
@@ -1344,6 +1357,9 @@ export const translations: Record<Language, Translations> = {
     cookieConsentAccept: 'Accept',
     cookieConsentReject: 'Reject',
     cookieConsentLearnMore: 'Learn more',
+    superPromoWelcomeTitle: 'CHECK OUT THE SEASON SUPER PROMOS',
+    superPromoWelcomeCta: 'View SUPER PROMO',
+    superPromoWelcomeClose: 'Close',
 
     // Visitor Analytics
     visitors: 'Visitors',
@@ -1567,6 +1583,11 @@ export const translations: Record<Language, Translations> = {
     readyToShop: 'Готови ли сте да започнете пазаруване?',
     readyToShopDesc: 'Разгледайте нашите артикули и намерете своя перфектен стил',
     viewProducts: 'Вижте артикулите',
+    superPromo: 'SUPER PROMO',
+    superPromoTitle: 'SUPER PROMO',
+    superPromoDescription: 'Избрани продукти и размери с ексклузивни промо цени – само за ограничено време.',
+    superPromoEmpty: 'В момента няма активни SUPER PROMO оферти.',
+    viewProductDetails: 'Виж продукта',
 
     // About Page
     aboutUs: 'За нас',
@@ -2075,6 +2096,9 @@ export const translations: Record<Language, Translations> = {
   cookieConsentAccept: 'Приемам',
   cookieConsentReject: 'Отказвам',
   cookieConsentLearnMore: 'Научете повече',
+  superPromoWelcomeTitle: 'ВИЖ СУПЕР ПРОМОЦИИТЕ ЗА СЕЗОНА',
+  superPromoWelcomeCta: 'Виж SUPER PROMO',
+  superPromoWelcomeClose: 'Затвори',
 
   // Visitor Analytics
   visitors: 'Посетители',

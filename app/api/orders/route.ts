@@ -2,6 +2,7 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getVariantCheckoutPrice } from '@/lib/product-promo';
+import { getActiveSuperPromoPriceMap } from '@/lib/super-promo';
 import { sendCustomerOrderEmail, sendAdminOrderEmail } from '@/lib/email';
 import { buildOrderEmailItems } from '@/lib/order-email-items';
 import { supabaseAdmin } from '@/lib/supabase/admin';
@@ -291,6 +292,11 @@ async function createOrder(orderData: OrderData): Promise<string> {
   }
 
   // Create order items
+  const variantCartIds = orderData.items
+    .filter((item) => item.id && typeof item.id === 'string' && item.id.length > 10)
+    .map((item) => String(item.id));
+  const superPromoPriceMap = await getActiveSuperPromoPriceMap(supabase, variantCartIds);
+
   const orderItemsPromises = orderData.items.map(async (item) => {
     let productId = null;
     let productVariantId = null;
@@ -309,10 +315,10 @@ async function createOrder(orderData: OrderData): Promise<string> {
         productId = variant.productid;
         productVariantId = item.id;
         const product = Array.isArray(variant.products) ? variant.products[0] : variant.products;
+        const superPromoPrice = superPromoPriceMap.get(String(item.id));
         price =
-          item.price && item.price > 0
-            ? item.price
-            : getVariantCheckoutPrice(variant, product || undefined);
+          superPromoPrice ??
+          getVariantCheckoutPrice(variant, product || undefined);
       }
     } else if (item.id) {
       // Assume it's a product ID (for products without variants)

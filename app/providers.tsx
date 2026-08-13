@@ -9,7 +9,7 @@ import { StoreSettingsProvider, useStoreSettings } from '@/context/StoreSettings
 import { CartProvider } from '@/context/CartContext';
 import { CookieConsentProvider } from '@/context/CookieConsentContext';
 import { AuthProvider } from '@/context/AuthContext';
-import CookieConsentBanner from '@/components/CookieConsentBanner';
+import SiteWelcomeBanners from '@/components/SiteWelcomeBanners';
 import AnalyticsTracker from '@/components/AnalyticsTracker';
 import HtmlLangSync from '@/components/HtmlLangSync';
 import VercelAnalyticsFlags from '@/components/VercelAnalyticsFlags';
@@ -36,7 +36,7 @@ function InnerProviders({ children }: { children: React.ReactNode }) {
                     <HtmlLangSync />
                     <VercelAnalyticsFlags />
                     {children}
-                    <CookieConsentBanner />
+                    <SiteWelcomeBanners />
                     <AnalyticsTracker />
                     <VercelAnalytics />
                   </ProductProvider>

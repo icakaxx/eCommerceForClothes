@@ -182,6 +182,12 @@ export default function AdminSidebar({ currentPath, collapsed: externalCollapsed
       icon: Percent
     },
     {
+      id: 'super-promo',
+      label: 'SUPER PROMO',
+      path: '/admin/super-promo',
+      icon: Percent
+    },
+    {
       id: 'media',
       label: language === 'bg' ? 'Медия' : 'Media',
       path: '/admin/media',
