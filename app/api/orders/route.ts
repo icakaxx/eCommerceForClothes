@@ -401,7 +401,7 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .single();
 
-    const language = (storeSettings?.language === 'bg' || storeSettings?.language === 'en') ? storeSettings.language : 'en';
+    const language = (storeSettings?.language === 'bg' || storeSettings?.language === 'en') ? storeSettings.language : 'bg';
 
     // Prepare order details for emails
     const orderDetails = {

@@ -59,7 +59,7 @@ export default function HomeHero() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
         <article
-          className="relative overflow-hidden rounded-2xl sm:rounded-3xl min-h-[300px] sm:min-h-[340px] lg:min-h-[360px] border"
+          className="relative order-2 md:order-1 overflow-hidden rounded-2xl sm:rounded-3xl min-h-[300px] sm:min-h-[340px] lg:min-h-[360px] border"
           style={{ borderColor: theme.colors.border, backgroundColor: '#f5f0e8' }}
         >
           <Image
@@ -95,7 +95,7 @@ export default function HomeHero() {
         </article>
 
         <article
-          className="relative overflow-hidden rounded-2xl sm:rounded-3xl min-h-[300px] sm:min-h-[340px] lg:min-h-[360px] border border-[#2a2a2a]"
+          className="relative order-1 md:order-2 overflow-hidden rounded-2xl sm:rounded-3xl min-h-[300px] sm:min-h-[340px] lg:min-h-[360px] border border-[#2a2a2a]"
           style={{ backgroundColor: '#0f0f0f' }}
         >
           <Image

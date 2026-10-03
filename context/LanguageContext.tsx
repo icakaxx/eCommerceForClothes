@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Language } from '@/lib/translations';
-import { useStoreSettings } from './StoreSettingsContext';
 
 interface LanguageContextType {
   language: Language;
@@ -11,38 +10,27 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+const DEFAULT_LANGUAGE: Language = 'bg';
+
+function isLanguage(value: string | null | undefined): value is Language {
+  return value === 'en' || value === 'bg';
+}
+
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const { settings } = useStoreSettings();
-  
-  // Fixed initial value so server and client markup match; hydrate prefs after mount
-  const [language, setLanguageState] = useState<Language>('bg');
-  const [hasHydrated, setHasHydrated] = useState(false);
+  const [language, setLanguageState] = useState<Language>(DEFAULT_LANGUAGE);
 
   useEffect(() => {
-    const savedLanguage = localStorage.getItem('language') as Language;
     const userChoseLanguage = localStorage.getItem('language-user-preference') === 'true';
+    const savedLanguage = localStorage.getItem('language');
 
-    if (userChoseLanguage && (savedLanguage === 'en' || savedLanguage === 'bg')) {
+    if (userChoseLanguage && isLanguage(savedLanguage)) {
       setLanguageState(savedLanguage);
-    } else if (settings?.language === 'en' || settings?.language === 'bg') {
-      setLanguageState(settings.language);
-      localStorage.setItem('language', settings.language);
-    } else if (savedLanguage === 'en' || savedLanguage === 'bg') {
-      setLanguageState(savedLanguage);
+      return;
     }
 
-    setHasHydrated(true);
-  }, [settings?.language]);
-
-  // Store default from DB only before the shopper picks a language
-  useEffect(() => {
-    if (!hasHydrated) return;
-    if (localStorage.getItem('language-user-preference') === 'true') return;
-    if (settings?.language === 'en' || settings?.language === 'bg') {
-      setLanguageState(settings.language);
-      localStorage.setItem('language', settings.language);
-    }
-  }, [settings?.language, hasHydrated]);
+    setLanguageState(DEFAULT_LANGUAGE);
+    localStorage.setItem('language', DEFAULT_LANGUAGE);
+  }, []);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
@@ -64,4 +52,3 @@ export function useLanguage() {
   }
   return context;
 }
-
