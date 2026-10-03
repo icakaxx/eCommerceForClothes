@@ -50,7 +50,7 @@ export async function GET() {
       return apiErrorResponse({ code: 'INTERNAL_ERROR', status: 500, error });
     }
 
-    const items = await enrichSuperPromoItems(supabaseAdmin, data || []);
+    const items = await enrichSuperPromoItems(supabaseAdmin, data || [], { includeStale: true });
 
     return NextResponse.json({
       success: true,

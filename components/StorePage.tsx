@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import ProductCard from './ProductCard';
 import ProductFilters from './ProductFilters';
 import FilterDrawer from './FilterDrawer';
-import TrustBar from './TrustBar';
+import TrustBar from '@/components/home/TrustBar';
 import CategoryPillsNav from './CategoryPillsNav';
 import { Product } from '@/lib/data';
 import { useLanguage } from '@/context/LanguageContext';

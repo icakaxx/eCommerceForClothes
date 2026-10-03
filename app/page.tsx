@@ -4,8 +4,8 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react
 import Link from 'next/link';
 import LoadingScreen from '@/components/LoadingScreen';
 import PublicPageLayout from '@/components/PublicPageLayout';
-import HomeHero from '@/components/HomeHero';
-import TrustBar from '@/components/TrustBar';
+import HomeHero from '@/components/home/HomeHero';
+import TrustBar from '@/components/home/TrustBar';
 import CategoryPillsNav from '@/components/CategoryPillsNav';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';

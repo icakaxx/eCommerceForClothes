@@ -377,6 +377,13 @@ export default function AdminSuperPromoPage() {
                 ? 'Добавете избрани продукти и размери със специална промо цена за страницата /super-promo.'
                 : 'Add chosen products and sizes with special promo prices for the /super-promo page.'}
             </p>
+            {items.some((item) => item.isStale) && (
+              <p className="text-sm mt-2 text-amber-700">
+                {language === 'bg'
+                  ? `${items.filter((item) => item.isStale).length} оферти с остарял размер не се показват на сайта – изтрийте ги и добавете отново с текущите размери.`
+                  : `${items.filter((item) => item.isStale).length} offers use outdated sizes and are hidden on the storefront — delete and re-add them with current sizes.`}
+              </p>
+            )}
           </div>
           <div className="flex gap-2">
             <a
@@ -424,12 +431,24 @@ export default function AdminSuperPromoPage() {
                 </thead>
                 <tbody>
                   {items.map((item) => (
-                    <tr key={item.superpromoid} className="border-t" style={{ borderColor: theme.colors.border }}>
+                    <tr
+                      key={item.superpromoid}
+                      className="border-t"
+                      style={{
+                        borderColor: theme.colors.border,
+                        backgroundColor: item.isStale ? '#fffbeb' : undefined,
+                      }}
+                    >
                       <td className="px-4 py-3">
                         <div className="font-medium">{item.name}</div>
                         <div className="text-xs" style={{ color: theme.colors.textSecondary }}>
                           {item.color}
                         </div>
+                        {item.isStale && (
+                          <div className="text-xs text-amber-700 mt-1">
+                            {language === 'bg' ? 'Остарял размер – не се показва на сайта' : 'Outdated size — hidden on storefront'}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3">{item.size || '—'}</td>
                       <td className="px-4 py-3">€{item.originalPrice.toFixed(2)}</td>
