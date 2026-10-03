@@ -285,7 +285,7 @@ async function handleVariantFieldUpdates(variantUpdates: VariantFieldUpdate[]) {
           {
             success: false,
             error: missingColumn
-              ? 'Колоната promotional_price липсва. Изпълнете migration-add-variant-promotional-price.sql'
+              ? 'Колоната promotional_price липсва. Изпълнете database/migrations/migration-add-variant-promotional-price.sql'
               : updateError.message || 'Failed to update variant',
             partialResults: results,
           },

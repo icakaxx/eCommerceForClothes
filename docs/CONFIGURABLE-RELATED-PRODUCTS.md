@@ -10,7 +10,7 @@ The "You might like" section is now **fully configurable** through the admin pan
 Execute the migration file in your Supabase SQL Editor:
 
 ```sql
--- File: migration-add-related-products.sql
+-- File: database/migrations/migration-add-related-products.sql
 ```
 
 This creates the `related_products` table with:
@@ -54,7 +54,7 @@ This creates the `related_products` table with:
 ## 📁 Files Created/Modified
 
 ### New Files:
-1. **`migration-add-related-products.sql`** - Database schema
+1. **`database/migrations/migration-add-related-products.sql`** - Database schema
 2. **`app/api/products/[id]/related/route.ts`** - API endpoints
 
 ### Modified Files:
@@ -153,7 +153,7 @@ The admin interface includes:
 
 ## 🧪 Testing
 
-1. **Add the migration** (run `migration-add-related-products.sql`)
+1. **Add the migration** (run `database/migrations/migration-add-related-products.sql`)
 2. **Create/Edit a product** in admin
 3. **Select related products** from the list
 4. **Save** the product

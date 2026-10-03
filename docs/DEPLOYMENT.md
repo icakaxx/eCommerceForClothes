@@ -61,19 +61,19 @@ This guide will walk you through deploying the eCommerce store to Vercel with Su
    - Click "New Query"
 
 2. **Create Database Tables**
-   - Copy the entire contents of `schema.txt` from this repository
+   - Copy the entire contents of `database/schema.txt` from this repository
    - Paste it into the SQL Editor
    - Click "Run" or press `Ctrl+Enter` (Windows) / `Cmd+Enter` (Mac)
    - Wait for execution to complete (should show "Success. No rows returned")
 
 3. **Run Migration: Add Subtitle Column**
    - Open a new query tab
-   - Copy the contents of `migration-add-subtitle.sql`
+   - Copy the contents of `database/migrations/migration-add-subtitle.sql`
    - Paste and execute it
 
 4. **Run Migration: Add Related Products**
    - Open another new query tab
-   - Copy the contents of `migration-add-related-products.sql`
+   - Copy the contents of `database/migrations/migration-add-related-products.sql`
    - Paste and execute it
 
 5. **Verify Schema**

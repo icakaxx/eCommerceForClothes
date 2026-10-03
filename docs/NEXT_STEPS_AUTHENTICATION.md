@@ -20,7 +20,7 @@
 
 Run the SQL migration file in your Supabase database:
 
-**File:** `migration-create-users-table.sql`
+**File:** `database/migrations/migration-create-users-table.sql`
 
 This will create:
 - `users` table with all required fields
@@ -29,7 +29,7 @@ This will create:
 
 **How to run:**
 1. Open Supabase Dashboard → SQL Editor
-2. Copy and paste the contents of `migration-create-users-table.sql`
+2. Copy and paste the contents of `database/migrations/migration-create-users-table.sql`
 3. Execute the migration
 
 **Verify:**
@@ -110,7 +110,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ## 3. Optional: Create User Dashboard Page
 
 The dashboard page is not yet created. Reference implementation is in:
-- `loginFunctionality/userdashboard.txt`
+- `docs/archive/loginFunctionality/userdashboard.txt`
 
 **Dashboard should include:**
 - Profile management tab
@@ -211,7 +211,7 @@ Currently, orders are created via the `customers` table. To link authenticated u
 
 1. **Run Database Migration**
    ```bash
-   # Copy SQL from migration-create-users-table.sql
+   # Copy SQL from database/migrations/migration-create-users-table.sql
    # Paste into Supabase SQL Editor and execute
    ```
 
@@ -279,7 +279,7 @@ Currently, orders are created via the `customers` table. To link authenticated u
 - `app/user/reset-password/page.tsx` - Reset password page
 - `app/user/reset-password/reset-password.module.css` - Reset password styles
 - `context/AuthContext.tsx` - Authentication context
-- `migration-create-users-table.sql` - Database migration
+- `database/migrations/migration-create-users-table.sql` - Database migration
 
 ### Modified Files
 - `app/providers.tsx` - Added AuthProvider

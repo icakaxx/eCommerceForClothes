@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
           {
             success: false,
             error:
-              'Таблицата за изгледи липсва. Изпълни migration-admin-inventory-order-workflow.sql в Supabase.',
+              'Таблицата за изгледи липсва. Изпълни database/migrations/migration-admin-inventory-order-workflow.sql в Supabase.',
           },
           { status: 503 }
         );

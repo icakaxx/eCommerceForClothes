@@ -183,19 +183,21 @@ NEXT_PUBLIC_EMAIL_PASS=your_gmail_app_password
 
 ## 🚀 Deployment
 
-For detailed step-by-step deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)
+For detailed step-by-step deployment instructions, see [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)
 
 ### Quick Overview
 1. Create a new project on Vercel
 2. Create a new database on Supabase
-3. Run the database schema (from `schema.txt`)
-4. Run database migrations (`migration-add-subtitle.sql`, `migration-add-related-products.sql`)
+3. Run the database schema (from `database/schema.txt`)
+4. Run database migrations from `database/migrations/` (see that folder’s README)
 5. Create Supabase Storage bucket (`products`)
 6. Add environment variables to Vercel
 7. Create an admin user in Supabase
 8. Deploy and verify
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete instructions with troubleshooting tips.
+See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for complete instructions with troubleshooting tips.
+
+**Other docs:** [docs/README.md](./docs/README.md)
 
 ### Supported Platforms
 The app is compatible with any platform supporting Next.js:

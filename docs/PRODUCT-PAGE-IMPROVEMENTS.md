@@ -29,7 +29,7 @@ All requested features have been successfully implemented for the product detail
   - Visual feedback with color change
 
 ### 4. **Product Subtitle Field**
-- **Database**: Migration file created (`migration-add-subtitle.sql`)
+- **Database**: Migration file created (`database/migrations/migration-add-subtitle.sql`)
 - **UI Locations**:
   - Display: Shows below product name on detail page
   - Admin Edit: Added to EditProductModal with example placeholder
@@ -110,7 +110,7 @@ All requested features have been successfully implemented for the product detail
 Run the migration file to add the subtitle column:
 
 ```bash
-# Execute migration-add-subtitle.sql in your Supabase SQL editor
+# Execute database/migrations/migration-add-subtitle.sql in your Supabase SQL editor
 ```
 
 The migration adds:
