@@ -8,8 +8,11 @@ import { useTheme } from '@/context/ThemeContext';
 
 const MODABOX_HERO_IMAGE = '/images/hero/hero-home.png';
 const NIKE_TECH_HERO_IMAGE = '/images/hero/nike-tech-hoodie.avif';
+const JACKETS_HERO_IMAGE =
+  'https://undmzklwxotqunctdxyv.supabase.co/storage/v1/object/public/products/images/1793190309856-b4051o.webp';
 const MODABOX_CATALOG_HREF = '/products';
 const NIKE_TECH_TRACKING_HREF = '/outbound/niketech';
+const FEATURED_JACKET_PRODUCT_HREF = '/products/6c708e49-6f4b-4bf8-8f04-ed53977d99f6';
 
 export default function HomeHero() {
   const { language } = useLanguage();
@@ -38,6 +41,17 @@ export default function HomeHero() {
       cta: isBg ? 'Към NikeTech екипите' : 'Go to NikeTech.eu',
       imageAlt: isBg ? 'Nike Tech – Tech Fleece и streetwear' : 'Nike Tech – Tech Fleece and streetwear',
     },
+    jackets: {
+      label: 'MODABOX',
+      title: isBg ? 'Якета' : 'Jackets',
+      description: isBg
+        ? 'Двулицево Nike яке – лимитирана наличност.'
+        : 'Reversible Nike jacket – limited availability.',
+      cta: isBg ? 'Виж якето' : 'View the jacket',
+      imageAlt: isBg
+        ? 'Двулицево Яке - Nike (ЛИМИТИРАНА НАЛИЧНОСТ)'
+        : 'Reversible Nike jacket (limited stock)',
+    },
   };
 
   return (
@@ -57,9 +71,9 @@ export default function HomeHero() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
         <article
-          className="relative order-2 md:order-1 overflow-hidden rounded-2xl sm:rounded-3xl min-h-[300px] sm:min-h-[340px] lg:min-h-[360px] border"
+          className="relative order-3 lg:order-1 overflow-hidden rounded-2xl sm:rounded-3xl min-h-[300px] sm:min-h-[340px] lg:min-h-[360px] border"
           style={{ borderColor: theme.colors.border, backgroundColor: '#f5f0e8' }}
         >
           <Image
@@ -95,7 +109,7 @@ export default function HomeHero() {
         </article>
 
         <article
-          className="relative order-1 md:order-2 overflow-hidden rounded-2xl sm:rounded-3xl min-h-[300px] sm:min-h-[340px] lg:min-h-[360px] border border-[#2a2a2a]"
+          className="relative order-2 lg:order-3 overflow-hidden rounded-2xl sm:rounded-3xl min-h-[300px] sm:min-h-[340px] lg:min-h-[360px] border border-[#2a2a2a]"
           style={{ backgroundColor: '#0f0f0f' }}
         >
           <Image
@@ -127,6 +141,41 @@ export default function HomeHero() {
             </Link>
           </div>
         </article>
+
+        <Link
+          href={FEATURED_JACKET_PRODUCT_HREF}
+          className="relative order-1 lg:order-2 block overflow-hidden rounded-2xl sm:rounded-3xl min-h-[300px] sm:min-h-[340px] lg:min-h-[360px] border transition-opacity duration-300 hover:opacity-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1a1a1a]"
+          style={{ borderColor: theme.colors.border, backgroundColor: '#f5f0e8' }}
+        >
+          <Image
+            src={JACKETS_HERO_IMAGE}
+            alt={copy.jackets.imageAlt}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#f9f7f2]/95 via-[#f9f7f2]/72 to-[#f9f7f2]/10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#f9f7f2]/45 via-transparent to-transparent md:hidden" />
+
+          <div className="relative z-10 flex h-full min-h-[300px] sm:min-h-[340px] lg:min-h-[360px] flex-col justify-end sm:justify-center px-5 sm:px-7 lg:px-8 py-7 sm:py-8 max-w-[92%] sm:max-w-[85%]">
+            <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] mb-2 text-[#6b6b6b]">
+              {copy.jackets.label}
+            </p>
+            <h2 className="font-serif-display text-xl sm:text-2xl lg:text-[1.65rem] leading-snug text-[#1a1a1a] mb-2 sm:mb-3">
+              {copy.jackets.title}
+            </h2>
+            <p className="text-sm sm:text-[0.9375rem] leading-relaxed text-[#6b6b6b] mb-5 sm:mb-6 max-w-sm">
+              {copy.jackets.description}
+            </p>
+            <span
+              className="inline-flex w-fit items-center gap-2 rounded-full px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-medium text-white"
+              style={{ backgroundColor: theme.colors.buttonPrimary || '#1a1a1a' }}
+            >
+              {copy.jackets.cta}
+              <ArrowRight size={16} aria-hidden />
+            </span>
+          </div>
+        </Link>
       </div>
     </section>
   );
