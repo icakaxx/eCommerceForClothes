@@ -10,7 +10,7 @@ import EcontReceiverFields, { type ReceiverEcontSelection } from '../components/
 import { AdminPage, PageHeader } from '../components/layout';
 import { getAdminSession } from '@/lib/auth';
 import { adminAuthHeaders } from '@/lib/admin-auth-headers';
-import { formatEur } from '@/lib/econt/money';
+import { formatEur, parseMoney, roundMoney } from '@/lib/econt/money';
 import { formatAdminOrderItemLine, variantDisplayFromOrderItem, orderItemProductName } from '@/lib/order-item-display';
 
 type Tab = 'labels' | 'senders';
@@ -140,6 +140,7 @@ export default function AdminShipmentsPage() {
   const [validationHash, setValidationHash] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [weight, setWeight] = useState('1');
+  const [codInput, setCodInput] = useState('');
   const { senders, reloadSenders, loadingSenders } = useSenderOptions();
   const [senderProfileId, setSenderProfileId] = useState('');
 
@@ -194,7 +195,33 @@ export default function AdminShipmentsPage() {
       return;
     }
     setShipmentDraft(data.shipment);
+    const sh = data.shipment as {
+      computed_cod_amount?: number;
+      expected_cod_amount?: number;
+      cod_override_amount?: number | null;
+    };
+    const preset =
+      sh.cod_override_amount != null && sh.expected_cod_amount != null
+        ? Number(sh.expected_cod_amount)
+        : Number(sh.computed_cod_amount ?? sh.expected_cod_amount ?? 0);
+    setCodInput(preset > 0 || preset === 0 ? String(preset) : '');
     setModalOrderId(orderId);
+  };
+
+  const presetCodAmount = (): number => {
+    const sh = shipmentDraft as { computed_cod_amount?: number } | null;
+    return roundMoney(Number(sh?.computed_cod_amount ?? 0));
+  };
+
+  const buildCodDraftFields = (): {
+    codOverrideAmount?: number;
+    codOverrideConfirmed?: boolean;
+  } => {
+    const preset = presetCodAmount();
+    const parsed = parseMoney(codInput);
+    if (parsed === null || parsed < 0) return {};
+    if (roundMoney(parsed) === preset) return {};
+    return { codOverrideAmount: parsed, codOverrideConfirmed: true };
   };
 
   const validateShipment = async () => {
@@ -215,6 +242,12 @@ export default function AdminShipmentsPage() {
       }
     }
     setActionError(null);
+    const parsedCod = parseMoney(codInput);
+    if (parsedCod === null || parsedCod < 0) {
+      setActionError('Въведете валидна сума за наложен платеж (EUR).');
+      return;
+    }
+    const codFields = buildCodDraftFields();
     const res = await fetch('/api/admin/econt/shipments/validate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(await adminAuthHeaders()) },
@@ -234,6 +267,7 @@ export default function AdminShipmentsPage() {
           receiverOfficeCode: receiverEcont.receiverOfficeCode,
           receiverOfficeName: receiverEcont.receiverOfficeName,
           receiverAddress: receiverEcont.receiverAddress,
+          ...codFields,
         },
       }),
     });
@@ -441,6 +475,27 @@ export default function AdminShipmentsPage() {
                   setValidationHash(null);
                 }}
               />
+              <label className="block text-sm mb-1">Наложен платеж / крайна сума (EUR) *</label>
+              <input
+                className="mb-1 w-full rounded-lg border px-3 py-2 text-sm"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={codInput}
+                onChange={(e) => {
+                  setCodInput(e.target.value);
+                  setValidationHash(null);
+                }}
+              />
+              <p className="mb-3 text-xs text-gray-600">
+                По подразбиране: {formatEur(presetCodAmount())} (артикули − отстъпка, без доставка).
+                {modalOrder?.total != null ? (
+                  <>
+                    {' '}
+                    Общо поръчка: {formatEur(Number(modalOrder.total))}.
+                  </>
+                ) : null}{' '}
+                Ако промените полето, в Econt отива въведената сума.
+              </p>
               {modalOrder && (
                 <EcontReceiverFields
                   deliveryType={String(modalOrder.deliverytype ?? 'office')}
@@ -460,7 +515,9 @@ export default function AdminShipmentsPage() {
                   }}
                 />
               )}
-              <p className="mb-3 text-xs text-gray-600">COD = стойност продукти − отстъпка (без доставка). Платец доставка: получател.</p>
+              <p className="mb-3 text-xs text-gray-600">
+                Платец доставка: получател. Наложеният платеж е сумата, която клиентът плаща при получаване (може да се различава от общото на поръчката, ако доставката е отделно).
+              </p>
               <div className="flex flex-wrap gap-2">
                 <button type="button" className="rounded-lg border px-3 py-2 text-sm" onClick={() => setModalOrderId(null)}>Затвори</button>
                 <button type="button" className="rounded-lg bg-gray-800 px-3 py-2 text-sm text-white" onClick={validateShipment}>Валидирай</button>
