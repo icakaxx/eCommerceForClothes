@@ -8,6 +8,7 @@ import { mapStatusRow, fetchShipmentStatuses } from '@/lib/econt/tracking';
 import { EcontAppError } from '@/lib/econt/types';
 import type { ShipmentDraftConfig } from '@/lib/econt/types';
 import { computeProductCodFromOrder, validateShipmentDraft } from '@/lib/econt/validation';
+import { reconcileFinancialSources } from '@/lib/econt/reconciliation';
 import { getEcontRuntimeEnv } from '@/lib/econt/config';
 
 export async function logShipmentAudit(params: {

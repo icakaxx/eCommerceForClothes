@@ -216,7 +216,7 @@ export default function SenderProfilesPanel({ onSendersChanged }: SenderProfiles
       {editingId && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
           Редактирате профил — промените се записват с „Запази промените“.
-          <button type="button" className="ml-2 underline" onClick={resetForm}>
+          <button type="button" className="ml-2 underline" onClick={() => resetForm()}>
             Отказ
           </button>
         </p>
@@ -291,7 +291,7 @@ export default function SenderProfilesPanel({ onSendersChanged }: SenderProfiles
           {saving ? 'Запис...' : editingId ? 'Запази промените' : 'Добави подател'}
         </button>
         {editingId && (
-          <button type="button" onClick={resetForm} className="rounded-lg border px-4 py-2 text-sm">
+          <button type="button" onClick={() => resetForm()} className="rounded-lg border px-4 py-2 text-sm">
             Отказ
           </button>
         )}
