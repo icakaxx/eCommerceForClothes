@@ -19,6 +19,8 @@ export type ReceiverEcontSelection = {
 
 type Props = {
   deliveryType: string;
+  /** UI copy: sender office vs receiver office/address */
+  role?: 'sender' | 'receiver';
   initialCityName?: string;
   initialOfficeHint?: string;
   initialAddress?: { street?: string; num?: string; other?: string };
@@ -37,6 +39,7 @@ function useDebouncedValue<T>(value: T, ms: number): T {
 
 export default function EcontReceiverFields({
   deliveryType,
+  role = 'receiver',
   initialCityName,
   initialOfficeHint,
   initialAddress,
@@ -44,6 +47,7 @@ export default function EcontReceiverFields({
   onChange,
 }: Props) {
   const isOffice = deliveryType === 'office';
+  const isSender = role === 'sender';
   const [cityQuery, setCityQuery] = useState(initialCityName ?? value.receiverCityName ?? '');
   const [officeQuery, setOfficeQuery] = useState(
     value.receiverOfficeName ?? initialOfficeHint ?? value.receiverOfficeCode ?? ''
@@ -62,6 +66,22 @@ export default function EcontReceiverFields({
   const debouncedCityQ = useDebouncedValue(cityQuery.trim(), 350);
   const debouncedOfficeQ = useDebouncedValue(officeQuery.trim(), 350);
   const cityId = value.receiverCityId;
+
+  useEffect(() => {
+    if (value.receiverCityName) setCityQuery(value.receiverCityName);
+  }, [value.receiverCityId, value.receiverCityName]);
+
+  useEffect(() => {
+    if (!value.receiverOfficeCode) return;
+    const label = value.receiverOfficeAddress
+      ? `${value.receiverOfficeName ?? ''} — ${value.receiverOfficeAddress} (${value.receiverOfficeCode})`
+      : `${value.receiverOfficeName ?? 'Офис'} (${value.receiverOfficeCode})`;
+    setOfficeQuery(label);
+  }, [
+    value.receiverOfficeAddress,
+    value.receiverOfficeCode,
+    value.receiverOfficeName,
+  ]);
 
   const patch = useCallback(
     (partial: Partial<ReceiverEcontSelection>) => onChange({ ...value, ...partial }),
@@ -305,7 +325,9 @@ export default function EcontReceiverFields({
 
   return (
     <div className="mb-3 space-y-3 rounded-lg border border-gray-100 bg-gray-50 p-3">
-      <p className="text-sm font-medium">Офис на получателя (Econt) *</p>
+      <p className="text-sm font-medium">
+        {isSender ? 'Офис на подателя (Econt) *' : 'Офис на получателя (Econt) *'}
+      </p>
       {cityPicker}
 
       <div className="relative">

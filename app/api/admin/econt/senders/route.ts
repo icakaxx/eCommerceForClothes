@@ -62,7 +62,17 @@ export async function POST(request: NextRequest) {
         return structuredAdminErrorResponse({
           code: 'VALIDATION_FAILED',
           title: 'Непълни данни',
-          message: 'Попълнете име, телефон, офис и показвано име.',
+          message: 'Попълнете име, телефон, показвано име и изберете град/офис от Econt.',
+          retryable: false,
+          status: 400,
+        });
+      }
+
+      if (!cityId) {
+        return structuredAdminErrorResponse({
+          code: 'VALIDATION_FAILED',
+          title: 'Липсва град',
+          message: 'Изберете населено място от списъка на Econt (не само текст).',
           retryable: false,
           status: 400,
         });

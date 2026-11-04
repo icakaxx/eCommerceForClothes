@@ -9,6 +9,34 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     const { id } = await context.params;
     const body = await request.json();
 
+    const displayName = String(body.displayName ?? '').trim();
+    const firstName = String(body.firstName ?? '').trim();
+    const lastName = String(body.lastName ?? '').trim();
+    const phone = String(body.phone ?? '').trim();
+    const officeCode = body.officeCode as string | undefined;
+    const cityId = body.cityId as number | undefined;
+    const cityName = String(body.cityName ?? '').trim();
+
+    if (!displayName || !firstName || !lastName || !phone || !officeCode) {
+      return structuredAdminErrorResponse({
+        code: 'VALIDATION_FAILED',
+        title: 'Непълни данни',
+        message: 'Попълнете име, телефон, показвано име и изберете град/офис от Econt.',
+        retryable: false,
+        status: 400,
+      });
+    }
+
+    if (!cityId) {
+      return structuredAdminErrorResponse({
+        code: 'VALIDATION_FAILED',
+        title: 'Липсва град',
+        message: 'Изберете населено място от списъка на Econt (не само текст).',
+        retryable: false,
+        status: 400,
+      });
+    }
+
     if (body.isDefault) {
       await supabaseAdmin.from('econt_sender_profiles').update({ is_default: false }).eq('is_default', true);
     }
@@ -16,17 +44,17 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     const { data, error } = await supabaseAdmin
       .from('econt_sender_profiles')
       .update({
-        display_name: body.displayName,
-        first_name: body.firstName,
-        last_name: body.lastName,
-        phone: body.phone,
-        email: body.email,
-        city_id: body.cityId,
-        city_name: body.cityName,
-        office_code: body.officeCode,
-        office_name: body.officeName,
-        is_default: body.isDefault,
-        is_active: body.isActive,
+        display_name: displayName,
+        first_name: firstName,
+        last_name: lastName,
+        phone,
+        email: body.email ?? null,
+        city_id: cityId,
+        city_name: cityName,
+        office_code: officeCode,
+        office_name: (body.officeName as string) || officeCode,
+        is_default: Boolean(body.isDefault),
+        is_active: body.isActive !== false,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)

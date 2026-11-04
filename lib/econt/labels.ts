@@ -50,10 +50,10 @@ export function buildLabelPayload(params: BuildLabelParams) {
         type: 'return',
         returnInstructionParams: {
           returnParcelDestination: 'sender',
-          returnParcelPaymentSide: 'sender',
+          returnParcelPaymentSide: 'receiver',
           rejectAction: 'return_to_sender',
           rejectOriginalParcelPaySide: 'receiver',
-          rejectReturnParcelPaySide: 'sender',
+          rejectReturnParcelPaySide: 'receiver',
         },
       },
     ],

@@ -32,6 +32,91 @@ function labelStateBadge(labelState: string) {
   );
 }
 
+/** Admin-readable snapshot of order + econt_shipments row (for Details panel). */
+function buildEcontShipmentDetailsJson(order: Record<string, unknown>, shipment: Record<string, unknown> | null) {
+  const customer = (order.customers as Record<string, unknown> | undefined) ?? {};
+  const base = {
+    order: {
+      orderId: order.orderid,
+      status: order.status,
+      deliveryType: order.deliverytype,
+      customer: {
+        firstName: customer.firstname,
+        lastName: customer.lastname,
+        phone: customer.telephone,
+        email: customer.email,
+        city: customer.city,
+      },
+      delivery: {
+        econtOffice: order.econtoffice ?? null,
+        street: order.deliverystreet ?? null,
+        streetNumber: order.deliverystreetnumber ?? null,
+        entrance: order.deliveryentrance ?? null,
+        floor: order.deliveryfloor ?? null,
+        apartment: order.deliveryapartment ?? null,
+      },
+      amounts: {
+        subtotal: order.subtotal,
+        deliveryCost: order.deliverycost,
+        discount: order.discountamount,
+        total: order.total,
+      },
+      items: (order.order_items as Array<Record<string, unknown>> | undefined)?.map((item) => ({
+        name: (item.products as Record<string, unknown> | undefined)?.name ?? 'Артикул',
+        quantity: item.quantity,
+        price: item.price,
+      })),
+    },
+  };
+
+  if (!shipment) {
+    return { ...base, econtShipment: null, note: 'Няма запис в econt_shipments — отворете „Направи товарителница“.' };
+  }
+
+  return {
+    ...base,
+    econtShipment: {
+      id: shipment.id,
+      environment: shipment.environment,
+      shipmentNumber: shipment.shipment_number ?? null,
+      senderProfileId: shipment.sender_profile_id,
+      senderSnapshot: shipment.sender_snapshot ?? null,
+      receiverSnapshot: shipment.receiver_snapshot ?? null,
+      draftConfig: shipment.draft_config ?? null,
+      deliveryType: shipment.delivery_type,
+      deliveryPayer: shipment.delivery_payer,
+      packageCount: shipment.package_count,
+      weight: (shipment.draft_config as Record<string, unknown> | undefined)?.weight ?? null,
+      description: shipment.description,
+      cod: {
+        expected: shipment.expected_cod_amount,
+        computed: shipment.computed_cod_amount,
+        override: shipment.cod_override_amount,
+        currency: shipment.cod_currency,
+      },
+      states: {
+        validation: shipment.validation_state,
+        creation: shipment.creation_state,
+        normalizedDeliveryStatus: shipment.normalized_delivery_status,
+        rawDeliveryStatus: shipment.raw_delivery_status,
+      },
+      validation: {
+        lastValidatedAt: shipment.last_validated_at,
+        validationExpiresAt: shipment.validation_expires_at,
+      },
+      tracking: {
+        lastSyncAt: shipment.last_sync_at,
+        collectedCod: shipment.collected_cod_amount,
+        paidCod: shipment.paid_cod_amount,
+      },
+      timestamps: {
+        createdAt: shipment.created_at,
+        updatedAt: shipment.updated_at,
+      },
+    },
+  };
+}
+
 export default function AdminShipmentsPage() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('labels');
@@ -290,6 +375,28 @@ export default function AdminShipmentsPage() {
                           {shipment?.shipment_number && (
                             <div><strong>Номер пратка:</strong> {shipment.shipment_number}</div>
                           )}
+                          <div className="pt-2">
+                            <div className="mb-1 flex flex-wrap items-center gap-2">
+                              <strong>Данни за Econt (JSON)</strong>
+                              <button
+                                type="button"
+                                className="rounded border px-2 py-0.5 text-xs hover:bg-gray-50"
+                                onClick={() => {
+                                  const text = JSON.stringify(
+                                    buildEcontShipmentDetailsJson(order, shipment),
+                                    null,
+                                    2
+                                  );
+                                  void navigator.clipboard.writeText(text);
+                                }}
+                              >
+                                Копирай
+                              </button>
+                            </div>
+                            <pre className="max-h-80 overflow-auto rounded-lg border bg-gray-900 p-3 text-xs text-green-100">
+                              {JSON.stringify(buildEcontShipmentDetailsJson(order, shipment), null, 2)}
+                            </pre>
+                          </div>
                         </div>
                       )}
                     </div>
