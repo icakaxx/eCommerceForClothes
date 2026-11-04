@@ -11,6 +11,7 @@ import { AdminPage, PageHeader } from '../components/layout';
 import { getAdminSession } from '@/lib/auth';
 import { adminAuthHeaders } from '@/lib/admin-auth-headers';
 import { formatEur } from '@/lib/econt/money';
+import { formatAdminOrderItemLine, variantDisplayFromOrderItem, orderItemProductName } from '@/lib/order-item-display';
 
 type Tab = 'labels' | 'senders';
 
@@ -61,11 +62,16 @@ function buildEcontShipmentDetailsJson(order: Record<string, unknown>, shipment:
         discount: order.discountamount,
         total: order.total,
       },
-      items: (order.order_items as Array<Record<string, unknown>> | undefined)?.map((item) => ({
-        name: (item.products as Record<string, unknown> | undefined)?.name ?? 'Артикул',
-        quantity: item.quantity,
-        price: item.price,
-      })),
+      items: (order.order_items as Array<Record<string, unknown>> | undefined)?.map((item) => {
+        const variant = variantDisplayFromOrderItem(item as { product_variants?: unknown });
+        return {
+          name: orderItemProductName(item as { products?: { name?: string } }),
+          quantity: item.quantity,
+          price: item.price,
+          size: variant.size ?? null,
+          variantProperties: variant.properties,
+        };
+      }),
     },
   };
 
@@ -369,7 +375,7 @@ export default function AdminShipmentsPage() {
                           <div><strong>Междинна сума:</strong> {formatEur(order.subtotal)} · <strong>Доставка:</strong> {formatEur(order.deliverycost)} · <strong>Общо:</strong> {formatEur(order.total)}</div>
                           <ul className="list-disc pl-5">
                             {(order.order_items ?? []).map((item: any, idx: number) => (
-                              <li key={idx}>{item.products?.name ?? 'Артикул'} × {item.quantity} — {formatEur(item.price)}</li>
+                              <li key={idx}>{formatAdminOrderItemLine(item, formatEur)}</li>
                             ))}
                           </ul>
                           {shipment?.shipment_number && (

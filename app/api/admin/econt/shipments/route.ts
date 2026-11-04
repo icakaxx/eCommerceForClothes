@@ -29,7 +29,16 @@ export async function GET(request: NextRequest) {
       .select(
         `orderid, status, createdat, deliverytype, econtoffice, subtotal, deliverycost, total, discountamount,
          customers(firstname, lastname, telephone, email, city),
-         order_items(quantity, price, products(name))`,
+         order_items(
+           quantity, price, productvariantid,
+           products(name),
+           product_variants(
+             product_variant_property_values(
+               value,
+               properties(name)
+             )
+           )
+         )`,
         { count: 'exact' }
       )
       .order('createdat', { ascending: false });
