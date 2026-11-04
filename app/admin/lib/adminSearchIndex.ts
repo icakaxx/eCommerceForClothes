@@ -362,6 +362,25 @@ export const adminSearchIndex: SearchableItem[] = [
     keywords: ['sales', 'transactions', 'revenue', 'продажби', 'транзакции']
   },
 
+  {
+    id: 'shipments',
+    type: 'page',
+    path: '/admin/shipments',
+    title: 'Shipping labels',
+    titleBg: 'Товарителници',
+    description: 'Econt Demo shipping labels',
+    keywords: ['econt', 'shipments', 'labels', 'товарителници', 'еконт']
+  },
+  {
+    id: 'shipment-tracking',
+    type: 'page',
+    path: '/admin/shipment-tracking',
+    title: 'Track shipments',
+    titleBg: 'Проследи пратки',
+    description: 'Econt shipment tracking and COD',
+    keywords: ['tracking', 'cod', 'проследи', 'пратки', 'наложен']
+  },
+
   // Customers
   {
     id: 'customers',

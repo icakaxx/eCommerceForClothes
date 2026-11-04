@@ -152,6 +152,18 @@ export default function AdminSidebar({ currentPath, collapsed: externalCollapsed
       icon: BarChart3
     },
     {
+      id: 'shipments',
+      label: language === 'bg' ? 'Товарителници' : 'Shipping labels',
+      path: '/admin/shipments',
+      icon: Package
+    },
+    {
+      id: 'shipment-tracking',
+      label: language === 'bg' ? 'Проследи пратки' : 'Track shipments',
+      path: '/admin/shipment-tracking',
+      icon: Package
+    },
+    {
       id: 'customers',
       label: t.customers || 'Customers',
       path: '/admin/customers',

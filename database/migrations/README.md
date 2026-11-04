@@ -16,6 +16,7 @@ Run **`../schema.txt`** first for a fresh database, then apply migrations below 
 | `migration-add-testimonials.sql` | Testimonials |
 | `migration-add-variant-promotional-price.sql` | Variant promotional price |
 | `migration-admin-inventory-order-workflow.sql` | Admin inventory / order tracking views |
+| `migration-add-econt-demo-shipping.sql` | Econt Demo shipments, senders, tracking, payments |
 | `migration-create-favorite-products.sql` | Favorites |
 | `migration-create-users-table.sql` | Storefront users |
 | `migration-update-store-contact-email.sql` | Store contact email |

@@ -320,6 +320,10 @@ Here's a checklist of all required environment variables:
 - [ ] `SUPABASE_SERVICE_ROLE_KEY`
 - [ ] `NEXT_PUBLIC_EMAIL`
 - [ ] `NEXT_PUBLIC_EMAIL_PASS`
+- [ ] `ECONT_ENV=demo`
+- [ ] `ECONT_API_URL=https://demo.econt.com/ee/services`
+- [ ] `ECONT_USERNAME` / `ECONT_PASSWORD` (Demo only, server-side)
+- [ ] `CRON_SECRET` (optional, for scheduled tracking sync)
 
 ---
 
