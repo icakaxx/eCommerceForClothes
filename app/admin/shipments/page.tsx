@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, ChevronUp, Check, CheckCircle2, Package } from 'lucide-react';
+import { ChevronDown, ChevronUp, Check, CheckCircle2, Printer, Sparkles } from 'lucide-react';
+import { shipmentRowHighlight } from '@/lib/econt/row-highlight';
 import AdminLayout from '../components/AdminLayout';
 import EcontDemoBanner from '../components/econt/EcontDemoBanner';
 import SenderProfilesPanel, { useSenderOptions } from '../components/econt/SenderProfilesPanel';
@@ -19,18 +20,38 @@ function hasCreatedLabel(labelState: string, shipment: { shipment_number?: strin
   return labelState === 'created' || Boolean(shipment?.shipment_number);
 }
 
-function labelStateBadge(labelState: string) {
-  const map: Record<string, { text: string; className: string }> = {
-    without_label: { text: 'Без етикет', className: 'bg-gray-100 text-gray-700' },
-    draft: { text: 'Чернова', className: 'bg-gray-100 text-gray-700' },
-    ready: { text: 'Готова', className: 'bg-blue-100 text-blue-800' },
-    validation_error: { text: 'Грешка при валидация', className: 'bg-amber-100 text-amber-900' },
-    error: { text: 'Грешка', className: 'bg-red-100 text-red-800' },
-  };
-  const item = map[labelState] ?? { text: labelState, className: 'bg-gray-100 text-gray-700' };
+function shipmentStatusBadge(highlight: ReturnType<typeof shipmentRowHighlight>) {
+  if (highlight === 'latest') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber-200/90 px-2.5 py-0.5 text-xs font-semibold text-amber-950">
+        <Sparkles size={13} aria-hidden="true" />
+        Последна товарителница
+      </span>
+    );
+  }
+  if (highlight === 'created') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
+        <Check size={14} strokeWidth={3} />
+        Създадена
+      </span>
+    );
+  }
   return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${item.className}`}>{item.text}</span>
+    <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+      Без товарителница
+    </span>
   );
+}
+
+function rowHighlightClass(highlight: ReturnType<typeof shipmentRowHighlight>) {
+  if (highlight === 'latest') {
+    return 'border-amber-300 bg-amber-50 ring-1 ring-amber-200/80';
+  }
+  if (highlight === 'created') {
+    return 'border-emerald-200 bg-emerald-50/80';
+  }
+  return 'border-gray-200 bg-white';
 }
 
 /** Admin-readable snapshot of order + econt_shipments row (for Details panel). */
@@ -143,6 +164,20 @@ export default function AdminShipmentsPage() {
   const [codInput, setCodInput] = useState('');
   const { senders, reloadSenders, loadingSenders } = useSenderOptions();
   const [senderProfileId, setSenderProfileId] = useState('');
+  const [latestCreated, setLatestCreated] = useState<{
+    shipmentId: string;
+    orderId: string | null;
+    shipmentNumber: string | null;
+    createdAt: string;
+  } | null>(null);
+  const [successInfo, setSuccessInfo] = useState<{
+    shipmentNumber: string;
+    pdfURL: string | null;
+    recipientName: string;
+    recipientPhone: string;
+    recipientCity: string;
+    orderId: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -152,6 +187,7 @@ export default function AdminShipmentsPage() {
     if (data.success) {
       setRows(data.rows ?? []);
       setSummary(data.summary ?? {});
+      setLatestCreated(data.latestCreated ?? null);
     }
     setLoading(false);
   }, [filter, q, page]);
@@ -175,8 +211,13 @@ export default function AdminShipmentsPage() {
   const openLabelModal = async (orderId: string) => {
     setActionError(null);
     setValidationHash(null);
-    setReceiverEcont({});
     const row = rows.find((r) => r.order?.orderid === orderId);
+    setReceiverEcont({
+      receiverCityId: row?.order?.econt_city_id ? Number(row.order.econt_city_id) : undefined,
+      receiverCityName: row?.order?.customers?.city ?? undefined,
+      receiverOfficeCode: row?.order?.econt_office_code || undefined,
+      receiverOfficeName: row?.order?.econt_office_name || undefined,
+    });
     setModalOrder(row?.order ?? null);
     await reloadSenders();
     const res = await fetch('/api/admin/econt/shipments', {
@@ -292,8 +333,43 @@ export default function AdminShipmentsPage() {
       setActionError(data.error?.message ?? 'Грешка при създаване');
       return;
     }
-    if (data.pdfURL) window.open(data.pdfURL, '_blank', 'noopener,noreferrer');
+    const shipmentNumber = String(data.shipmentNumber ?? '');
+    const pdfURL = typeof data.pdfURL === 'string' ? data.pdfURL : null;
+    const customer = modalOrder?.customers ?? {};
+    const createdShipmentId = String(shipmentDraft.id);
+    const createdOrderId = String(modalOrderId);
+
+    setRows((current) =>
+      current.map((row) =>
+        row.order?.orderid === createdOrderId
+          ? {
+              ...row,
+              labelState: 'created',
+              shipment: {
+                ...(row.shipment ?? {}),
+                id: createdShipmentId,
+                shipment_number: shipmentNumber,
+              },
+            }
+          : row
+      )
+    );
+    setLatestCreated({
+      shipmentId: createdShipmentId,
+      orderId: createdOrderId,
+      shipmentNumber,
+      createdAt: new Date().toISOString(),
+    });
+    setSuccessInfo({
+      shipmentNumber,
+      pdfURL,
+      recipientName: `${customer.firstname ?? ''} ${customer.lastname ?? ''}`.trim() || '—',
+      recipientPhone: String(customer.telephone ?? '—'),
+      recipientCity: String(customer.city ?? '—'),
+      orderId: createdOrderId,
+    });
     setModalOrderId(null);
+    if (pdfURL) window.open(pdfURL, '_blank', 'noopener,noreferrer');
     await load();
   };
 
@@ -342,6 +418,14 @@ export default function AdminShipmentsPage() {
                 Обнови
               </button>
             </div>
+            {latestCreated?.shipmentNumber && (
+              <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                <Sparkles size={16} className="shrink-0" aria-hidden="true" />
+                <span className="font-medium">Последна товарителница</span>
+                <span className="font-mono">{latestCreated.shipmentNumber}</span>
+                {latestCreated.orderId ? <span className="text-amber-800">· поръчка {latestCreated.orderId}</span> : null}
+              </div>
+            )}
             {loading ? (
               <p>Зареждане...</p>
             ) : (
@@ -351,19 +435,31 @@ export default function AdminShipmentsPage() {
                   const open = expanded[id];
                   const customer = order.customers ?? {};
                   const labelCreated = hasCreatedLabel(labelState, shipment);
+                  const highlight = shipmentRowHighlight({
+                    hasLabel: labelCreated,
+                    shipmentId: shipment?.id ?? null,
+                    latestShipmentId: latestCreated?.shipmentId ?? null,
+                  });
                   return (
                     <div
                       key={id}
-                      className={`rounded-xl border ${labelCreated ? 'border-green-300 bg-green-50/50' : ''}`}
+                      className={`rounded-xl border ${rowHighlightClass(highlight)}`}
                     >
                       <div className="flex flex-wrap items-center gap-3 p-3 text-sm">
                         <button type="button" onClick={() => setExpanded({ ...expanded, [id]: !open })} aria-label="Разшири">
                           {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                         </button>
-                        {labelCreated && (
+                        {highlight === 'latest' && (
                           <CheckCircle2
                             size={22}
-                            className="shrink-0 text-green-600"
+                            className="shrink-0 text-amber-600"
+                            aria-label="Последна товарителница"
+                          />
+                        )}
+                        {highlight === 'created' && (
+                          <CheckCircle2
+                            size={22}
+                            className="shrink-0 text-emerald-600"
                             aria-label="Товарителница създадена"
                           />
                         )}
@@ -375,19 +471,18 @@ export default function AdminShipmentsPage() {
                         <span>{customer.city}</span>
                         <span>{order.deliverytype}</span>
                         <span>{formatEur(codAmount)} COD</span>
-                        {labelCreated ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
-                            <Check size={14} strokeWidth={3} />
-                            Товарителница създадена
-                            {shipment?.shipment_number ? ` · ${shipment.shipment_number}` : ''}
-                          </span>
-                        ) : (
-                          labelStateBadge(labelState)
-                        )}
+                        {shipmentStatusBadge(highlight)}
+                        {shipment?.shipment_number ? (
+                          <span className="font-mono text-xs text-gray-600">{shipment.shipment_number}</span>
+                        ) : null}
                         {labelCreated ? (
                           <button
                             type="button"
-                            className="ml-auto rounded-lg border border-green-700 px-3 py-1.5 text-green-800"
+                            className={`ml-auto rounded-lg border px-3 py-1.5 ${
+                              highlight === 'latest'
+                                ? 'border-amber-700 text-amber-950'
+                                : 'border-emerald-700 text-emerald-800'
+                            }`}
                             onClick={() => setExpanded({ ...expanded, [id]: true })}
                           >
                             Детайли
@@ -447,6 +542,57 @@ export default function AdminShipmentsPage() {
           </>
         )}
 
+        {successInfo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-lg">
+              <div className="mb-3 flex items-start gap-3">
+                <CheckCircle2 className="mt-0.5 shrink-0 text-emerald-600" size={28} aria-hidden="true" />
+                <div>
+                  <h3 className="text-lg font-semibold">Товарителницата е създадена</h3>
+                  <p className="text-sm text-gray-600">Поръчка {successInfo.orderId}</p>
+                </div>
+              </div>
+              <dl className="mb-4 space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-gray-500">Получател</dt>
+                  <dd className="font-medium text-right">{successInfo.recipientName}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-gray-500">Телефон</dt>
+                  <dd className="text-right">{successInfo.recipientPhone}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-gray-500">Населено място</dt>
+                  <dd className="text-right">{successInfo.recipientCity}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-gray-500">Номер на пратка</dt>
+                  <dd className="font-mono font-semibold text-right">{successInfo.shipmentNumber}</dd>
+                </div>
+              </dl>
+              <div className="flex flex-wrap gap-2">
+                {successInfo.pdfURL ? (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-black px-3 py-2 text-sm text-white"
+                    onClick={() => window.open(successInfo.pdfURL!, '_blank', 'noopener,noreferrer')}
+                  >
+                    <Printer size={16} aria-hidden="true" />
+                    Печат
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="rounded-lg border px-3 py-2 text-sm"
+                  onClick={() => setSuccessInfo(null)}
+                >
+                  Затвори
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {modalOrderId && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
             <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5">
@@ -500,7 +646,7 @@ export default function AdminShipmentsPage() {
                 <EcontReceiverFields
                   deliveryType={String(modalOrder.deliverytype ?? 'office')}
                   initialCityName={modalOrder.customers?.city ?? ''}
-                  initialOfficeHint={modalOrder.econtoffice ?? ''}
+                  initialOfficeHint={modalOrder.econt_office_code || modalOrder.econtoffice || ''}
                   initialAddress={{
                     street: modalOrder.deliverystreet ?? '',
                     num: modalOrder.deliverystreetnumber ?? '',

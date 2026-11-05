@@ -13,9 +13,12 @@ export interface CheckoutFormData {
   email: string;
   country: string;
   city: string;
+  econtCityId?: number;
   deliveryType: DeliveryType;
   discountCode: string;
   econtOfficeId?: string;
+  econtOfficeCode?: string;
+  econtOfficeName?: string;
   // Address delivery fields
   street?: string;
   streetNumber?: string;
@@ -76,9 +79,12 @@ const defaultFormData: CheckoutFormData = {
   email: '',
   country: 'Bulgaria',
   city: '',
+  econtCityId: undefined,
   deliveryType: 'office',
   discountCode: '',
   econtOfficeId: '',
+  econtOfficeCode: '',
+  econtOfficeName: '',
   street: '',
   streetNumber: '',
   entrance: '',
@@ -202,6 +208,7 @@ export const useCheckoutStore = create<CheckoutState>()(
           formData.lastName.trim() &&
           formData.telephone.trim() &&
           formData.city &&
+          formData.econtCityId &&
           formData.deliveryType
         );
         
@@ -211,7 +218,7 @@ export const useCheckoutStore = create<CheckoutState>()(
         
         // Validate delivery-specific fields
         if (formData.deliveryType === 'office') {
-          return !!formData.econtOfficeId && formData.econtOfficeId.trim() !== '';
+          return !!formData.econtOfficeCode && formData.econtOfficeCode.trim() !== '';
         }
         
         if (formData.deliveryType === 'address') {
@@ -247,9 +254,8 @@ export const useCheckoutStore = create<CheckoutState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         formData: state.formData,
-        cities: state.cities,
         appliedDiscount: state.appliedDiscount
-      }), // Persist form data, cities, and applied discount
+      }),
       merge: (persistedState: any, currentState: CheckoutState) => ({
         ...currentState,
         ...persistedState,

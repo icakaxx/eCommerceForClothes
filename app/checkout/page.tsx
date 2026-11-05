@@ -8,7 +8,9 @@ import { useTheme } from '@/context/ThemeContext';
 import { useCart } from '@/context/CartContext';
 import { useStoreSettings } from '@/context/StoreSettingsContext';
 import { useAuth } from '@/context/AuthContext';
-import { useCheckoutStore, type DeliveryType, type CityOption } from '@/store/checkoutStore';
+import { useCheckoutStore, type DeliveryType } from '@/store/checkoutStore';
+import EcontLookupFields from '@/components/checkout/EcontLookupFields';
+import { checkoutCityOfficeClientErrors } from '@/lib/econt/city-search';
 import { translations } from '@/lib/translations';
 import { ShoppingBag, Truck, MapPin, Package } from 'lucide-react';
 import FomoBadge, { type FomoMessage } from '@/components/FomoBadge';
@@ -30,7 +32,6 @@ export default function CheckoutPage() {
   }, [language, t, settings?.storename]);
   const {
     formData,
-    cities,
     isSubmitting,
     isValidatingStock,
     error,
@@ -39,7 +40,6 @@ export default function CheckoutPage() {
     discountValidating,
     discountError,
     updateFormData,
-    setCities,
     setSubmitting,
     setValidatingStock,
     setError,
@@ -59,9 +59,8 @@ export default function CheckoutPage() {
     street?: string;
     streetNumber?: string;
     econtOfficeId?: string;
+    city?: string;
   }>({});
-  const [showCityDropdown, setShowCityDropdown] = useState<boolean>(false);
-  const cityDropdownRef = useRef<HTMLDivElement>(null);
   const hasAutoPopulated = useRef(false);
   const placeOrderButtonRef = useRef<HTMLButtonElement>(null);
   const beginCheckoutTracked = useRef(false);
@@ -91,9 +90,6 @@ export default function CheckoutPage() {
       router.push('/');
       return;
     }
-
-    // Load cities data
-    loadCities();
   }, [hasHydrated, totalItems, router]);
 
   useEffect(() => {
@@ -191,41 +187,6 @@ export default function CheckoutPage() {
     }
   }, [isAuthenticated, user, formData.firstName, formData.email, formData.telephone, updateFormData]);
 
-  const loadCities = async () => {
-    // This would typically come from an API, but for now we'll use static data
-    const bulgarianCities: CityOption[] = [
-      { name: 'Пловдив', postcode: '4000', displayName: 'Пловдив [4000]' },
-      { name: 'Варна', postcode: '9000', displayName: 'Варна [9000]' },
-      { name: 'Бургас', postcode: '8000', displayName: 'Бургас [8000]' },
-      { name: 'Русе', postcode: '7000', displayName: 'Русе [7000]' },
-      { name: 'Стара Загора', postcode: '6000', displayName: 'Стара Загора [6000]' },
-      { name: 'Плевен', postcode: '5800', displayName: 'Плевен [5800]' },
-      { name: 'Сливен', postcode: '8800', displayName: 'Сливен [8800]' },
-      { name: 'Добрич', postcode: '9300', displayName: 'Добрич [9300]' },
-      { name: 'Шумен', postcode: '9700', displayName: 'Шумен [9700]' },
-      { name: 'Перник', postcode: '2300', displayName: 'Перник [2300]' },
-      { name: 'Хасково', postcode: '6300', displayName: 'Хасково [6300]' },
-      { name: 'Ямбол', postcode: '8600', displayName: 'Ямбол [8600]' },
-      { name: 'Пазарджик', postcode: '4400', displayName: 'Пазарджик [4400]' },
-      { name: 'Благоевград', postcode: '2700', displayName: 'Благоевград [2700]' },
-      { name: 'Велико Търново', postcode: '5000', displayName: 'Велико Търново [5000]' },
-      { name: 'Враца', postcode: '3000', displayName: 'Враца [3000]' },
-      { name: 'Габрово', postcode: '5300', displayName: 'Габрово [5300]' },
-      { name: 'Асеновград', postcode: '4230', displayName: 'Асеновград [4230]' },
-      { name: 'Видин', postcode: '3700', displayName: 'Видин [3700]' },
-      { name: 'Кърджали', postcode: '6600', displayName: 'Кърджали [6600]' },
-      { name: 'Кюстендил', postcode: '2500', displayName: 'Кюстендил [2500]' },
-      { name: 'Ловеч', postcode: '5500', displayName: 'Ловеч [5500]' },
-      { name: 'Монтана', postcode: '3400', displayName: 'Монтана [3400]' },
-      { name: 'Търговище', postcode: '7700', displayName: 'Търговище [7700]' },
-      { name: 'Разград', postcode: '7200', displayName: 'Разград [7200]' },
-      { name: 'Силистра', postcode: '7500', displayName: 'Силистра [7500]' },
-      { name: 'Смолян', postcode: '4700', displayName: 'Смолян [4700]' }
-    ];
-
-    setCities(bulgarianCities);
-  };
-
   // Validation functions
   const validateBulgarianPhone = (phone: string): boolean => {
     if (!phone || phone.trim() === '') return false;
@@ -303,7 +264,7 @@ export default function CheckoutPage() {
   };
 
   const handleDeliveryTypeChange = (deliveryType: DeliveryType) => {
-    updateFormData({ deliveryType, econtOfficeId: '' });
+    updateFormData({ deliveryType, econtOfficeId: '', econtOfficeCode: '', econtOfficeName: '' });
     
     // Clear validation errors when delivery type changes
     setValidationErrors(prev => {
@@ -345,29 +306,37 @@ export default function CheckoutPage() {
         ? t.invalidEmail
         : undefined;
 
+    const econtErrors = checkoutCityOfficeClientErrors({
+      deliveryType: formData.deliveryType,
+      econtCityId: formData.econtCityId,
+      econtOfficeCode: formData.econtOfficeCode,
+    });
+
     if (phoneError || emailError) {
       setValidationErrors({
         telephone: phoneError,
-        email: emailError
+        email: emailError,
+        city: econtErrors.city,
+        econtOfficeId: econtErrors.office,
       });
       setError(t.pleaseFillAllRequiredFields || 'Please fill in all required fields');
       scrollToCheckoutIssue();
       return;
     }
 
-    if (!isFormValid()) {
-      setError(t.pleaseFillAllRequiredFields || 'Please fill in all required fields');
+    if (econtErrors.city || econtErrors.office) {
+      setValidationErrors(prev => ({
+        ...prev,
+        city: econtErrors.city,
+        econtOfficeId: econtErrors.office,
+      }));
+      setError(econtErrors.city || econtErrors.office || t.pleaseFillAllRequiredFields);
       scrollToCheckoutIssue();
       return;
     }
 
-    // Validate Econt office for office delivery
-    if (
-      formData.deliveryType === 'office' &&
-      (!formData.econtOfficeId || !formData.econtOfficeId.trim())
-    ) {
-      setValidationErrors(prev => ({ ...prev, econtOfficeId: t.selectEcontOffice }));
-      setError(t.selectEcontOffice);
+    if (!isFormValid()) {
+      setError(t.pleaseFillAllRequiredFields || 'Please fill in all required fields');
       scrollToCheckoutIssue();
       return;
     }
@@ -406,12 +375,16 @@ export default function CheckoutPage() {
           telephone: formData.telephone,
           country: formData.country,
           city: formData.city,
+          econtCityId: formData.econtCityId,
         },
         delivery: {
           type: formData.deliveryType,
           notes: formData.notes,
           missingEcontOffice: formData.missingEcontOffice,
-          econtOfficeId: formData.econtOfficeId,
+          econtOfficeId: formData.econtOfficeCode || formData.econtOfficeId,
+          econtCityId: formData.econtCityId,
+          econtOfficeCode: formData.econtOfficeCode,
+          econtOfficeName: formData.econtOfficeName,
           street: formData.street,
           streetNumber: formData.streetNumber,
           entrance: formData.entrance,
@@ -534,35 +507,6 @@ export default function CheckoutPage() {
     localStorage.setItem('isAdmin', value.toString());
   };
 
-  if (!hasHydrated) {
-    return (
-      <PublicPageLayout isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin}>
-        <div className="flex-1 flex items-center justify-center py-24">
-          <p style={{ color: theme.colors.textSecondary }}>
-            {language === 'bg' ? 'Зареждане...' : 'Loading...'}
-          </p>
-        </div>
-      </PublicPageLayout>
-    );
-  }
-
-  if (totalItems === 0) {
-    return null; // Will redirect in useEffect
-  }
-
-  const deliveryTypeIcons = {
-    office: Truck,
-    address: MapPin,
-    econtomat: Package,
-  };
-
-  const deliveryTypeLabels = {
-    office: t.deliveryOffice,
-    address: t.deliveryAddress,
-    econtomat: t.deliveryEcontomat,
-  };
-
-  // Memoize FOMO messages to prevent recreation on every render
   const checkoutFomoMessages = useMemo(() => {
     const messages: FomoMessage[] = [
       {
@@ -604,6 +548,34 @@ export default function CheckoutPage() {
     ];
     return messages;
   }, [language]);
+
+  if (!hasHydrated) {
+    return (
+      <PublicPageLayout isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin}>
+        <div className="flex-1 flex items-center justify-center py-24">
+          <p style={{ color: theme.colors.textSecondary }}>
+            {language === 'bg' ? 'Зареждане...' : 'Loading...'}
+          </p>
+        </div>
+      </PublicPageLayout>
+    );
+  }
+
+  if (totalItems === 0) {
+    return null; // Will redirect in useEffect
+  }
+
+  const deliveryTypeIcons = {
+    office: Truck,
+    address: MapPin,
+    econtomat: Package,
+  };
+
+  const deliveryTypeLabels = {
+    office: t.deliveryOffice,
+    address: t.deliveryAddress,
+    econtomat: t.deliveryEcontomat,
+  };
 
   return (
     <PublicPageLayout isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin}>
@@ -799,56 +771,46 @@ export default function CheckoutPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
-                        {t.city} *
-                      </label>
-                      <div className="relative" ref={cityDropdownRef}>
-                        <input
-                          type="text"
-                          value={formData.city}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            handleInputChange('city', value);
-                            setShowCityDropdown(true);
-                            if (formData.deliveryType === 'office') {
-                              updateFormData({ econtOfficeId: '' });
-                            }
-                          }}
-                          onFocus={() => setShowCityDropdown(true)}
-                          placeholder={t.selectCity}
-                          className="w-full px-3 py-2 border border-[#e8e4dc] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7d8461]/25 focus:border-[#7d8461]"
-                          required
-                        />
-                        {showCityDropdown && (
-                          <div className="absolute z-50 w-full mt-1 bg-white border border-[#e8e4dc] rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                            {cities
-                              .filter((city) => 
-                                city.name.toLowerCase().includes((formData.city || '').toLowerCase()) ||
-                                city.displayName.toLowerCase().includes((formData.city || '').toLowerCase()) ||
-                                city.postcode.includes(formData.city || '')
-                              )
-                              .map((city) => (
-                                <button
-                                  key={city.displayName}
-                                  type="button"
-                                  onClick={() => {
-                                    handleInputChange('city', city.displayName);
-                                    setShowCityDropdown(false);
-                                    if (formData.deliveryType === 'office') {
-                                      updateFormData({ econtOfficeId: '' });
-                                    }
-                                  }}
-                                  className="w-full text-left px-3 py-2 focus:outline-none transition-colors"
-                                  style={{ color: theme.colors.text }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.colors.secondary; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                >
-                                  {city.displayName}
-                                </button>
-                              ))}
-                          </div>
-                        )}
-                      </div>
+                      <EcontLookupFields
+                        deliveryType={formData.deliveryType}
+                        showCity
+                        showOffice={false}
+                        cityId={formData.econtCityId}
+                        cityName={formData.city}
+                        cityError={validationErrors.city}
+                        onCityChange={(city) => {
+                          if (!city) {
+                            updateFormData({
+                              city: '',
+                              econtCityId: undefined,
+                              econtOfficeId: '',
+                              econtOfficeCode: '',
+                              econtOfficeName: '',
+                            });
+                            setValidationErrors((prev) => {
+                              const next = { ...prev };
+                              delete next.city;
+                              delete next.econtOfficeId;
+                              return next;
+                            });
+                            return;
+                          }
+                          updateFormData({
+                            city: city.name,
+                            econtCityId: city.id,
+                            econtOfficeId: '',
+                            econtOfficeCode: '',
+                            econtOfficeName: '',
+                          });
+                          setValidationErrors((prev) => {
+                            const next = { ...prev };
+                            delete next.city;
+                            delete next.econtOfficeId;
+                            return next;
+                          });
+                        }}
+                        onOfficeChange={() => undefined}
+                      />
                     </div>
                   </div>
 
@@ -899,27 +861,30 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* Econt Office - free text when office delivery is selected */}
-                  {formData.deliveryType === 'office' && formData.city && (
-                    <div>
-                      <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
-                        {t.econtOffice} *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.econtOfficeId || ''}
-                        onChange={(e) => handleInputChange('econtOfficeId', e.target.value)}
-                        placeholder={language === 'bg'
-                          ? 'Напр. Еконт офис Център, ул. Примерна 10'
-                          : 'e.g. Econt office Center, Example St 10'}
-                        className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7d8461]/25 focus:border-[#7d8461] ${
-                          validationErrors.econtOfficeId ? 'border-red-500' : 'border-[#e8e4dc]'
-                        }`}
-                      />
-                      {validationErrors.econtOfficeId && (
-                        <p className="text-red-500 text-xs mt-1" data-checkout-field-error>{validationErrors.econtOfficeId}</p>
-                      )}
-                    </div>
+                  {formData.deliveryType === 'office' && (
+                    <EcontLookupFields
+                      deliveryType={formData.deliveryType}
+                      showCity={false}
+                      showOffice
+                      cityId={formData.econtCityId}
+                      cityName={formData.city}
+                      officeCode={formData.econtOfficeCode}
+                      officeName={formData.econtOfficeName}
+                      officeError={validationErrors.econtOfficeId}
+                      onCityChange={() => undefined}
+                      onOfficeChange={(office) => {
+                        updateFormData({
+                          econtOfficeCode: office?.code ?? '',
+                          econtOfficeName: office?.name ?? '',
+                          econtOfficeId: office?.code ?? '',
+                        });
+                        setValidationErrors((prev) => {
+                          const next = { ...prev };
+                          delete next.econtOfficeId;
+                          return next;
+                        });
+                      }}
+                    />
                   )}
 
                   {/* Address Fields - Only show if address delivery is selected */}

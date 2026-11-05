@@ -10,6 +10,7 @@ import { generateUniqueOrderId } from '@/lib/order-id';
 import { logger } from '@/lib/logger';
 import { apiErrorResponse } from '@/lib/api-error';
 import { trackServerEvent } from '@/lib/vercel-analytics';
+import { validateCheckoutDelivery } from '@/lib/econt/checkout-validation';
 
 interface OrderData {
   customer: {
@@ -19,12 +20,16 @@ interface OrderData {
     telephone: string;
     country: string;
     city: string;
+    econtCityId?: number;
   };
   delivery: {
     type: string;
     notes: string;
     missingEcontOffice?: string;
     econtOfficeId?: string;
+    econtCityId?: number;
+    econtOfficeCode?: string;
+    econtOfficeName?: string;
     street?: string;
     streetNumber?: string;
     entrance?: string;
@@ -257,12 +262,16 @@ async function createOrder(orderData: OrderData): Promise<string> {
   const missingOfficeNote = missingOffice ? `НОВ ОФИС ЕКОНТ: ${missingOffice}` : '';
   const deliveryNotes = [baseNotes, missingOfficeNote].filter(Boolean).join('\n');
 
-  const orderRecord = {
+  const officeName = orderData.delivery.econtOfficeName?.trim() || null;
+  const officeCode = orderData.delivery.econtOfficeCode?.trim() || orderData.delivery.econtOfficeId?.trim() || null;
+  const econtCityId = orderData.delivery.econtCityId ?? orderData.customer.econtCityId ?? null;
+
+  const orderRecord: Record<string, unknown> = {
     orderid: orderId,
     customerid: customerId,
     deliverytype: orderData.delivery.type,
     deliverynotes: deliveryNotes || null,
-    econtoffice: orderData.delivery.econtOfficeId || null,
+    econtoffice: officeName || officeCode,
     deliverystreet: orderData.delivery.street || null,
     deliverystreetnumber: orderData.delivery.streetNumber || null,
     deliveryentrance: orderData.delivery.entrance || null,
@@ -277,14 +286,27 @@ async function createOrder(orderData: OrderData): Promise<string> {
     discountamount: orderData.discount?.amount || 0,
     status: 'pending',
     createdat: new Date().toISOString(),
-    updatedat: new Date().toISOString()
+    updatedat: new Date().toISOString(),
+    econt_city_id: econtCityId,
+    econt_office_code: officeCode,
+    econt_office_name: officeName,
   };
 
-  const { data: order, error } = await (supabase as any)
+  let { data: order, error } = await (supabase as any)
     .from('orders')
     .insert(orderRecord)
     .select()
     .single();
+
+  if (error && /econt_city_id|econt_office_code|econt_office_name/i.test(String(error.message ?? ''))) {
+    const fallbackRecord = { ...orderRecord };
+    delete fallbackRecord.econt_city_id;
+    delete fallbackRecord.econt_office_code;
+    delete fallbackRecord.econt_office_name;
+    const retry = await (supabase as any).from('orders').insert(fallbackRecord).select().single();
+    order = retry.data;
+    error = retry.error;
+  }
 
   if (error) {
     logger.error('Failed to create order record', error);
@@ -354,6 +376,21 @@ async function createOrder(orderData: OrderData): Promise<string> {
 export async function POST(request: NextRequest) {
   try {
     const orderData: OrderData = await request.json();
+
+    const deliveryCheck = await validateCheckoutDelivery({
+      deliveryType: orderData.delivery.type,
+      econtCityId: orderData.delivery.econtCityId ?? orderData.customer.econtCityId,
+      econtOfficeCode: orderData.delivery.econtOfficeCode || orderData.delivery.econtOfficeId,
+    });
+    if (!deliveryCheck.ok) {
+      return NextResponse.json({ success: false, error: deliveryCheck.message }, { status: deliveryCheck.status });
+    }
+    orderData.customer.city = deliveryCheck.city.name;
+    orderData.delivery.econtCityId = deliveryCheck.city.id;
+    if (deliveryCheck.office) {
+      orderData.delivery.econtOfficeCode = deliveryCheck.office.code;
+      orderData.delivery.econtOfficeName = deliveryCheck.office.name;
+    }
 
     // Validate stock availability before creating order
     const stockValidation = await validateStock(orderData.items);

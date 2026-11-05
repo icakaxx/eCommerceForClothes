@@ -150,7 +150,7 @@ export async function buildReceiverContext(order: Record<string, unknown>, draft
   const customer = (order.customers as Record<string, unknown>) ?? {};
   const deliveryType = String(order.deliverytype ?? 'office');
 
-  let cityId = draft.receiverCityId;
+  let cityId = draft.receiverCityId ?? (order.econt_city_id ? Number(order.econt_city_id) : undefined);
   let cityName = draft.receiverCityName
     ? normalizeCityLabel(draft.receiverCityName)
     : normalizeCityLabel(String(customer.city ?? ''));
@@ -161,8 +161,10 @@ export async function buildReceiverContext(order: Record<string, unknown>, draft
     if (city?.name) cityName = normalizeCityLabel(city.name);
   }
 
-  let officeCode = draft.receiverOfficeCode;
-  let officeName = draft.receiverOfficeName;
+  let officeCode = draft.receiverOfficeCode ?? (order.econt_office_code ? String(order.econt_office_code) : undefined);
+  let officeName =
+    draft.receiverOfficeName ??
+    (order.econt_office_name ? String(order.econt_office_name) : undefined);
   if (deliveryType === 'office' && cityId) {
     const resolved = await resolveOfficeInCity({
       cityId,

@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     let ordersQuery = supabaseAdmin
       .from('orders')
       .select(
-        `orderid, status, createdat, deliverytype, econtoffice, subtotal, deliverycost, total, discountamount,
+        `orderid, status, createdat, deliverytype, econtoffice, econt_city_id, econt_office_code, econt_office_name, subtotal, deliverycost, total, discountamount,
          customers(firstname, lastname, telephone, email, city),
          order_items(
            quantity, price, productvariantid,
@@ -52,7 +52,34 @@ export async function GET(request: NextRequest) {
 
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
-    const { data: orders, error, count } = await ordersQuery.range(from, to);
+    let { data: orders, error, count } = await ordersQuery.range(from, to);
+    if (error && /econt_city_id|econt_office_code|econt_office_name/i.test(error.message ?? '')) {
+      let fallbackQuery = supabaseAdmin
+        .from('orders')
+        .select(
+          `orderid, status, createdat, deliverytype, econtoffice, subtotal, deliverycost, total, discountamount,
+           customers(firstname, lastname, telephone, email, city),
+           order_items(
+             quantity, price, productvariantid,
+             products(name),
+             product_variants(
+               product_variant_property_values(
+                 value,
+                 properties(name)
+               )
+             )
+           )`,
+          { count: 'exact' }
+        )
+        .order('createdat', { ascending: false });
+      if (dateFrom) fallbackQuery = fallbackQuery.gte('createdat', dateFrom);
+      if (dateTo) fallbackQuery = fallbackQuery.lte('createdat', `${dateTo}T23:59:59`);
+      if (q) fallbackQuery = fallbackQuery.ilike('orderid', `%${q}%`);
+      const retry = await fallbackQuery.range(from, to);
+      orders = retry.data;
+      error = retry.error;
+      count = retry.count;
+    }
     if (error) {
       return structuredAdminErrorResponse({
         code: 'DB_ERROR',
@@ -102,10 +129,61 @@ export async function GET(request: NextRequest) {
       errors: (allShipments ?? []).filter((s) => s.creation_state === 'failed' || s.creation_state === 'uncertain').length,
     };
 
+    const { data: latestAudit } = await supabaseAdmin
+      .from('econt_shipment_audit_logs')
+      .select('shipment_id, order_id, created_at')
+      .eq('operation', 'create')
+      .eq('result', 'success')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let latestCreated: {
+      shipmentId: string;
+      orderId: string | null;
+      shipmentNumber: string | null;
+      createdAt: string;
+    } | null = null;
+
+    if (latestAudit?.shipment_id) {
+      const { data: latestShipment } = await supabaseAdmin
+        .from('econt_shipments')
+        .select('id, order_id, shipment_number')
+        .eq('id', latestAudit.shipment_id)
+        .maybeSingle();
+      if (latestShipment?.shipment_number) {
+        latestCreated = {
+          shipmentId: latestShipment.id,
+          orderId: latestShipment.order_id ?? latestAudit.order_id ?? null,
+          shipmentNumber: latestShipment.shipment_number,
+          createdAt: latestAudit.created_at,
+        };
+      }
+    }
+
+    if (!latestCreated) {
+      const { data: fallback } = await supabaseAdmin
+        .from('econt_shipments')
+        .select('id, order_id, shipment_number, created_at')
+        .not('shipment_number', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (fallback?.shipment_number) {
+        latestCreated = {
+          shipmentId: fallback.id,
+          orderId: fallback.order_id ?? null,
+          shipmentNumber: fallback.shipment_number,
+          createdAt: fallback.created_at,
+        };
+      }
+    }
+
     return NextResponse.json({
       success: true,
       environment: 'demo',
       summary,
+      latestCreated,
       page,
       pageSize,
       total: count ?? rows.length,

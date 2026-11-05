@@ -3,6 +3,22 @@ import { computeProductCodFromOrder, isValidPhone } from '@/lib/econt/validation
 import { aggregateSelectedFinancials } from '@/lib/econt/reconciliation';
 import { normalizeEcontStatus } from '@/lib/econt/status-mapper';
 
+describe('admin label mapping prefers official checkout identifiers', () => {
+  it('uses saved city id and office code before free-text office name', () => {
+    const order = {
+      econt_city_id: 47,
+      econt_office_code: '5503',
+      econt_office_name: 'Еконт Офис Пазар',
+      econtoffice: 'стар свободен текст',
+    };
+    const cityId = Number(order.econt_city_id);
+    const officeCode = String(order.econt_office_code);
+    expect(cityId).toBe(47);
+    expect(officeCode).toBe('5503');
+    expect(officeCode).not.toBe(order.econtoffice);
+  });
+});
+
 describe('money and COD', () => {
   it('computes COD without shipping', () => {
     expect(

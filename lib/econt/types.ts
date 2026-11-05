@@ -77,6 +77,8 @@ export type EcontCity = {
   name: string;
   nameEn?: string;
   postCode?: string;
+  regionName?: string;
+  regionNameEn?: string;
 };
 
 export type EcontOffice = {

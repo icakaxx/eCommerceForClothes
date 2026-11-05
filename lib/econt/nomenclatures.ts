@@ -6,6 +6,7 @@ import { econtPost } from '@/lib/econt/client';
 
 import type { EcontCity, EcontOffice } from '@/lib/econt/types';
 import { officeSearchHaystack } from '@/lib/econt/office-display';
+import { filterEcontCities } from '@/lib/econt/city-search';
 
 
 
@@ -44,19 +45,13 @@ export async function fetchEcontCities(countryCode = 'BGR'): Promise<EcontCity[]
 
 
 export async function searchEcontCities(query: string, limit = 30): Promise<EcontCity[]> {
-
-  const q = query.trim().toLowerCase();
-
   const cities = await fetchEcontCities();
+  return filterEcontCities(cities, query, limit);
+}
 
-  if (!q) return cities.slice(0, limit);
-
-  return cities
-
-    .filter((c) => c.name.toLowerCase().includes(q) || (c.nameEn ?? '').toLowerCase().includes(q))
-
-    .slice(0, limit);
-
+export async function findCityById(id: number): Promise<EcontCity | null> {
+  const cities = await fetchEcontCities();
+  return cities.find((c) => c.id === id) ?? null;
 }
 
 
