@@ -76,7 +76,12 @@ export async function GET(request: NextRequest) {
       if (dateTo) fallbackQuery = fallbackQuery.lte('createdat', `${dateTo}T23:59:59`);
       if (q) fallbackQuery = fallbackQuery.ilike('orderid', `%${q}%`);
       const retry = await fallbackQuery.range(from, to);
-      orders = retry.data;
+      orders = (retry.data ?? []).map((row) => ({
+        ...row,
+        econt_city_id: null,
+        econt_office_code: null,
+        econt_office_name: null,
+      }));
       error = retry.error;
       count = retry.count;
     }

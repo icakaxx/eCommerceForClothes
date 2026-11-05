@@ -77,15 +77,19 @@ export function checkoutCityOfficeClientErrors(input: {
   return errors;
 }
 
-export function resetOfficeOnCityChange<T extends Record<string, unknown>>(
-  nextCity: { econtCityId: number; city: string }
-): T {
+export function resetOfficeOnCityChange<T extends {
+  econtCityId: number;
+  city: string;
+  econtOfficeCode?: string;
+  econtOfficeName?: string;
+  econtOfficeId?: string;
+}>(nextCity: T): T {
   return {
     ...nextCity,
     econtOfficeCode: '',
     econtOfficeName: '',
     econtOfficeId: '',
-  } as T;
+  };
 }
 
 export function officeBelongsToCity(offices: Array<{ code: string }>, officeCode: string): boolean {
