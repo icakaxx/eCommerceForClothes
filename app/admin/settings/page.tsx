@@ -15,6 +15,7 @@ import { getAdminSession } from '@/lib/auth';
 import { supabase } from '@/lib/supabase-browser';
 import { useStoreSettings } from '@/context/StoreSettingsContext';
 import HeroImageFocusEditor from '@/components/HeroImageFocusEditor';
+import { getConfiguredHeroProductIds } from '@/lib/homepage-hero';
 
 interface StoreSettings {
   storesettingsid: string;
@@ -40,8 +41,17 @@ interface StoreSettings {
   closingremarks: string | null;
   aboutusphoto: string | null;
   aboutustext: string | null;
+  hero_jackets_productid?: string | null;
+  hero_formal_productid?: string | null;
+  hero_jackets_productids?: string[];
+  hero_formal_productids?: string[];
   createdat: string;
   updatedat: string;
+}
+
+interface HeroProductOption {
+  productid: string;
+  name: string;
 }
 
 export default function AdminSettingsPage() {
@@ -69,6 +79,7 @@ export default function AdminSettingsPage() {
   }>>([]);
   const [isLoadingTestimonials, setIsLoadingTestimonials] = useState(true);
   const [isUploadingTestimonial, setIsUploadingTestimonial] = useState(false);
+  const [heroProducts, setHeroProducts] = useState<HeroProductOption[]>([]);
 
   // Check authentication
   useEffect(() => {
@@ -136,7 +147,12 @@ export default function AdminSettingsPage() {
         }
 
         if (result.settings) {
-          setSettings(result.settings);
+          const loaded = result.settings as StoreSettings;
+          setSettings({
+            ...loaded,
+            hero_jackets_productids: getConfiguredHeroProductIds(loaded, 'jackets'),
+            hero_formal_productids: getConfiguredHeroProductIds(loaded, 'formal'),
+          });
           // Apply language and theme from settings for admin panel context
           // Note: User preferences in localStorage take priority over store settings
           if (!localStorage.getItem('theme')) {
@@ -169,7 +185,11 @@ export default function AdminSettingsPage() {
             telephonenumber: null,
             closingremarks: null,
             aboutusphoto: null,
-            aboutustext: null
+            aboutustext: null,
+            hero_jackets_productid: null,
+            hero_formal_productid: null,
+            hero_jackets_productids: [],
+            hero_formal_productids: [],
           };
 
           const createResponse = await fetch('/api/store-settings', {
@@ -213,6 +233,27 @@ export default function AdminSettingsPage() {
     };
 
     loadTestimonials();
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const loadHeroProducts = async () => {
+      try {
+        const response = await fetch('/api/products?basic=true');
+        const result = await response.json();
+        if (result.success) {
+          setHeroProducts(
+            (result.products || []).map((p: { productid?: string; id?: string; name?: string }) => ({
+              productid: String(p.productid || p.id || ''),
+              name: p.name || 'Product',
+            })).filter((p: HeroProductOption) => p.productid)
+          );
+        }
+      } catch {
+      }
+    };
+
+    loadHeroProducts();
   }, [isAuthenticated]);
 
   // Sync local settings with global theme changes
@@ -261,7 +302,11 @@ export default function AdminSettingsPage() {
           telephonenumber: settings.telephonenumber,
           closingremarks: settings.closingremarks,
           aboutusphoto: settings.aboutusphoto,
-          aboutustext: settings.aboutustext
+          aboutustext: settings.aboutustext,
+          hero_jackets_productids: settings.hero_jackets_productids ?? [],
+          hero_formal_productids: settings.hero_formal_productids ?? [],
+          hero_jackets_productid: settings.hero_jackets_productids?.[0] ?? null,
+          hero_formal_productid: settings.hero_formal_productids?.[0] ?? null,
         })
       });
 
@@ -543,6 +588,28 @@ export default function AdminSettingsPage() {
       setLanguage(value);
     }
 
+    setHasChanges(true);
+  };
+
+  const toggleHeroCardProduct = (slug: 'jackets' | 'formal', productId: string) => {
+    if (!settings) return;
+
+    const idsField = slug === 'jackets' ? 'hero_jackets_productids' : 'hero_formal_productids';
+    const idField = slug === 'jackets' ? 'hero_jackets_productid' : 'hero_formal_productid';
+    const current = settings[idsField] || [];
+    const next = current.includes(productId)
+      ? current.filter((id) => id !== productId)
+      : [...current, productId];
+
+    setSettings((prev) =>
+      prev
+        ? {
+            ...prev,
+            [idsField]: next,
+            [idField]: next[0] ?? null,
+          }
+        : null
+    );
     setHasChanges(true);
   };
 
@@ -1022,6 +1089,98 @@ export default function AdminSettingsPage() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* Homepage hero cards */}
+          <div
+            id="settings-homepage-cards"
+            className="p-6 rounded-lg"
+            style={{
+              backgroundColor: theme.colors.cardBg,
+              border: `1px solid ${theme.colors.border}`
+            }}
+          >
+            <h2
+              className="text-xl font-semibold mb-2"
+              style={{ color: theme.colors.text }}
+            >
+              {language === 'bg' ? 'Карти на началната страница' : 'Homepage cards'}
+            </h2>
+            <p
+              className="text-sm mb-6"
+              style={{ color: theme.colors.textSecondary }}
+            >
+              {language === 'bg'
+                ? 'Nike Tech остава към фиксирания линк. При клик на двете MODABOX карти клиентът вижда само избраните тук продукти и може да ги поръча.'
+                : 'Nike Tech stays on its fixed URL. When shoppers click the two MODABOX cards, they only see the products you pick here and can buy them.'}
+            </p>
+
+            <div className="space-y-6">
+              {(['jackets', 'formal'] as const).map((slug) => {
+                const idsField =
+                  slug === 'jackets' ? 'hero_jackets_productids' : 'hero_formal_productids';
+                const selected = settings[idsField] || [];
+                const title =
+                  slug === 'jackets'
+                    ? language === 'bg'
+                      ? 'Якета'
+                      : 'Jackets'
+                    : language === 'bg'
+                      ? 'Ризи, панталони и официално облекло'
+                      : 'Shirts, trousers and formal wear';
+
+                return (
+                  <div key={slug}>
+                    <label
+                      className="block text-sm font-medium mb-2"
+                      style={{ color: theme.colors.text }}
+                    >
+                      {title}
+                    </label>
+                    <p className="text-xs mb-2" style={{ color: theme.colors.textSecondary }}>
+                      {language === 'bg'
+                        ? `${selected.length} избрани · първият е снимката на картата`
+                        : `${selected.length} selected · first item is the card image`}
+                    </p>
+                    <div
+                      className="max-h-56 overflow-y-auto rounded-md border p-3 space-y-2"
+                      style={{
+                        borderColor: theme.colors.border,
+                        backgroundColor: theme.colors.background,
+                      }}
+                    >
+                      {heroProducts.length === 0 ? (
+                        <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                          {language === 'bg' ? 'Няма продукти' : 'No products'}
+                        </p>
+                      ) : (
+                        heroProducts.map((product) => (
+                          <label
+                            key={`${slug}-${product.productid}`}
+                            className="flex items-center gap-2 text-sm cursor-pointer"
+                            style={{ color: theme.colors.text }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected.includes(product.productid)}
+                              onChange={() => toggleHeroCardProduct(slug, product.productid)}
+                            />
+                            <span>{product.name}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                    {slug === 'jackets' && selected.length === 0 && (
+                      <p className="text-xs mt-2" style={{ color: theme.colors.textSecondary }}>
+                        {language === 'bg'
+                          ? 'Ако не изберете нищо, по подразбиране се показва текущото Nike яке.'
+                          : 'If nothing is selected, the default Nike jacket is shown.'}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

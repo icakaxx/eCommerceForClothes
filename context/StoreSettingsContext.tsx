@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-interface StoreSettings {
+export interface StoreSettings {
   storesettingsid: string;
   storename: string;
   logourl: string | null;
@@ -26,6 +26,10 @@ interface StoreSettings {
   closingremarks: string | null;
   aboutusphoto: string | null;
   aboutustext: string | null;
+  hero_jackets_productid?: string | null;
+  hero_formal_productid?: string | null;
+  hero_jackets_productids?: string[] | null;
+  hero_formal_productids?: string[] | null;
   createdat: string;
   updatedat: string;
 }

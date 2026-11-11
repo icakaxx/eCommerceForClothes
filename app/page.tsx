@@ -4,7 +4,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react
 import Link from 'next/link';
 import LoadingScreen from '@/components/LoadingScreen';
 import PublicPageLayout from '@/components/PublicPageLayout';
-import HomeHero from '@/components/home/HomeHero';
+import HomeHero, { type HomeHeroProduct } from '@/components/home/HomeHero';
 import TrustBar from '@/components/home/TrustBar';
 import CategoryPillsNav from '@/components/CategoryPillsNav';
 import { useLanguage } from '@/context/LanguageContext';
@@ -17,14 +17,29 @@ import { Product } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import TestimonialsCarousel from '@/components/TestimonialsCarousel';
 import { isListedOnStorefront } from '@/lib/product-availability';
+import { normalizeProductImages } from '@/lib/product-images';
+import { getConfiguredHeroProductIds, resolveHeroProductIds } from '@/lib/homepage-hero';
 
 const MOBILE_INITIAL_VISIBLE = 4;
 const DESKTOP_INITIAL_VISIBLE = 8;
 const LOAD_MORE_STEP = 4;
 
+function toHeroProduct(product?: Product | null): HomeHeroProduct | null {
+  if (!product) return null;
+  const id = String(product.id || product.productid || '');
+  if (!id) return null;
+  const rawName = (product as Product & { name?: string }).name;
+  const name =
+    [product.brand, product.model].filter(Boolean).join(' ').trim() || rawName || id;
+  const image =
+    normalizeProductImages(product.images).find((url) => url && url !== '/image.png') || null;
+  return { id, name, image };
+}
+
 export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([]);
   const [featuredFavorites, setFeaturedFavorites] = useState<Record<string, boolean>>({});
@@ -89,9 +104,9 @@ export default function Home() {
         // not only items marked isfeatured.
         const res = await fetch('/api/products');
         const result = await res.json();
-        const visible: Product[] = result.success
-          ? (result.products || []).filter((p: Product) => isListedOnStorefront(p))
-          : [];
+        const allProducts: Product[] = result.success ? result.products || [] : [];
+        const visible: Product[] = allProducts.filter((p: Product) => isListedOnStorefront(p));
+        setCatalogProducts(allProducts);
         setFeaturedProducts(visible);
       } catch (error) {
       } finally {
@@ -192,9 +207,21 @@ export default function Home() {
   const displayedProducts = featuredProducts.slice(0, visibleCount);
   const hasMoreProducts = visibleCount < featuredProducts.length;
 
+  const jacketHeroIds = resolveHeroProductIds(settings, 'jackets');
+  const formalHeroIds = resolveHeroProductIds(settings, 'formal');
+  const jacketSelectionCount = getConfiguredHeroProductIds(settings, 'jackets').length || jacketHeroIds.length;
+  const formalSelectionCount = getConfiguredHeroProductIds(settings, 'formal').length;
+  const findCatalogProduct = (id: string) =>
+    catalogProducts.find((product) => String(product.id || product.productid) === id);
+
   return (
     <PublicPageLayout isAdmin={isAdmin} setIsAdmin={handleSetIsAdmin}>
-      <HomeHero />
+        <HomeHero
+          jacketsProduct={toHeroProduct(findCatalogProduct(jacketHeroIds[0] || ''))}
+          formalProduct={toHeroProduct(findCatalogProduct(formalHeroIds[0] || ''))}
+          jacketsSelectionCount={jacketSelectionCount}
+          formalSelectionCount={formalSelectionCount}
+        />
       <TrustBar />
 
       <section className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pt-5 sm:pt-6">

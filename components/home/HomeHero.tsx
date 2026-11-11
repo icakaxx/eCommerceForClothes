@@ -5,19 +5,53 @@ import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
+import { HOMEPAGE_HERO_PATHS } from '@/lib/homepage-hero';
 
 const MODABOX_HERO_IMAGE = '/images/hero/hero-home.png';
 const NIKE_TECH_HERO_IMAGE = '/images/hero/nike-tech-hoodie.avif';
 const JACKETS_HERO_IMAGE =
   'https://undmzklwxotqunctdxyv.supabase.co/storage/v1/object/public/products/images/1793190309856-b4051o.webp';
-const MODABOX_CATALOG_HREF = '/products';
 const NIKE_TECH_TRACKING_HREF = '/outbound/niketech';
-const FEATURED_JACKET_PRODUCT_HREF = '/products/6c708e49-6f4b-4bf8-8f04-ed53977d99f6';
 
-export default function HomeHero() {
+export type HomeHeroProduct = {
+  id: string;
+  name: string;
+  image?: string | null;
+};
+
+type HomeHeroProps = {
+  jacketsProduct?: HomeHeroProduct | null;
+  formalProduct?: HomeHeroProduct | null;
+  jacketsSelectionCount?: number;
+  formalSelectionCount?: number;
+};
+
+export default function HomeHero({
+  jacketsProduct,
+  formalProduct,
+  jacketsSelectionCount = 0,
+  formalSelectionCount = 0,
+}: HomeHeroProps) {
   const { language } = useLanguage();
   const { theme } = useTheme();
   const isBg = language === 'bg';
+
+  const jacketsHref = HOMEPAGE_HERO_PATHS.jackets;
+  const jacketsImage = jacketsProduct?.image || JACKETS_HERO_IMAGE;
+  const formalHref = HOMEPAGE_HERO_PATHS.formal;
+  const formalImage = formalProduct?.image || MODABOX_HERO_IMAGE;
+
+  const jacketsHasSelection = jacketsSelectionCount > 0;
+  const formalHasSelection = formalSelectionCount > 0;
+
+  const selectionLabel = (count: number) =>
+    isBg
+      ? count === 1
+        ? '1 избран артикул'
+        : `${count} избрани артикула`
+      : count === 1
+        ? '1 selected item'
+        : `${count} selected items`;
 
   const copy = {
     overline: isBg ? 'Твоят стил, на едно място' : 'Your style, in one place',
@@ -26,13 +60,17 @@ export default function HomeHero() {
     modabox: {
       label: 'MODABOX',
       title: isBg ? 'Ризи, панталони и официално облекло' : 'Shirts, trousers and formal wear',
-      description: isBg
-        ? 'Стил за работа, събития и всеки ден.'
-        : 'Style for work, events and everyday wear.',
-      cta: isBg ? 'Разгледай MODABOX' : 'Browse MODABOX',
-      imageAlt: isBg
-        ? 'MODABOX – ризи, панталони и официално облекло'
-        : 'MODABOX – shirts, trousers and formal wear',
+      description: formalHasSelection
+        ? selectionLabel(formalSelectionCount)
+        : isBg
+          ? 'Стил за работа, събития и всеки ден.'
+          : 'Style for work, events and everyday wear.',
+      cta: isBg ? 'Виж подбраните артикули' : 'Shop the selection',
+      imageAlt: formalProduct
+        ? formalProduct.name
+        : isBg
+          ? 'MODABOX – ризи, панталони и официално облекло'
+          : 'MODABOX – shirts, trousers and formal wear',
     },
     nike: {
       label: 'NIKE TECH',
@@ -44,13 +82,17 @@ export default function HomeHero() {
     jackets: {
       label: 'MODABOX',
       title: isBg ? 'Якета' : 'Jackets',
-      description: isBg
-        ? 'Двулицево Nike яке – лимитирана наличност.'
-        : 'Reversible Nike jacket – limited availability.',
-      cta: isBg ? 'Виж якето' : 'View the jacket',
-      imageAlt: isBg
-        ? 'Двулицево Яке - Nike (ЛИМИТИРАНА НАЛИЧНОСТ)'
-        : 'Reversible Nike jacket (limited stock)',
+      description: jacketsHasSelection
+        ? selectionLabel(jacketsSelectionCount)
+        : isBg
+          ? 'Двулицево Nike яке – лимитирана наличност.'
+          : 'Reversible Nike jacket – limited availability.',
+      cta: isBg ? 'Виж подбраните артикули' : 'Shop the selection',
+      imageAlt: jacketsProduct
+        ? jacketsProduct.name
+        : isBg
+          ? 'Двулицево Яке - Nike (ЛИМИТИРАНА НАЛИЧНОСТ)'
+          : 'Reversible Nike jacket (limited stock)',
     },
   };
 
@@ -72,12 +114,13 @@ export default function HomeHero() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
-        <article
-          className="relative order-3 lg:order-1 overflow-hidden rounded-2xl sm:rounded-3xl min-h-[300px] sm:min-h-[340px] lg:min-h-[360px] border"
+        <Link
+          href={formalHref}
+          className="relative order-3 lg:order-1 block overflow-hidden rounded-2xl sm:rounded-3xl min-h-[300px] sm:min-h-[340px] lg:min-h-[360px] border transition-opacity duration-300 hover:opacity-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1a1a1a]"
           style={{ borderColor: theme.colors.border, backgroundColor: '#f5f0e8' }}
         >
           <Image
-            src={MODABOX_HERO_IMAGE}
+            src={formalImage}
             alt={copy.modabox.imageAlt}
             fill
             sizes="(max-width: 768px) 100vw, 50vw"
@@ -97,16 +140,15 @@ export default function HomeHero() {
             <p className="text-sm sm:text-[0.9375rem] leading-relaxed text-[#6b6b6b] mb-5 sm:mb-6 max-w-sm">
               {copy.modabox.description}
             </p>
-            <Link
-              href={MODABOX_CATALOG_HREF}
-              className="inline-flex w-fit items-center gap-2 rounded-full px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-medium text-white transition-opacity duration-300 hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1a1a1a]"
+            <span
+              className="inline-flex w-fit items-center gap-2 rounded-full px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-medium text-white"
               style={{ backgroundColor: theme.colors.buttonPrimary || '#1a1a1a' }}
             >
               {copy.modabox.cta}
               <ArrowRight size={16} aria-hidden />
-            </Link>
+            </span>
           </div>
-        </article>
+        </Link>
 
         <article
           className="relative order-2 lg:order-3 overflow-hidden rounded-2xl sm:rounded-3xl min-h-[300px] sm:min-h-[340px] lg:min-h-[360px] border border-[#2a2a2a]"
@@ -143,12 +185,12 @@ export default function HomeHero() {
         </article>
 
         <Link
-          href={FEATURED_JACKET_PRODUCT_HREF}
+          href={jacketsHref}
           className="relative order-1 lg:order-2 block overflow-hidden rounded-2xl sm:rounded-3xl min-h-[300px] sm:min-h-[340px] lg:min-h-[360px] border transition-opacity duration-300 hover:opacity-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1a1a1a]"
           style={{ borderColor: theme.colors.border, backgroundColor: '#f5f0e8' }}
         >
           <Image
-            src={JACKETS_HERO_IMAGE}
+            src={jacketsImage}
             alt={copy.jackets.imageAlt}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"

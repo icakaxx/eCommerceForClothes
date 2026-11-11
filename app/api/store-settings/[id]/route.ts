@@ -14,15 +14,38 @@ export async function PUT(
     const body = await request.json()
     const { id } = await params
 
-    const { data, error } = await (supabase as any)
+    const payload = {
+      ...body,
+      updatedat: new Date().toISOString()
+    };
+
+    let { data, error } = await (supabase as any)
       .from('store_settings')
-      .update({
-        ...body,
-        updatedat: new Date().toISOString()
-      })
+      .update(payload)
       .eq('storesettingsid', id)
       .select()
       .single()
+
+    if (
+      error &&
+      /hero_jackets_productid|hero_formal_productid|hero_jackets_productids|hero_formal_productids/i.test(
+        String(error.message ?? '')
+      )
+    ) {
+      const fallback = { ...payload };
+      delete fallback.hero_jackets_productid;
+      delete fallback.hero_formal_productid;
+      delete fallback.hero_jackets_productids;
+      delete fallback.hero_formal_productids;
+      const retry = await (supabase as any)
+        .from('store_settings')
+        .update(fallback)
+        .eq('storesettingsid', id)
+        .select()
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
 
     if (error) {
       logger.error('Error updating store settings:', error)
