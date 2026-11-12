@@ -44,10 +44,7 @@ export function buildLabelPayload(params: BuildLabelParams) {
       cdAmount: params.codAmount,
       cdType: 'get',
       cdCurrency: 'EUR',
-      // Official SOAP/JSON field: ShippingLabelServices.smsNotification
       ...(params.draft.smsNotification ? { smsNotification: true } : {}),
-      // Explicit false overrides an Econt-account default for DP / two-way.
-      twoWayShipment: false,
     },
     instructions: [
       {

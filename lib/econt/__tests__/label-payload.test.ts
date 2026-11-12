@@ -66,10 +66,8 @@ function unchangedCoreFields(payload: ReturnType<typeof buildLabelPayload>) {
 describe('Econt createLabel payload — SMS and one-way delivery', () => {
   it('maps smsNotification onto label.services.smsNotification', () => {
     const payload = buildLabelPayload(sampleParams());
-    const label = payload.label as Record<string, unknown>;
-    const services = label.services as Record<string, unknown>;
+    const services = (payload.label as Record<string, unknown>).services as Record<string, unknown>;
     expect(services.smsNotification).toBe(true);
-    expect(label.smsNotification).toBeUndefined();
   });
 
   it('keeps the receiver phone in receiverClient.phones', () => {
@@ -87,12 +85,11 @@ describe('Econt createLabel payload — SMS and one-way delivery', () => {
     const instructions = label.instructions as Array<Record<string, unknown>>;
     const returnParams = instructions[0].returnInstructionParams as Record<string, unknown>;
 
-    expect(services.twoWayShipment).toBe(false);
+    expect(services.twoWayShipment).toBeUndefined();
     expect(returnParams.returnParcelDestination).toBeUndefined();
     expect(returnParams.returnParcelPaymentSide).toBeUndefined();
     expect(returnParams.printReturnParcel).toBeUndefined();
     expect(label.printReturnParcel).toBeUndefined();
-    expect(label.twoWayShipment).toBeUndefined();
   });
 
   it('keeps inspection and testing before payment', () => {

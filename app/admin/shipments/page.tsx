@@ -71,6 +71,7 @@ function buildEcontShipmentDetailsJson(order: Record<string, unknown>, shipment:
       },
       delivery: {
         econtOffice: order.econtoffice ?? null,
+        notes: order.deliverynotes ?? null,
         street: order.deliverystreet ?? null,
         streetNumber: order.deliverystreetnumber ?? null,
         entrance: order.deliveryentrance ?? null,
@@ -211,13 +212,8 @@ export default function AdminShipmentsPage() {
   const openLabelModal = async (orderId: string) => {
     setActionError(null);
     setValidationHash(null);
+    setReceiverEcont({});
     const row = rows.find((r) => r.order?.orderid === orderId);
-    setReceiverEcont({
-      receiverCityId: row?.order?.econt_city_id ? Number(row.order.econt_city_id) : undefined,
-      receiverCityName: row?.order?.customers?.city ?? undefined,
-      receiverOfficeCode: row?.order?.econt_office_code || undefined,
-      receiverOfficeName: row?.order?.econt_office_name || undefined,
-    });
     setModalOrder(row?.order ?? null);
     await reloadSenders();
     const res = await fetch('/api/admin/econt/shipments', {
@@ -500,6 +496,14 @@ export default function AdminShipmentsPage() {
                       {open && (
                         <div className="border-t p-4 text-sm space-y-2">
                           <div><strong>Статус поръчка:</strong> {order.status}</div>
+                          <div className="whitespace-pre-wrap">
+                            <strong>Бележки:</strong>{' '}
+                            {(order.deliverynotes ?? '').trim() ? (
+                              order.deliverynotes
+                            ) : (
+                              <span className="text-gray-500">—</span>
+                            )}
+                          </div>
                           <div><strong>Адрес/офис:</strong> {order.econtoffice || [order.deliverystreet, order.deliverystreetnumber].filter(Boolean).join(' ')}</div>
                           <div><strong>Междинна сума:</strong> {formatEur(order.subtotal)} · <strong>Доставка:</strong> {formatEur(order.deliverycost)} · <strong>Общо:</strong> {formatEur(order.total)}</div>
                           <ul className="list-disc pl-5">
@@ -646,7 +650,7 @@ export default function AdminShipmentsPage() {
                 <EcontReceiverFields
                   deliveryType={String(modalOrder.deliverytype ?? 'office')}
                   initialCityName={modalOrder.customers?.city ?? ''}
-                  initialOfficeHint={modalOrder.econt_office_code || modalOrder.econtoffice || ''}
+                  initialOfficeHint={modalOrder.econtoffice ?? ''}
                   initialAddress={{
                     street: modalOrder.deliverystreet ?? '',
                     num: modalOrder.deliverystreetnumber ?? '',

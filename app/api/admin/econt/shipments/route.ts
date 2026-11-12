@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
     let ordersQuery = supabaseAdmin
       .from('orders')
       .select(
-        `orderid, status, createdat, deliverytype, econtoffice, econt_city_id, econt_office_code, econt_office_name, subtotal, deliverycost, total, discountamount,
+        `orderid, status, createdat, deliverytype, econtoffice, deliverynotes,
+         deliverystreet, deliverystreetnumber, subtotal, deliverycost, total, discountamount,
          customers(firstname, lastname, telephone, email, city),
          order_items(
            quantity, price, productvariantid,
@@ -52,39 +53,7 @@ export async function GET(request: NextRequest) {
 
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
-    let { data: orders, error, count } = await ordersQuery.range(from, to);
-    if (error && /econt_city_id|econt_office_code|econt_office_name/i.test(error.message ?? '')) {
-      let fallbackQuery = supabaseAdmin
-        .from('orders')
-        .select(
-          `orderid, status, createdat, deliverytype, econtoffice, subtotal, deliverycost, total, discountamount,
-           customers(firstname, lastname, telephone, email, city),
-           order_items(
-             quantity, price, productvariantid,
-             products(name),
-             product_variants(
-               product_variant_property_values(
-                 value,
-                 properties(name)
-               )
-             )
-           )`,
-          { count: 'exact' }
-        )
-        .order('createdat', { ascending: false });
-      if (dateFrom) fallbackQuery = fallbackQuery.gte('createdat', dateFrom);
-      if (dateTo) fallbackQuery = fallbackQuery.lte('createdat', `${dateTo}T23:59:59`);
-      if (q) fallbackQuery = fallbackQuery.ilike('orderid', `%${q}%`);
-      const retry = await fallbackQuery.range(from, to);
-      orders = (retry.data ?? []).map((row) => ({
-        ...row,
-        econt_city_id: null,
-        econt_office_code: null,
-        econt_office_name: null,
-      }));
-      error = retry.error;
-      count = retry.count;
-    }
+    const { data: orders, error, count } = await ordersQuery.range(from, to);
     if (error) {
       return structuredAdminErrorResponse({
         code: 'DB_ERROR',
@@ -169,9 +138,9 @@ export async function GET(request: NextRequest) {
     if (!latestCreated) {
       const { data: fallback } = await supabaseAdmin
         .from('econt_shipments')
-        .select('id, order_id, shipment_number, created_at')
+        .select('id, order_id, shipment_number, updated_at')
         .not('shipment_number', 'is', null)
-        .order('created_at', { ascending: false })
+        .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle();
       if (fallback?.shipment_number) {
@@ -179,7 +148,7 @@ export async function GET(request: NextRequest) {
           shipmentId: fallback.id,
           orderId: fallback.order_id ?? null,
           shipmentNumber: fallback.shipment_number,
-          createdAt: fallback.created_at,
+          createdAt: fallback.updated_at,
         };
       }
     }
