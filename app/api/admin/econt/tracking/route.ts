@@ -5,7 +5,7 @@ import { withAdminAuth, structuredAdminErrorResponse } from '@/lib/admin-api-aut
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { STATUS_LABELS_BG } from '@/lib/econt/status-mapper';
 import { getEcontRuntimeEnv } from '@/lib/econt/config';
-import { centsToMoney, moneyToCents } from '@/lib/econt/money';
+import { centsToMoney, moneyToCents, sumMoney } from '@/lib/econt/money';
 import {
   inSofiaRange,
   isUncollectedOverDays,
@@ -69,8 +69,7 @@ export async function GET(request: NextRequest) {
       return true;
     });
 
-    const sumKnown = (values: Array<number | null>) =>
-      centsToMoney(values.reduce((acc, value) => (value === null || value === undefined ? acc : acc + moneyToCents(Number(value))), 0));
+    const sumKnown = (values: Array<number | null>) => sumMoney(values);
 
     const createdInRange = filtered;
     const collectedInRange = createdInRange.filter((row) => inSofiaRange(row.collected_cod_at, range.from, range.to) && row.collected_cod_amount !== null);
