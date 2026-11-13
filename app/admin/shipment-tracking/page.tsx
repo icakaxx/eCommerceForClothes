@@ -235,20 +235,21 @@ export default function ShipmentTrackingPage() {
   };
 
   const cards: Array<[string, string]> = [
-    ['Изпратени', String(summary.sent ?? summary.all ?? 0)],
+    ['Доставени изпратени', String(summary.sent ?? 0)],
+    ['Активни изпратени', String(summary.sentActive ?? 0)],
     ['За мен', String(summary.forMe ?? 0)],
     ['Разпореждания', String(summary.instructions ?? 0)],
-    ['Всички в изгледа', String(summary.all ?? 0)],
+    ['Доставени с НП (бр.)', String(summary.receivedCount ?? 0)],
     ['Подготвени', String(summary.prepared ?? 0)],
-    ['В движение', String(summary.inTransit ?? 0)],
-    ['В офис', String(summary.inOffice ?? 0)],
-    ['Доставени', String(summary.delivered ?? 0)],
+    ['В движение / офис', String(summary.inTransit ?? 0)],
+    ['Доставени (общо)', String(summary.delivered ?? 0)],
     ['Връщат се', String(summary.returning ?? 0)],
     ['Върнати', String(summary.returned ?? 0)],
     ['Непотърсени над 3 дни', String(summary.uncollectedOver3 ?? 0)],
-    ['Заявен НП', formatEur(summary.expectedCod)],
-    ['Събран НП', formatEur(summary.collectedCod)],
-    ['Изплатен НП', formatEur(summary.paidCod)],
+    ['В изгледа', String(summary.all ?? 0)],
+    ['Заявен НП (изглед)', formatEur(summary.expectedCod)],
+    ['Събран НП (изглед)', formatEur(summary.collectedCod)],
+    ['Изплатен НП (изглед)', formatEur(summary.paidCod)],
     ['Непълни фин. данни', String(summary.unknownFinancial ?? 0)],
   ];
 
@@ -361,7 +362,7 @@ export default function ShipmentTrackingPage() {
         <p className="mb-3 text-xs text-gray-500">
           Списъкът е от акаунта в Еконт, не само от поръчките в магазина. Неприключени са пратките, които още не са получени и не са върнати. Периодите включват и приключените.
           {Array.isArray(summary.receivedCod) && summary.receivedCod.length > 0
-            ? ` Доставени с наложен платеж: ${summary.receivedCod.length} пратки, общо ${formatEur(summary.receivedCod.reduce((sum: number, amount: number) => sum + amount, 0))}.`
+            ? ` Доставени с наложен платеж: ${summary.receivedCod.length} пратки, общо ${formatEur(summary.receivedCod.reduce((sum: number, amount: number) => sum + amount, 0))}. Реално изплатеното към теб виж в „Изплащания“ и в колоната „изплатен“.`
             : ''}
           {summary.accountError ? ` ${summary.accountError}` : ''}
         </p>

@@ -121,20 +121,24 @@ export async function GET(request: NextRequest) {
         return { row, local, normalized };
       });
 
-      const receivedCod = accountRows
-        .filter((row) => row.kind === 'delivered' && row.cdAmount !== null && row.cdAmount !== 0)
-        .map((row) => row.cdAmount as number);
+      // Картите показват целия акаунт в Еконт, за да съвпадат с официалното приложение.
+      // Списъкът долу остава по избрания филтър (по подразбиране „Неприключени“).
+      const sender = accountRows.filter((row) => row.side === 'sender');
+      const receiver = accountRows.filter((row) => row.side === 'receiver');
+      const receivedDelivered = accountRows.filter((row) => row.kind === 'delivered' && row.cdAmount !== null && row.cdAmount !== 0);
+      const receivedCod = receivedDelivered.map((row) => row.cdAmount as number);
       const summary = {
         all: view.length,
-        sent: view.filter((item) => item.row.side === 'sender').length,
-        forMe: view.filter((item) => item.row.side === 'receiver').length,
+        sent: sender.filter((row) => row.kind === 'delivered').length,
+        sentActive: sender.filter((row) => row.kind === 'open' || row.kind === 'prepared').length,
+        forMe: receiver.filter((row) => row.kind === 'open' || row.kind === 'prepared').length,
         instructions: accountRows.filter((row) => row.kind === 'instruction').length,
-        prepared: view.filter((item) => item.normalized === 'prepared' || item.normalized === 'accepted').length,
-        inTransit: view.filter((item) => item.normalized === 'in_transit' || item.normalized === 'out_for_delivery').length,
+        prepared: sender.filter((row) => row.kind === 'prepared').length,
+        inTransit: sender.filter((row) => row.kind === 'open').length,
         inOffice: view.filter((item) => item.normalized === 'in_office').length,
-        delivered: view.filter((item) => item.normalized === 'delivered').length,
+        delivered: accountRows.filter((row) => row.kind === 'delivered').length,
         returning: view.filter((item) => item.normalized === 'returning').length,
-        returned: view.filter((item) => item.normalized === 'returned').length,
+        returned: accountRows.filter((row) => row.kind === 'returned').length,
         syncErrors: view.filter((item) => Boolean(item.local?.last_sync_error)).length,
         uncollectedOver3: view.filter((item) => isUncollectedOverDays({
           status: item.normalized,
@@ -146,14 +150,15 @@ export async function GET(request: NextRequest) {
         collectedCod: sumKnownOrNull(view.map((item) => (item.local?.collected_cod_amount == null ? null : Number(item.local.collected_cod_amount)))),
         paidCod: sumKnownOrNull(view.map((item) => (item.local?.paid_cod_amount == null ? null : Number(item.local.paid_cod_amount)))),
         receivedCod,
+        receivedCount: receivedCod.length,
         unknownFinancial: view.filter((item) => item.row.cdAmount === null).length,
         lastSyncAt: null as string | null,
         range,
         accountError,
         dateBasis: {
           logistics: preset === 'open'
-            ? 'Неприключени са пратките, които още не са получени и не са върнати.'
-            : 'Периодът е по датата на създаване в Еконт.',
+            ? 'Картите са за целия акаунт в Еконт. Списъкът долу е само неприключените пратки.'
+            : 'Картите са за целия акаунт в Еконт. Списъкът долу е по избрания период.',
           codCollected: 'Полученият НП е сумата по доставена товарителница от Еконт.',
           codPaid: 'Редовете в справката за изплащания са отделно от сумата по товарителницата.',
         },
