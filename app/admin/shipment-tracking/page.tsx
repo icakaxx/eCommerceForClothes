@@ -361,7 +361,7 @@ export default function ShipmentTrackingPage() {
         <p className="mb-3 text-xs text-gray-500">
           Списъкът е от акаунта в Еконт, не само от поръчките в магазина. Неприключени са пратките, които още не са получени и не са върнати. Периодите включват и приключените.
           {Array.isArray(summary.receivedCod) && summary.receivedCod.length > 0
-            ? ` Получен НП по доставени товарителници: ${summary.receivedCod.map((amount: number) => formatEur(amount)).join(', ')}.`
+            ? ` Доставени с наложен платеж: ${summary.receivedCod.length} пратки, общо ${formatEur(summary.receivedCod.reduce((sum: number, amount: number) => sum + amount, 0))}.`
             : ''}
           {summary.accountError ? ` ${summary.accountError}` : ''}
         </p>

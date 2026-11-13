@@ -58,6 +58,9 @@ export async function GET(request: NextRequest) {
     }
 
     const sumKnown = (values: Array<number | null>) => sumMoney(values);
+    const sumKnownOrNull = (values: Array<number | null>) => (
+      values.some((value) => value !== null && value !== undefined) ? sumMoney(values) : null
+    );
 
     if (accountRows.length > 0) {
       const localByNumber = new Map((universe ?? []).filter((row) => row.shipment_number).map((row) => [String(row.shipment_number), row]));
@@ -140,8 +143,8 @@ export async function GET(request: NextRequest) {
           minDays: 3,
         }).match).length,
         expectedCod: sumKnown(view.map((item) => item.row.cdAmount)),
-        collectedCod: sumKnown(view.map((item) => (item.local?.collected_cod_amount == null ? null : Number(item.local.collected_cod_amount)))),
-        paidCod: sumKnown(view.map((item) => (item.local?.paid_cod_amount == null ? null : Number(item.local.paid_cod_amount)))),
+        collectedCod: sumKnownOrNull(view.map((item) => (item.local?.collected_cod_amount == null ? null : Number(item.local.collected_cod_amount)))),
+        paidCod: sumKnownOrNull(view.map((item) => (item.local?.paid_cod_amount == null ? null : Number(item.local.paid_cod_amount)))),
         receivedCod,
         unknownFinancial: view.filter((item) => item.row.cdAmount === null).length,
         lastSyncAt: null as string | null,

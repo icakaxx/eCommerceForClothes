@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callCreateLabel, computeValidationHash, isPdfUrlSafe, validationExpiry } from '@/lib/econt/labels';
 import { findCityByName, normalizeCityLabel, resolveOfficeInCity } from '@/lib/econt/nomenclatures';
 import { roundMoney } from '@/lib/econt/money';
-import { mapStatusRow, fetchShipmentStatuses } from '@/lib/econt/tracking';
+import { mapStatusRow, fetchShipmentStatuses, parseEcontTimestamp } from '@/lib/econt/tracking';
 import { EcontAppError } from '@/lib/econt/types';
 import type { ShipmentDraftConfig } from '@/lib/econt/types';
 import { computeProductCodFromOrder, validateShipmentDraft } from '@/lib/econt/validation';
@@ -483,47 +483,60 @@ export async function syncShipmentsByIds(shipmentIds: string[]) {
       currency: 'EUR',
     });
 
-    await supabaseAdmin
-      .from('econt_shipments')
-      .update({
-        raw_delivery_status: mapped.rawStatus,
-        normalized_delivery_status: mapped.normalized,
-        collected_cod_amount: mapped.collectedAmount,
-        collected_cod_currency: mapped.collectedCurrency,
-        collected_cod_at: mapped.collectedAt?.toISOString() ?? null,
-        paid_cod_amount: mapped.paidAmount,
-        paid_cod_currency: mapped.paidCurrency,
-        paid_cod_at: mapped.paidAt?.toISOString() ?? null,
-        total_price: mapped.totalPrice,
-        sender_due_amount: mapped.senderDueAmount,
-        receiver_due_amount: mapped.receiverDueAmount,
-        label_pdf_url: isPdfUrlSafe(mapped.pdfURL) ? mapped.pdfURL : undefined,
-        financial_discrepancy: recon.discrepancy ? { notes: recon.notes } : null,
-        last_sync_at: new Date().toISOString(),
-        last_sync_attempt_at: new Date().toISOString(),
-        last_sync_error: null,
-        returned_at: mapped.normalized === 'returned' ? new Date().toISOString() : null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', shipment.id);
+    try {
+      await supabaseAdmin
+        .from('econt_shipments')
+        .update({
+          raw_delivery_status: mapped.rawStatus,
+          normalized_delivery_status: mapped.normalized,
+          collected_cod_amount: mapped.collectedAmount,
+          collected_cod_currency: mapped.collectedCurrency,
+          collected_cod_at: mapped.collectedAt?.toISOString() ?? null,
+          paid_cod_amount: mapped.paidAmount,
+          paid_cod_currency: mapped.paidCurrency,
+          paid_cod_at: mapped.paidAt?.toISOString() ?? null,
+          total_price: mapped.totalPrice,
+          sender_due_amount: mapped.senderDueAmount,
+          receiver_due_amount: mapped.receiverDueAmount,
+          label_pdf_url: isPdfUrlSafe(mapped.pdfURL) ? mapped.pdfURL : undefined,
+          financial_discrepancy: recon.discrepancy ? { notes: recon.notes } : null,
+          last_sync_at: new Date().toISOString(),
+          last_sync_attempt_at: new Date().toISOString(),
+          last_sync_error: null,
+          returned_at: mapped.normalized === 'returned' ? new Date().toISOString() : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', shipment.id);
 
-    for (const [idx, ev] of (mapped.trackingEvents as Array<Record<string, unknown>>).entries()) {
-      const key = String(ev.id ?? ev.time ?? idx);
-      await supabaseAdmin.from('econt_tracking_events').upsert(
-        {
-          shipment_id: shipment.id,
-          source_event_key: key,
-          event_time: ev.time ? new Date(String(ev.time)).toISOString() : null,
-          event_type: String(ev.type ?? ev.event ?? ''),
-          description: String(ev.description ?? ev.name ?? ''),
-          city: String(ev.city ?? ''),
-          office: String(ev.office ?? ''),
-          original_payload: ev,
-        },
-        { onConflict: 'shipment_id,source_event_key' }
-      );
+      const events = Array.isArray(mapped.trackingEvents) ? mapped.trackingEvents as Array<Record<string, unknown>> : [];
+      for (const [idx, ev] of events.entries()) {
+        const when = parseEcontTimestamp(ev.time);
+        const key = String(ev.id ?? ev.time ?? idx);
+        await supabaseAdmin.from('econt_tracking_events').upsert(
+          {
+            shipment_id: shipment.id,
+            source_event_key: key,
+            event_time: when ? when.toISOString() : null,
+            event_type: String(ev.destinationType ?? ev.type ?? ev.event ?? ''),
+            description: String(ev.destinationDetails ?? ev.description ?? ev.name ?? ''),
+            city: String(ev.cityName ?? ev.city ?? ''),
+            office: String(ev.officeName ?? ev.office ?? ''),
+            original_payload: ev,
+          },
+          { onConflict: 'shipment_id,source_event_key' }
+        );
+      }
+      success += 1;
+    } catch {
+      failure += 1;
+      await supabaseAdmin
+        .from('econt_shipments')
+        .update({
+          last_sync_attempt_at: new Date().toISOString(),
+          last_sync_error: 'Неуспешен запис на статуса',
+        })
+        .eq('id', shipment.id);
     }
-    success += 1;
   }
 
   return { processed: numbers.length, success, failure };
