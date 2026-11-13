@@ -9,7 +9,7 @@ import {
   officeWaitPriority,
   selectDueShipmentIds,
 } from '@/lib/econt/sync-policy';
-import { diffAwbNumbers, isUncollectedOverDays, resolveRange } from '@/lib/econt/tracking-dashboard';
+import { accountWindow, classifyAwbStatus, diffAwbNumbers, isUncollectedOverDays, isUnfinishedAwb, plainEcontStatus, resolveRange, sofiaMidnight } from '@/lib/econt/tracking-dashboard';
 
 describe('official status phrases', () => {
   it('maps prepared, office, delivered, returned and cancelled without guessing delivered', () => {
@@ -101,6 +101,21 @@ describe('dashboard filters', () => {
       missingLocally: ['200'],
       onlyLocal: [],
     });
+  });
+
+  it('starts from unfinished shipments and keeps the Econt period windows', () => {
+    const now = new Date('2026-11-13T10:00:00.000Z');
+    expect(classifyAwbStatus('получена от клиент')).toBe('delivered');
+    expect(classifyAwbStatus('пристигнала в офис София')).toBe('open');
+    expect(classifyAwbStatus('Очаква предаване към Еконт')).toBe('prepared');
+    expect(classifyAwbStatus('върната към подател')).toBe('returned');
+    expect(classifyAwbStatus('Разпореждане № <span class="link">261</span> за: промяна')).toBe('instruction');
+    expect(plainEcontStatus('Разпореждане № <span>261</span> за: промяна')).toBe('Разпореждане № 261 за: промяна');
+    expect(isUnfinishedAwb('open')).toBe(true);
+    expect(isUnfinishedAwb('delivered')).toBe(false);
+    expect(accountWindow('h24', now).fromMs).toBe(now.getTime() - 24 * 60 * 60 * 1000);
+    expect(accountWindow('m1', now).fromMs).toBe(sofiaMidnight('2026-10-13').getTime());
+    expect(accountWindow('open', now)).toEqual({ fromMs: null, toMs: null });
   });
 
   it('requires a real office arrival before the 3 day filter matches', () => {

@@ -10,7 +10,7 @@ export function normalizeEcontStatus(raw?: string | null): NormalizedShipmentSta
   if ((s.includes('deliver') || s.includes('доставен')) && !s.includes('out')) return 'delivered';
   if (s.includes('out for') || s.includes('куриер')) return 'out_for_delivery';
   if (s.includes('office') || s.includes('офис')) return 'in_office';
-  if (s.includes('transit') || s.includes('пътува') || s.includes('превоз') || s.includes('линия')) return 'in_transit';
+  if (s.includes('transit') || s.includes('пътува') || s.includes('превоз') || s.includes('линия') || s.includes('отпътува') || s.includes('маршрут')) return 'in_transit';
   if (s.includes('accept') || s.includes('приета') || s.includes('registered')) return 'accepted';
   if (s.includes('prepar') || s.includes('подготвен') || s.includes('чака')) return 'prepared';
 

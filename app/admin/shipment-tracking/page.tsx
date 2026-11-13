@@ -55,7 +55,7 @@ export default function ShipmentTrackingPage() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [totals, setTotals] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [preset, setPreset] = useState('all');
+  const [preset, setPreset] = useState('open');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [operational, setOperational] = useState('');
@@ -235,7 +235,10 @@ export default function ShipmentTrackingPage() {
   };
 
   const cards: Array<[string, string]> = [
-    ['Всички пратки', String(summary.all ?? 0)],
+    ['Изпратени', String(summary.sent ?? summary.all ?? 0)],
+    ['За мен', String(summary.forMe ?? 0)],
+    ['Разпореждания', String(summary.instructions ?? 0)],
+    ['Всички в изгледа', String(summary.all ?? 0)],
     ['Подготвени', String(summary.prepared ?? 0)],
     ['В движение', String(summary.inTransit ?? 0)],
     ['В офис', String(summary.inOffice ?? 0)],
@@ -322,13 +325,16 @@ export default function ShipmentTrackingPage() {
 
         <div className="mb-4 flex flex-wrap gap-2">
           <select className="rounded-lg border px-3 py-2 text-sm" value={preset} onChange={(e) => { setPage(1); setPreset(e.target.value); }}>
-            <option value="all">Всички периоди</option>
-            <option value="today">Днес</option>
-            <option value="yesterday">Вчера</option>
-            <option value="7d">Последните 7 дни</option>
-            <option value="30d">Последните 30 дни</option>
-            <option value="month">Този месец</option>
-            <option value="custom">Избран период</option>
+            <option value="open">Неприключени пратки</option>
+            <option value="h24">Последните 24 часа</option>
+            <option value="d7">Последните 7 дни</option>
+            <option value="m1">Последния месец</option>
+            <option value="m2">Последните 2 месеца</option>
+            <option value="m3">Последните 3 месеца</option>
+            <option value="m4">Последните 4 месеца</option>
+            <option value="m5">Последните 5 месеца</option>
+            <option value="custom">Интервал</option>
+            <option value="instructions">Разпореждания</option>
           </select>
           {preset === 'custom' && (
             <>
@@ -353,7 +359,11 @@ export default function ShipmentTrackingPage() {
         </div>
         {missingMessage ? <p className="mb-3 text-sm">{missingMessage}</p> : null}
         <p className="mb-3 text-xs text-gray-500">
-          Картите за брой и заявен НП следват датата на създаване. Изплатеният НП следва датата на изплащане. Непотърсените над 3 дни са текущи пратки в офис, не всички за периода.
+          Списъкът е от акаунта в Еконт, не само от поръчките в магазина. Неприключени са пратките, които още не са получени и не са върнати. Периодите включват и приключените.
+          {Array.isArray(summary.receivedCod) && summary.receivedCod.length > 0
+            ? ` Получен НП по доставени товарителници: ${summary.receivedCod.map((amount: number) => formatEur(amount)).join(', ')}.`
+            : ''}
+          {summary.accountError ? ` ${summary.accountError}` : ''}
         </p>
 
         {loading ? <p>Зареждане...</p> : (
@@ -367,11 +377,12 @@ export default function ShipmentTrackingPage() {
                   <div className="flex flex-wrap items-center gap-2 p-3 text-sm">
                     <input type="checkbox" checked={!!selected[shipment.id]} onChange={(e) => setSelected({ ...selected, [shipment.id]: e.target.checked })} />
                     <button type="button" onClick={() => setExpanded({ ...expanded, [shipment.id]: !open })}>{open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>
-                    <Link href="/admin/sales" className="underline">{shipment.order_id}</Link>
+                    <span className="rounded-full border px-2 py-0.5 text-xs">{shipment.side === 'receiver' ? 'За мен' : 'Изпратена'}</span>
+                    {shipment.order_id ? <Link href="/admin/sales" className="underline">{shipment.order_id}</Link> : <span className="text-gray-400">без поръчка в магазина</span>}
                     <span className="font-medium">{shipment.shipment_number}</span>
                     <span>{customer.firstname} {customer.lastname}</span>
                     <span>{customer.city}</span>
-                    <span>{STATUS_LABELS_BG[shipment.normalized_delivery_status as keyof typeof STATUS_LABELS_BG] ?? shipment.raw_delivery_status ?? 'Неразпознат статус от Еконт'}</span>
+                    <span>{shipment.raw_delivery_status || STATUS_LABELS_BG[shipment.normalized_delivery_status as keyof typeof STATUS_LABELS_BG] || 'Неразпознат статус от Еконт'}</span>
                     <span>НП {formatEur(shipment.expected_cod_amount)}</span>
                     <span className="text-gray-500">събран {shipment.collected_cod_amount != null ? formatEur(shipment.collected_cod_amount) : '—'}</span>
                     <span className="text-gray-500">изплатен {shipment.paid_cod_amount != null ? formatEur(shipment.paid_cod_amount) : '—'}</span>
@@ -394,11 +405,11 @@ export default function ShipmentTrackingPage() {
                         )}
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <button type="button" className="rounded border px-2 py-1" onClick={() => refreshEcont([shipment.id])}>Обнови тази пратка</button>
+                        {shipment.storedId ? <button type="button" className="rounded border px-2 py-1" onClick={() => refreshEcont([shipment.storedId])}>Обнови тази пратка</button> : null}
                         {shipment.label_pdf_url ? <a className="rounded border px-2 py-1" href={shipment.label_pdf_url} target="_blank" rel="noreferrer">Виж товарителницата</a> : null}
                         <button type="button" className="rounded border px-2 py-1" onClick={() => navigator.clipboard.writeText(String(shipment.shipment_number || ''))}>Копирай номер</button>
-                        <button type="button" className="rounded border px-2 py-1" onClick={() => saveAction(shipment.id, 'contact_needed')}>За контакт</button>
-                        <button type="button" className="rounded border px-2 py-1" onClick={() => saveAction(shipment.id, 'stock_verified')}>Стоката е проверена</button>
+                        {shipment.storedId ? <button type="button" className="rounded border px-2 py-1" onClick={() => saveAction(shipment.storedId, 'contact_needed')}>За контакт</button> : null}
+                        {shipment.storedId ? <button type="button" className="rounded border px-2 py-1" onClick={() => saveAction(shipment.storedId, 'stock_verified')}>Стоката е проверена</button> : null}
                       </div>
                       <textarea
                         className="w-full rounded border p-2"
@@ -406,7 +417,7 @@ export default function ShipmentTrackingPage() {
                         value={noteDraft[shipment.id] || ''}
                         onChange={(e) => setNoteDraft({ ...noteDraft, [shipment.id]: e.target.value })}
                       />
-                      <button type="button" className="rounded border px-2 py-1" onClick={() => saveAction(shipment.id, 'internal_note')}>Добави бележка</button>
+                      {shipment.storedId ? <button type="button" className="rounded border px-2 py-1" onClick={() => saveAction(shipment.storedId, 'internal_note')}>Добави бележка</button> : null}
                     </div>
                   )}
                 </div>
