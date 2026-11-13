@@ -1,4 +1,4 @@
-import { roundMoney } from '@/lib/econt/money';
+import { moneyToCents, centsToMoney, roundMoney } from '@/lib/econt/money';
 
 export type FinancialSnapshot = {
   expectedCod: number | null;
@@ -58,21 +58,26 @@ export function aggregateSelectedFinancials(
     codCurrency: string;
   }>
 ): SelectedFinancialTotals {
-  let expectedCod = 0;
-  let collectedCod = 0;
-  let paidCod = 0;
+  let expectedCents = 0;
+  let collectedCents = 0;
+  let paidCents = 0;
+  let unpaidCents = 0;
   let returnedCount = 0;
-  let returnedOrderValue = 0;
-  let merchantDeliveryCost = 0;
+  let returnedCents = 0;
+  let merchantCents = 0;
   let unknownFinancialCount = 0;
   let currencyMismatchCount = 0;
 
   for (const row of rows) {
-    if (row.expectedCod !== null) expectedCod += row.expectedCod;
-    if (row.collectedCod !== null) collectedCod += row.collectedCod;
-    else if (row.normalizedStatus === 'delivered') unknownFinancialCount += 1;
-    if (row.paidCod !== null) paidCod += row.paidCod;
-    if (row.merchantDeliveryCost !== null) merchantDeliveryCost += row.merchantDeliveryCost;
+    if (row.expectedCod !== null) expectedCents += moneyToCents(row.expectedCod);
+    if (row.collectedCod !== null) collectedCents += moneyToCents(row.collectedCod);
+    if (row.paidCod !== null) paidCents += moneyToCents(row.paidCod);
+    if (row.collectedCod !== null && row.paidCod !== null) {
+      unpaidCents += Math.max(0, moneyToCents(row.collectedCod) - moneyToCents(row.paidCod));
+    } else if (row.expectedCod !== null) {
+      unknownFinancialCount += 1;
+    }
+    if (row.merchantDeliveryCost !== null) merchantCents += moneyToCents(row.merchantDeliveryCost);
     if (
       (row.collectedCurrency && row.collectedCurrency !== row.codCurrency) ||
       (row.paidCurrency && row.paidCurrency !== row.codCurrency)
@@ -81,23 +86,18 @@ export function aggregateSelectedFinancials(
     }
     if (row.normalizedStatus === 'returned') {
       returnedCount += 1;
-      if (row.expectedCod !== null) returnedOrderValue += row.expectedCod;
-    }
-    if (row.collectedCod === null && row.paidCod === null && row.expectedCod !== null) {
-      unknownFinancialCount += 1;
+      if (row.expectedCod !== null) returnedCents += moneyToCents(row.expectedCod);
     }
   }
 
-  const collectedUnpaid = Math.max(0, roundMoney(collectedCod - paidCod));
-
   return {
-    expectedCod: roundMoney(expectedCod),
-    collectedCod: roundMoney(collectedCod),
-    paidCod: roundMoney(paidCod),
-    collectedUnpaid,
+    expectedCod: centsToMoney(expectedCents),
+    collectedCod: centsToMoney(collectedCents),
+    paidCod: centsToMoney(paidCents),
+    collectedUnpaid: centsToMoney(unpaidCents),
     returnedCount,
-    returnedOrderValue: roundMoney(returnedOrderValue),
-    merchantDeliveryCost: roundMoney(merchantDeliveryCost),
+    returnedOrderValue: centsToMoney(returnedCents),
+    merchantDeliveryCost: centsToMoney(merchantCents),
     unknownFinancialCount,
     currencyMismatchCount,
   };

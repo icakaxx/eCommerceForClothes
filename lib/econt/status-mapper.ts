@@ -4,15 +4,15 @@ export function normalizeEcontStatus(raw?: string | null): NormalizedShipmentSta
   if (!raw) return 'unknown';
   const s = raw.toLowerCase();
 
-  if (s.includes('cancel')) return 'cancelled';
-  if (s.includes('връща') || s.includes('returning') || s.includes('return to')) return 'returning';
+  if (s.includes('cancel') || s.includes('анулир')) return 'cancelled';
   if (s.includes('върнат') || (s.includes('returned') && !s.includes('returning'))) return 'returned';
-  if (s.includes('deliver') && !s.includes('out')) return 'delivered';
+  if (s.includes('връща') || s.includes('returning') || s.includes('return to')) return 'returning';
+  if ((s.includes('deliver') || s.includes('доставен')) && !s.includes('out')) return 'delivered';
   if (s.includes('out for') || s.includes('куриер')) return 'out_for_delivery';
   if (s.includes('office') || s.includes('офис')) return 'in_office';
-  if (s.includes('transit') || s.includes('пътува') || s.includes('превоз')) return 'in_transit';
+  if (s.includes('transit') || s.includes('пътува') || s.includes('превоз') || s.includes('линия')) return 'in_transit';
   if (s.includes('accept') || s.includes('приета') || s.includes('registered')) return 'accepted';
-  if (s.includes('prepar') || s.includes('чака')) return 'prepared';
+  if (s.includes('prepar') || s.includes('подготвен') || s.includes('чака')) return 'prepared';
 
   return 'unknown';
 }
@@ -27,5 +27,5 @@ export const STATUS_LABELS_BG: Record<NormalizedShipmentStatus, string> = {
   returning: 'Връща се',
   returned: 'Върната',
   cancelled: 'Отказана',
-  unknown: 'Неизвестен',
+  unknown: 'Неразпознат статус от Еконт',
 };

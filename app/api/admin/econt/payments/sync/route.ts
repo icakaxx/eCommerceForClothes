@@ -5,6 +5,7 @@ import { withAdminAuth, structuredAdminErrorResponse } from '@/lib/admin-api-aut
 import { fetchPaymentReport, isCodReportRow } from '@/lib/econt/payments';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { toStructuredError } from '@/lib/econt/errors';
+import { getEcontRuntimeEnv } from '@/lib/econt/config';
 
 export async function GET(request: NextRequest) {
   return withAdminAuth(request, async () => {
@@ -25,12 +26,12 @@ export async function GET(request: NextRequest) {
       if (codRows.length === 0) {
         return NextResponse.json({
           success: true,
-          environment: 'demo',
+          environment: getEcontRuntimeEnv(),
           message: 'Няма налични тестови данни за изплащания за избрания период.',
           rows: [],
         });
       }
-      return NextResponse.json({ success: true, environment: 'demo', rows: codRows });
+      return NextResponse.json({ success: true, environment: getEcontRuntimeEnv(), rows: codRows });
     } catch (err) {
       const e = toStructuredError(err);
       return structuredAdminErrorResponse({
@@ -80,11 +81,12 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json({
         success: true,
-        environment: 'demo',
+        environment: getEcontRuntimeEnv(),
         imported,
         totalRows: rows.length,
+        rows,
         empty: rows.length === 0,
-        message: rows.length === 0 ? 'Няма налични тестови данни за изплащания.' : undefined,
+        message: rows.length === 0 ? 'Няма налични данни за изплащания за избрания период.' : undefined,
       });
     } catch (err) {
       const e = toStructuredError(err);
