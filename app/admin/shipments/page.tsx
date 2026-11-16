@@ -14,7 +14,7 @@ import { adminAuthHeaders } from '@/lib/admin-auth-headers';
 import { formatEur, parseMoney, roundMoney } from '@/lib/econt/money';
 import { formatAdminOrderItemLine, variantDisplayFromOrderItem, orderItemProductName } from '@/lib/order-item-display';
 
-type Tab = 'labels' | 'senders';
+type Tab = 'labels' | 'products' | 'senders';
 
 function hasCreatedLabel(labelState: string, shipment: { shipment_number?: string | null } | null) {
   return labelState === 'created' || Boolean(shipment?.shipment_number);
@@ -171,6 +171,8 @@ export default function AdminShipmentsPage() {
     shipmentNumber: string | null;
     createdAt: string;
   } | null>(null);
+  const [productGroups, setProductGroups] = useState<any[]>([]);
+  const [expandedProducts, setExpandedProducts] = useState<Record<string, boolean>>({});
   const [successInfo, setSuccessInfo] = useState<{
     shipmentNumber: string;
     pdfURL: string | null;
@@ -193,12 +195,21 @@ export default function AdminShipmentsPage() {
     setLoading(false);
   }, [filter, q, page]);
 
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch('/api/admin/econt/shipments?view=products', { headers: await adminAuthHeaders() });
+    const data = await res.json();
+    if (data.success) setProductGroups(data.productGroups ?? []);
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
     getAdminSession().then((s) => {
       if (!s) router.push('/admin/login');
-      else load();
+      else if (tab === 'products') void loadProducts();
+      else void load();
     });
-  }, [router, load]);
+  }, [router, load, loadProducts, tab]);
 
   useEffect(() => {
     if (!senders.length) return;
@@ -378,6 +389,9 @@ export default function AdminShipmentsPage() {
           <button type="button" className={`rounded-full px-4 py-2 text-sm ${tab === 'labels' ? 'bg-black text-white' : 'border'}`} onClick={() => setTab('labels')}>
             Поръчки
           </button>
+          <button type="button" className={`rounded-full px-4 py-2 text-sm ${tab === 'products' ? 'bg-black text-white' : 'border'}`} onClick={() => setTab('products')}>
+            По продукти
+          </button>
           <button type="button" className={`rounded-full px-4 py-2 text-sm ${tab === 'senders' ? 'bg-black text-white' : 'border'}`} onClick={() => setTab('senders')}>
             Данни за подател
           </button>
@@ -385,6 +399,46 @@ export default function AdminShipmentsPage() {
 
         {tab === 'senders' ? (
           <SenderProfilesPanel onSendersChanged={reloadSenders} />
+        ) : tab === 'products' ? (
+          loading ? (
+            <p>Зареждане...</p>
+          ) : (
+            <div className="space-y-2">
+              <p className="mb-3 text-sm text-gray-500">Всички създадени товарителници, групирани по артикул и вариант.</p>
+              {productGroups.length === 0 ? (
+                <p className="text-sm text-gray-500">Няма артикули с товарителници.</p>
+              ) : productGroups.map((group: any) => {
+                const open = expandedProducts[group.key];
+                return (
+                  <div key={group.key} className="rounded-xl border">
+                    <button
+                      type="button"
+                      className="flex w-full flex-wrap items-center gap-2 p-3 text-left text-sm"
+                      onClick={() => setExpandedProducts({ ...expandedProducts, [group.key]: !open })}
+                    >
+                      {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      <span className="font-medium">{group.productName}</span>
+                      {group.variantLabel ? <span className="text-gray-500">{group.variantLabel}</span> : null}
+                      <span className="text-gray-500">· {group.totalQuantity} бр.</span>
+                      <span className="text-gray-500">· {group.shipmentCount} товарителници</span>
+                    </button>
+                    {open ? (
+                      <ul className="space-y-1 border-t p-3 text-sm list-none">
+                        {group.lines.map((line: any, idx: number) => (
+                          <li key={idx} className="flex flex-wrap gap-2">
+                            <span className="font-mono">{line.shipmentNumber || '—'}</span>
+                            <span className="underline">{line.orderId}</span>
+                            <span>× {line.quantity}</span>
+                            <span className="text-gray-500">{line.status || '—'}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )
         ) : (
           <>
             <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-5">

@@ -16,6 +16,39 @@ import {
   weekKey,
   type RangePreset,
 } from '@/lib/econt/tracking-dashboard';
+import { buildProductGroups } from '@/lib/econt/tracking-product-groups';
+
+async function productGroupsForView(
+  view: Array<{
+    row: { shipmentNumber: string; plainStatus: string };
+    local?: { id?: string; order_id?: string | null } | null;
+  }>
+) {
+  const links: Array<{
+    orderId: string;
+    shipmentNumber: string | null;
+    status: string | null;
+    storedId: string | null;
+  }> = [];
+  const orderIds = new Set<string>();
+  for (const item of view) {
+    const orderId = item.local?.order_id ? String(item.local.order_id) : '';
+    if (!orderId) continue;
+    orderIds.add(orderId);
+    links.push({
+      orderId,
+      shipmentNumber: item.row.shipmentNumber,
+      status: item.row.plainStatus,
+      storedId: item.local?.id ? String(item.local.id) : null,
+    });
+  }
+  if (orderIds.size === 0) return [];
+  const { data: items } = await supabaseAdmin
+    .from('order_items')
+    .select('orderid, quantity, price, products(name), product_variants(product_variant_property_values(value, properties(name)))')
+    .in('orderid', [...orderIds]);
+  return buildProductGroups(items ?? [], links);
+}
 
 export async function GET(request: NextRequest) {
   return withAdminAuth(request, async () => {
@@ -32,7 +65,7 @@ export async function GET(request: NextRequest) {
     const { data: universe, error } = await supabaseAdmin
       .from('econt_shipments')
       .select(
-        'id, order_id, shipment_number, created_at, normalized_delivery_status, collected_cod_amount, collected_cod_at, paid_cod_amount, paid_cod_at, expected_cod_amount, last_sync_at, last_sync_error, sender_due_amount, econt_tracking_events(event_time, description, event_type), orders(customers(firstname, lastname, telephone, city))'
+        'id, order_id, shipment_number, created_at, normalized_delivery_status, raw_delivery_status, collected_cod_amount, collected_cod_at, paid_cod_amount, paid_cod_at, expected_cod_amount, last_sync_at, last_sync_error, sender_due_amount, econt_tracking_events(event_time, description, event_type), orders(customers(firstname, lastname, telephone, city))'
       )
       .not('shipment_number', 'is', null)
       .order('created_at', { ascending: false })
@@ -177,6 +210,8 @@ export async function GET(request: NextRequest) {
         ],
       };
 
+      const productGroups = await productGroupsForView(view);
+
       if (idsOnly) {
         return NextResponse.json({
           success: true,
@@ -184,6 +219,7 @@ export async function GET(request: NextRequest) {
           total: view.length,
           summary,
           charts,
+          productGroups,
         });
       }
 
@@ -226,6 +262,7 @@ export async function GET(request: NextRequest) {
         pageSize,
         total: view.length,
         shipments,
+        productGroups,
         refreshedAt: new Date().toISOString(),
       });
     }
@@ -321,6 +358,16 @@ export async function GET(request: NextRequest) {
       ],
     };
 
+    const legacyProductGroups = await productGroupsForView(
+      filtered.map((row) => ({
+        row: {
+          shipmentNumber: String(row.shipment_number ?? ''),
+          plainStatus: String(row.raw_delivery_status ?? row.normalized_delivery_status ?? ''),
+        },
+        local: { id: row.id, order_id: row.order_id },
+      }))
+    );
+
     if (idsOnly) {
       return NextResponse.json({
         success: true,
@@ -328,6 +375,7 @@ export async function GET(request: NextRequest) {
         total: filtered.length,
         summary,
         charts,
+        productGroups: legacyProductGroups,
       });
     }
 
@@ -353,6 +401,7 @@ export async function GET(request: NextRequest) {
       pageSize,
       total: filtered.length,
       shipments,
+      productGroups: legacyProductGroups,
       refreshedAt: new Date().toISOString(),
     });
   });

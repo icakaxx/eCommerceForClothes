@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTheme } from '@/context/ThemeContext';
 import AdminSidebar from './AdminSidebar';
 import AdminSearchBar from './AdminSearchBar';
+import AdminUserBadge from './AdminUserBadge';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -67,6 +68,9 @@ export default function AdminLayout({ children, currentPath }: AdminLayoutProps)
         sidebarCollapsed={isCollapsed}
         sidebarWidth={sidebarWidth}
       />
+      <div className="lg:hidden fixed top-3 right-3 z-[60] rounded-full border bg-white/95 px-2 py-1 shadow-sm">
+        <AdminUserBadge showLabel />
+      </div>
       <main className="flex-1 overflow-auto">
         <div className="lg:pt-[56px] pt-16">
           {children}

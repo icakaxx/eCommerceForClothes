@@ -69,6 +69,9 @@ export default function ShipmentTrackingPage() {
   const [noteDraft, setNoteDraft] = useState<Record<string, string>>({});
   const [paymentRows, setPaymentRows] = useState<any[]>([]);
   const [paymentMessage, setPaymentMessage] = useState('');
+  const [listView, setListView] = useState<'shipments' | 'products'>('shipments');
+  const [productGroups, setProductGroups] = useState<any[]>([]);
+  const [expandedProducts, setExpandedProducts] = useState<Record<string, boolean>>({});
   const inFlight = useRef(false);
 
   const load = useCallback(async () => {
@@ -93,6 +96,7 @@ export default function ShipmentTrackingPage() {
         setSummary(data.summary ?? {});
         setCharts(data.charts ?? null);
         setTotal(Number(data.total ?? 0));
+        setProductGroups(data.productGroups ?? []);
         setUiUpdatedAt(data.refreshedAt ?? new Date().toISOString());
       }
     } finally {
@@ -324,6 +328,22 @@ export default function ShipmentTrackingPage() {
           </div>
         )}
 
+        <div className="mb-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            className={`rounded-full px-4 py-2 text-sm ${listView === 'shipments' ? 'bg-black text-white' : 'border'}`}
+            onClick={() => setListView('shipments')}
+          >
+            Товарителници
+          </button>
+          <button
+            type="button"
+            className={`rounded-full px-4 py-2 text-sm ${listView === 'products' ? 'bg-black text-white' : 'border'}`}
+            onClick={() => setListView('products')}
+          >
+            По продукти
+          </button>
+        </div>
         <div className="mb-4 flex flex-wrap gap-2">
           <select className="rounded-lg border px-3 py-2 text-sm" value={preset} onChange={(e) => { setPage(1); setPreset(e.target.value); }}>
             <option value="open">Неприключени пратки</option>
@@ -367,7 +387,42 @@ export default function ShipmentTrackingPage() {
           {summary.accountError ? ` ${summary.accountError}` : ''}
         </p>
 
-        {loading ? <p>Зареждане...</p> : (
+        {loading ? <p>Зареждане...</p> : listView === 'products' ? (
+          <div className="space-y-2 pb-28">
+            {productGroups.length === 0 ? (
+              <p className="text-sm text-gray-500">Няма продукти, свързани с филтрираните пратки с поръчка в магазина.</p>
+            ) : productGroups.map((group: any) => {
+              const open = expandedProducts[group.key];
+              return (
+                <div key={group.key} className="rounded-xl border">
+                  <button
+                    type="button"
+                    className="flex w-full flex-wrap items-center gap-2 p-3 text-left text-sm"
+                    onClick={() => setExpandedProducts({ ...expandedProducts, [group.key]: !open })}
+                  >
+                    {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    <span className="font-medium">{group.productName}</span>
+                    {group.variantLabel ? <span className="text-gray-500">{group.variantLabel}</span> : null}
+                    <span className="text-gray-500">· общо {group.totalQuantity} бр.</span>
+                    <span className="text-gray-500">· {group.shipmentCount} товарителници</span>
+                  </button>
+                  {open ? (
+                    <ul className="space-y-1 border-t p-3 text-sm">
+                      {group.lines.map((line: any, idx: number) => (
+                        <li key={`${group.key}-${idx}`} className="flex flex-wrap gap-2">
+                          <span className="font-mono">{line.shipmentNumber || '—'}</span>
+                          <Link href="/admin/sales" className="underline">{line.orderId}</Link>
+                          <span>× {line.quantity}</span>
+                          <span className="text-gray-500">{line.status || '—'}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
           <div className="space-y-2 pb-28">
             {shipments.map((shipment) => {
               const open = expanded[shipment.id];

@@ -6,6 +6,7 @@ import { useAdminSearch } from '../lib/useAdminSearch';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { SearchableItem } from '../lib/adminSearchIndex';
+import AdminUserBadge from './AdminUserBadge';
 
 interface AdminSearchBarProps {
   sidebarCollapsed: boolean;
@@ -399,10 +400,11 @@ export default function AdminSearchBar({ sidebarCollapsed, sidebarWidth }: Admin
     >
       <div className="relative">
         {/* Search Input */}
-        <div className="flex items-center px-4 py-3">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <div className="relative min-w-0 flex-1">
           <Search
             size={20}
-            className="absolute left-6 pointer-events-none"
+            className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
             style={{ color: theme.colors.textSecondary }}
           />
           <input
@@ -430,7 +432,7 @@ export default function AdminSearchBar({ sidebarCollapsed, sidebarWidth }: Admin
                 ? 'Търсене или отиди до...'
                 : 'Search or go to...'
             }
-            className="w-full pl-10 pr-10 py-2 rounded-md text-sm focus:outline-none transition-all"
+            className="w-full pl-9 pr-10 py-2 rounded-md text-sm focus:outline-none transition-all"
             style={{
               backgroundColor: theme.colors.background,
               border: `1px solid ${theme.colors.border}`,
@@ -443,12 +445,14 @@ export default function AdminSearchBar({ sidebarCollapsed, sidebarWidth }: Admin
                 setSearchTerm('');
                 inputRef.current?.focus();
               }}
-              className="absolute right-6 p-1 rounded hover:bg-opacity-10 transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-opacity-10 transition-colors"
               style={{ color: theme.colors.textSecondary }}
             >
               <X size={16} />
             </button>
           )}
+          </div>
+          <AdminUserBadge />
         </div>
 
         {/* Dropdown */}

@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAdminAuth, structuredAdminErrorResponse } from '@/lib/admin-api-auth';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { computeCodForOrder } from '@/lib/econt/shipment-service';
+import { buildProductGroups } from '@/lib/econt/tracking-product-groups';
+import { getEcontRuntimeEnv } from '@/lib/econt/config';
 
 function labelState(shipment: Record<string, unknown> | null | undefined) {
   if (!shipment) return 'without_label';
@@ -20,9 +22,65 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, Number(sp.get('page') ?? 1));
     const pageSize = Math.min(50, Math.max(5, Number(sp.get('pageSize') ?? 20)));
     const filter = sp.get('filter') ?? 'all';
+    const view = sp.get('view') ?? 'orders';
     const q = sp.get('q')?.trim() ?? '';
     const dateFrom = sp.get('dateFrom');
     const dateTo = sp.get('dateTo');
+
+    if (view === 'products') {
+      const { data: shipmentsWithNumbers } = await supabaseAdmin
+        .from('econt_shipments')
+        .select('id, order_id, shipment_number, raw_delivery_status, normalized_delivery_status')
+        .not('shipment_number', 'is', null)
+        .order('updated_at', { ascending: false })
+        .limit(400);
+      const orderIds = [...new Set((shipmentsWithNumbers ?? []).map((row) => row.order_id).filter(Boolean))] as string[];
+      let orders: Record<string, unknown>[] = [];
+      if (orderIds.length) {
+        const { data } = await supabaseAdmin
+          .from('orders')
+          .select(
+            `orderid, order_items(
+              quantity, price, productvariantid,
+              products(name),
+              product_variants(product_variant_property_values(value, properties(name)))
+            )`
+          )
+          .in('orderid', orderIds);
+        orders = data ?? [];
+      }
+      const shipmentByOrder = new Map((shipmentsWithNumbers ?? []).map((s) => [s.order_id, s]));
+      const productLinks = orders
+        .map((order) => {
+          const shipment = shipmentByOrder.get(String(order.orderid));
+          if (!shipment) return null;
+          return {
+            orderId: String(order.orderid),
+            shipmentNumber: shipment.shipment_number ? String(shipment.shipment_number) : null,
+            status: shipment.raw_delivery_status ? String(shipment.raw_delivery_status) : String(shipment.normalized_delivery_status ?? ''),
+            storedId: String(shipment.id),
+          };
+        })
+        .filter(Boolean) as Array<{
+        orderId: string;
+        shipmentNumber: string | null;
+        status: string | null;
+        storedId: string | null;
+      }>;
+      const productItems = orders.flatMap((order) =>
+        ((order.order_items as Array<Record<string, unknown>> | undefined) ?? []).map((item) => ({
+          ...item,
+          orderid: String(order.orderid),
+        }))
+      );
+      const productGroups = buildProductGroups(productItems, productLinks);
+      return NextResponse.json({
+        success: true,
+        environment: getEcontRuntimeEnv(),
+        productGroups,
+        total: productGroups.length,
+      });
+    }
 
     let ordersQuery = supabaseAdmin
       .from('orders')
@@ -155,7 +213,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      environment: 'demo',
+      environment: getEcontRuntimeEnv(),
       summary,
       latestCreated,
       page,
