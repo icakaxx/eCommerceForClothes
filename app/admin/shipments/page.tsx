@@ -13,6 +13,7 @@ import { getAdminSession } from '@/lib/auth';
 import { adminAuthHeaders } from '@/lib/admin-auth-headers';
 import { formatEur, parseMoney, roundMoney } from '@/lib/econt/money';
 import { formatAdminOrderItemLine, variantDisplayFromOrderItem, orderItemProductName } from '@/lib/order-item-display';
+import { productTypeNameFromOrderItem } from '@/lib/econt/shipment-product-filter';
 
 type Tab = 'labels' | 'products' | 'senders';
 
@@ -153,6 +154,10 @@ export default function AdminShipmentsPage() {
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState('all');
+  /** `type:Якета` or `product:Име на артикул` */
+  const [stockFilter, setStockFilter] = useState('');
+  const [productNameOptions, setProductNameOptions] = useState<string[]>([]);
+  const [productTypeOptions, setProductTypeOptions] = useState<string[]>([]);
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const [modalOrderId, setModalOrderId] = useState<string | null>(null);
@@ -185,15 +190,19 @@ export default function AdminShipmentsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams({ page: String(page), pageSize: '20', filter, q });
+    if (stockFilter.startsWith('type:')) params.set('productType', stockFilter.slice(5));
+    else if (stockFilter.startsWith('product:')) params.set('product', stockFilter.slice(8));
     const res = await fetch(`/api/admin/econt/shipments?${params}`, { headers: await adminAuthHeaders() });
     const data = await res.json();
     if (data.success) {
       setRows(data.rows ?? []);
       setSummary(data.summary ?? {});
       setLatestCreated(data.latestCreated ?? null);
+      if (Array.isArray(data.productNames)) setProductNameOptions(data.productNames);
+      if (Array.isArray(data.productTypeNames)) setProductTypeOptions(data.productTypeNames);
     }
     setLoading(false);
-  }, [filter, q, page]);
+  }, [filter, stockFilter, q, page]);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
@@ -455,10 +464,39 @@ export default function AdminShipmentsPage() {
                 </div>
               ))}
             </div>
-            <div className="mb-4 flex flex-wrap gap-2">
-              <input className="rounded-lg border px-3 py-2 text-sm" placeholder="Търсене..." value={q} onChange={(e) => setQ(e.target.value)} />
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <input className="rounded-lg border px-3 py-2 text-sm" placeholder="Търсене по поръчка..." value={q} onChange={(e) => setQ(e.target.value)} />
+              <select
+                className="max-w-[min(100%,320px)] rounded-lg border px-3 py-2 text-sm"
+                value={stockFilter}
+                onChange={(e) => {
+                  setStockFilter(e.target.value);
+                  setPage(1);
+                }}
+                title="Филтрирай поръчки по категория (якета, панталони…) или конкретен артикул"
+              >
+                <option value="">Всички стоки</option>
+                {productTypeOptions.length > 0 ? (
+                  <optgroup label="Категория (за днешната партида)">
+                    {productTypeOptions.map((name) => (
+                      <option key={`type:${name}`} value={`type:${name}`}>
+                        {name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                {productNameOptions.length > 0 ? (
+                  <optgroup label="Конкретен артикул">
+                    {productNameOptions.map((name) => (
+                      <option key={`product:${name}`} value={`product:${name}`}>
+                        {name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+              </select>
               <select className="rounded-lg border px-3 py-2 text-sm" value={filter} onChange={(e) => setFilter(e.target.value)}>
-                <option value="all">Всички</option>
+                <option value="all">Всички статуси</option>
                 <option value="without_label">Без етикет</option>
                 <option value="ready">Готови</option>
                 <option value="created">Създадени</option>
@@ -468,6 +506,13 @@ export default function AdminShipmentsPage() {
                 Обнови
               </button>
             </div>
+            {stockFilter ? (
+              <p className="mb-3 text-sm text-gray-600">
+                Показват се само поръчки с{' '}
+                <strong>{stockFilter.startsWith('type:') ? `категория „${stockFilter.slice(5)}“` : `артикул „${stockFilter.slice(8)}“`}</strong>.
+                Комбинирай със статус <strong>Без етикет</strong>, за да правиш товарителници само за днешната стока.
+              </p>
+            ) : null}
             {latestCreated?.shipmentNumber && (
               <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
                 <Sparkles size={16} className="shrink-0" aria-hidden="true" />
@@ -561,9 +606,23 @@ export default function AdminShipmentsPage() {
                           <div><strong>Адрес/офис:</strong> {order.econtoffice || [order.deliverystreet, order.deliverystreetnumber].filter(Boolean).join(' ')}</div>
                           <div><strong>Междинна сума:</strong> {formatEur(order.subtotal)} · <strong>Доставка:</strong> {formatEur(order.deliverycost)} · <strong>Общо:</strong> {formatEur(order.total)}</div>
                           <ul className="list-disc pl-5">
-                            {(order.order_items ?? []).map((item: any, idx: number) => (
-                              <li key={idx}>{formatAdminOrderItemLine(item, formatEur)}</li>
-                            ))}
+                            {(order.order_items ?? []).map((item: any, idx: number) => {
+                              const line = formatAdminOrderItemLine(item, formatEur);
+                              const itemName = orderItemProductName(item);
+                              const typeName = productTypeNameFromOrderItem(item);
+                              const highlight =
+                                (stockFilter.startsWith('product:') && itemName === stockFilter.slice(8)) ||
+                                (stockFilter.startsWith('type:') && typeName === stockFilter.slice(5));
+                              return (
+                                <li
+                                  key={idx}
+                                  className={highlight ? 'font-medium text-amber-900' : undefined}
+                                >
+                                  {line}
+                                  {highlight ? ' · днешна стока' : null}
+                                </li>
+                              );
+                            })}
                           </ul>
                           {shipment?.shipment_number && (
                             <div><strong>Номер пратка:</strong> {shipment.shipment_number}</div>

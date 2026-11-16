@@ -6,6 +6,12 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { computeCodForOrder } from '@/lib/econt/shipment-service';
 import { buildProductGroups } from '@/lib/econt/tracking-product-groups';
 import { getEcontRuntimeEnv } from '@/lib/econt/config';
+import {
+  fetchShipmentQueueProductNames,
+  fetchShipmentQueueProductTypes,
+  orderIdsForProductName,
+  orderIdsForProductTypeName,
+} from '@/lib/econt/shipment-product-filter';
 
 function labelState(shipment: Record<string, unknown> | null | undefined) {
   if (!shipment) return 'without_label';
@@ -24,6 +30,8 @@ export async function GET(request: NextRequest) {
     const filter = sp.get('filter') ?? 'all';
     const view = sp.get('view') ?? 'orders';
     const q = sp.get('q')?.trim() ?? '';
+    const product = sp.get('product')?.trim() ?? '';
+    const productType = sp.get('productType')?.trim() ?? '';
     const dateFrom = sp.get('dateFrom');
     const dateTo = sp.get('dateTo');
 
@@ -42,7 +50,7 @@ export async function GET(request: NextRequest) {
           .select(
             `orderid, order_items(
               quantity, price, productvariantid,
-              products(name),
+              products(name, product_types(name)),
               product_variants(product_variant_property_values(value, properties(name)))
             )`
           )
@@ -82,6 +90,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const [productNames, productTypeNames] = await Promise.all([
+      fetchShipmentQueueProductNames(supabaseAdmin),
+      fetchShipmentQueueProductTypes(supabaseAdmin),
+    ]);
+
     let ordersQuery = supabaseAdmin
       .from('orders')
       .select(
@@ -90,7 +103,7 @@ export async function GET(request: NextRequest) {
          customers(firstname, lastname, telephone, email, city),
          order_items(
            quantity, price, productvariantid,
-           products(name),
+           products(name, product_types(name)),
            product_variants(
              product_variant_property_values(
                value,
@@ -107,6 +120,39 @@ export async function GET(request: NextRequest) {
 
     if (q) {
       ordersQuery = ordersQuery.ilike('orderid', `%${q}%`);
+    }
+
+    const stockFilterActive = productType || product;
+    if (stockFilterActive) {
+      let matchingOrderIds: string[] = [];
+      if (productType) {
+        matchingOrderIds = await orderIdsForProductTypeName(supabaseAdmin, productType);
+      } else if (product) {
+        matchingOrderIds = await orderIdsForProductName(supabaseAdmin, product);
+      }
+      if (!matchingOrderIds.length) {
+        return NextResponse.json({
+          success: true,
+          environment: getEcontRuntimeEnv(),
+          summary: {
+            withoutLabel: 0,
+            pendingValidation: 0,
+            readyToCreate: 0,
+            created: 0,
+            errors: 0,
+          },
+          latestCreated: null,
+          page,
+          pageSize,
+          total: 0,
+          rows: [],
+          productNames,
+          productTypeNames,
+          productFilter: product || null,
+          productTypeFilter: productType || null,
+        });
+      }
+      ordersQuery = ordersQuery.in('orderid', matchingOrderIds);
     }
 
     const from = (page - 1) * pageSize;
@@ -220,6 +266,10 @@ export async function GET(request: NextRequest) {
       pageSize,
       total: count ?? rows.length,
       rows,
+      productNames,
+      productTypeNames,
+      productFilter: product || null,
+      productTypeFilter: productType || null,
     });
   });
 }
