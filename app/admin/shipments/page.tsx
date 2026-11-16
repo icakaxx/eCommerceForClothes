@@ -17,6 +17,28 @@ import { productTypeNameFromOrderItem } from '@/lib/econt/shipment-product-filte
 
 type Tab = 'labels' | 'products' | 'senders';
 
+/** Page numbers for pagination bar (1 = newest orders). Inserts gaps as 0 for ellipsis. */
+function shipmentPaginationItems(current: number, totalPages: number): number[] {
+  if (totalPages <= 1) return totalPages === 1 ? [1] : [];
+  if (totalPages <= 9) return Array.from({ length: totalPages }, (_, i) => i + 1);
+
+  const anchors = new Set([1, 2, 3, totalPages, totalPages - 1, current, current - 1, current + 1]);
+  const sorted = [...anchors].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+  const out: number[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && sorted[i] - sorted[i - 1] > 1) out.push(0);
+    out.push(sorted[i]);
+  }
+  return out;
+}
+
+function formatOrderCreatedAt(createdat: string | undefined): string {
+  if (!createdat) return '—';
+  const d = new Date(createdat);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('bg-BG', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
 function hasCreatedLabel(labelState: string, shipment: { shipment_number?: string | null } | null) {
   return labelState === 'created' || Boolean(shipment?.shipment_number);
 }
@@ -160,6 +182,10 @@ export default function AdminShipmentsPage() {
   const [productTypeOptions, setProductTypeOptions] = useState<string[]>([]);
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize] = useState(30);
+  const [days, setDays] = useState(7);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [modalOrderId, setModalOrderId] = useState<string | null>(null);
   const [modalOrder, setModalOrder] = useState<any>(null);
   const [receiverEcont, setReceiverEcont] = useState<ReceiverEcontSelection>({});
@@ -187,9 +213,16 @@ export default function AdminShipmentsPage() {
     orderId: string;
   } | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (pageOverride?: number) => {
     setLoading(true);
-    const params = new URLSearchParams({ page: String(page), pageSize: '20', filter, q });
+    const effectivePage = pageOverride ?? page;
+    const params = new URLSearchParams({
+      page: String(effectivePage),
+      pageSize: String(pageSize),
+      filter,
+      q,
+      days: String(days),
+    });
     if (stockFilter.startsWith('type:')) params.set('productType', stockFilter.slice(5));
     else if (stockFilter.startsWith('product:')) params.set('product', stockFilter.slice(8));
     const res = await fetch(`/api/admin/econt/shipments?${params}`, { headers: await adminAuthHeaders() });
@@ -200,17 +233,21 @@ export default function AdminShipmentsPage() {
       setLatestCreated(data.latestCreated ?? null);
       if (Array.isArray(data.productNames)) setProductNameOptions(data.productNames);
       if (Array.isArray(data.productTypeNames)) setProductTypeOptions(data.productTypeNames);
+      setTotal(Number(data.total ?? 0));
+      setTotalPages(Number(data.totalPages ?? 0));
     }
     setLoading(false);
-  }, [filter, stockFilter, q, page]);
+  }, [filter, stockFilter, q, page, days, pageSize]);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
-    const res = await fetch('/api/admin/econt/shipments?view=products', { headers: await adminAuthHeaders() });
+    const res = await fetch(`/api/admin/econt/shipments?view=products&days=${days}`, {
+      headers: await adminAuthHeaders(),
+    });
     const data = await res.json();
     if (data.success) setProductGroups(data.productGroups ?? []);
     setLoading(false);
-  }, []);
+  }, [days]);
 
   useEffect(() => {
     getAdminSession().then((s) => {
@@ -219,6 +256,10 @@ export default function AdminShipmentsPage() {
       else void load();
     });
   }, [router, load, loadProducts, tab]);
+
+  useEffect(() => {
+    if (totalPages > 0 && page > totalPages) setPage(totalPages);
+  }, [totalPages, page]);
 
   useEffect(() => {
     if (!senders.length) return;
@@ -465,7 +506,18 @@ export default function AdminShipmentsPage() {
               ))}
             </div>
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <input className="rounded-lg border px-3 py-2 text-sm" placeholder="Търсене по поръчка..." value={q} onChange={(e) => setQ(e.target.value)} />
+              <input
+                className="rounded-lg border px-3 py-2 text-sm"
+                placeholder="Търсене по поръчка..."
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setPage(1);
+                    void load(1);
+                  }
+                }}
+              />
               <select
                 className="max-w-[min(100%,320px)] rounded-lg border px-3 py-2 text-sm"
                 value={stockFilter}
@@ -495,24 +547,70 @@ export default function AdminShipmentsPage() {
                   </optgroup>
                 ) : null}
               </select>
-              <select className="rounded-lg border px-3 py-2 text-sm" value={filter} onChange={(e) => setFilter(e.target.value)}>
+              <select
+                className="rounded-lg border px-3 py-2 text-sm"
+                value={days}
+                onChange={(e) => {
+                  setDays(Number(e.target.value));
+                  setPage(1);
+                }}
+                title="Поръчки от последните N дни"
+              >
+                <option value={1}>Последните 1 ден</option>
+                <option value={3}>Последните 3 дни</option>
+                <option value={7}>Последните 7 дни</option>
+                <option value={14}>Последните 14 дни</option>
+                <option value={30}>Последните 30 дни</option>
+              </select>
+              <select
+                className="rounded-lg border px-3 py-2 text-sm"
+                value={filter}
+                onChange={(e) => {
+                  setFilter(e.target.value);
+                  setPage(1);
+                }}
+              >
                 <option value="all">Всички статуси</option>
                 <option value="without_label">Без етикет</option>
                 <option value="ready">Готови</option>
                 <option value="created">Създадени</option>
                 <option value="errors">Грешки</option>
               </select>
-              <button type="button" className="rounded-lg border px-3 py-2 text-sm" onClick={() => load()}>
+              <button type="button" className="rounded-lg border px-3 py-2 text-sm" onClick={() => void load()}>
                 Обнови
               </button>
             </div>
-            {stockFilter ? (
-              <p className="mb-3 text-sm text-gray-600">
-                Показват се само поръчки с{' '}
-                <strong>{stockFilter.startsWith('type:') ? `категория „${stockFilter.slice(5)}“` : `артикул „${stockFilter.slice(8)}“`}</strong>.
-                Комбинирай със статус <strong>Без етикет</strong>, за да правиш товарителници само за днешната стока.
-              </p>
-            ) : null}
+            <p className="mb-3 text-sm text-gray-600">
+              Поръчки от{' '}
+              <strong>
+                последните {days} {days === 1 ? 'ден' : 'дни'}
+              </strong>
+              {' '}
+              · подредени <strong>най-новите първи</strong> (страница 1 = днес)
+              {total > 0 ? (
+                <>
+                  {' '}
+                  · <strong>{total}</strong> общо
+                  {totalPages > 0 ? (
+                    <>
+                      {' '}
+                      · страница <strong>{page}</strong> от <strong>{totalPages}</strong>
+                    </>
+                  ) : null}
+                </>
+              ) : null}
+              {stockFilter ? (
+                <>
+                  {' '}
+                  · филтър:{' '}
+                  <strong>
+                    {stockFilter.startsWith('type:')
+                      ? `категория „${stockFilter.slice(5)}“`
+                      : `артикул „${stockFilter.slice(8)}“`}
+                  </strong>
+                </>
+              ) : null}
+            </p>
             {latestCreated?.shipmentNumber && (
               <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
                 <Sparkles size={16} className="shrink-0" aria-hidden="true" />
@@ -559,6 +657,9 @@ export default function AdminShipmentsPage() {
                           />
                         )}
                         <span className="font-medium">{id}</span>
+                        <span className="text-gray-500" title="Дата на поръчка">
+                          {formatOrderCreatedAt(order.createdat)}
+                        </span>
                         <span className="inline-flex items-center gap-1.5">
                           {customer.firstname} {customer.lastname}
                         </span>
@@ -656,6 +757,57 @@ export default function AdminShipmentsPage() {
                 })}
               </div>
             )}
+            {!loading && total > 0 ? (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4 text-sm">
+                <span className="text-gray-600">
+                  Показани {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} от {total} · по{' '}
+                  {pageSize} на страница
+                </span>
+                <nav className="flex flex-wrap items-center gap-1" aria-label="Страници с поръчки">
+                  <button
+                    type="button"
+                    className="rounded-lg border px-3 py-1.5 disabled:opacity-40"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
+                    ‹ Предишна
+                  </button>
+                  {shipmentPaginationItems(page, totalPages).map((item, idx) =>
+                    item === 0 ? (
+                      <span key={`gap-${idx}`} className="px-1 text-gray-400" aria-hidden="true">
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        key={item}
+                        type="button"
+                        className={`min-w-[2.25rem] rounded-lg border px-2.5 py-1.5 font-medium ${
+                          item === page ? 'border-black bg-black text-white' : 'hover:bg-gray-50'
+                        }`}
+                        aria-current={item === page ? 'page' : undefined}
+                        onClick={() => {
+                          setPage(item);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                      >
+                        {item}
+                      </button>
+                    )
+                  )}
+                  <button
+                    type="button"
+                    className="rounded-lg border px-3 py-1.5 disabled:opacity-40"
+                    disabled={page >= totalPages}
+                    onClick={() => {
+                      setPage((p) => Math.min(totalPages, p + 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    Следваща ›
+                  </button>
+                </nav>
+              </div>
+            ) : null}
           </>
         )}
 

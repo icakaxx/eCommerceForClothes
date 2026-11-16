@@ -14,14 +14,13 @@ export function productTypeNameFromOrderItem(row: { products?: unknown }): strin
 /** Distinct product type names (Якета, Панталони, …) from recent orders — best for daily batch picking. */
 export async function fetchShipmentQueueProductTypes(
   supabase: SupabaseClient,
-  options?: { recentOrderLimit?: number }
+  options?: { recentOrderLimit?: number; windowStart?: string }
 ): Promise<string[]> {
   const limit = options?.recentOrderLimit ?? 800;
-  const { data: orders } = await supabase
-    .from('orders')
-    .select('orderid')
-    .order('createdat', { ascending: false })
-    .limit(limit);
+  let ordersQuery = supabase.from('orders').select('orderid').order('createdat', { ascending: false });
+  if (options?.windowStart) ordersQuery = ordersQuery.gte('createdat', options.windowStart);
+  else ordersQuery = ordersQuery.limit(limit);
+  const { data: orders } = await ordersQuery;
 
   const orderIds = (orders ?? []).map((o) => String(o.orderid));
   if (!orderIds.length) return [];
@@ -63,14 +62,13 @@ export async function orderIdsForProductTypeName(
 /** Distinct catalog product names from recent order lines (for admin shipment queue dropdown). */
 export async function fetchShipmentQueueProductNames(
   supabase: SupabaseClient,
-  options?: { recentOrderLimit?: number }
+  options?: { recentOrderLimit?: number; windowStart?: string }
 ): Promise<string[]> {
   const limit = options?.recentOrderLimit ?? 800;
-  const { data: orders } = await supabase
-    .from('orders')
-    .select('orderid')
-    .order('createdat', { ascending: false })
-    .limit(limit);
+  let ordersQuery = supabase.from('orders').select('orderid').order('createdat', { ascending: false });
+  if (options?.windowStart) ordersQuery = ordersQuery.gte('createdat', options.windowStart);
+  else ordersQuery = ordersQuery.limit(limit);
+  const { data: orders } = await ordersQuery;
 
   const orderIds = (orders ?? []).map((o) => String(o.orderid));
   if (!orderIds.length) return [];

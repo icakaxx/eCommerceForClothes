@@ -22,6 +22,38 @@ function labelState(shipment: Record<string, unknown> | null | undefined) {
   return 'draft';
 }
 
+function passesLabelFilter(state: string, filter: string): boolean {
+  if (filter === 'all') return true;
+  if (filter === 'without_label') return state === 'without_label' || state === 'draft';
+  if (filter === 'ready') return state === 'ready';
+  if (filter === 'validation_error') return state === 'validation_error';
+  if (filter === 'created') return state === 'created';
+  if (filter === 'errors') return state === 'error';
+  return true;
+}
+
+function listWindowStart(days: number, dateFrom?: string | null): string {
+  if (dateFrom) return dateFrom;
+  const start = new Date();
+  start.setDate(start.getDate() - days);
+  start.setHours(0, 0, 0, 0);
+  return start.toISOString();
+}
+
+const ORDER_DETAIL_SELECT = `orderid, status, createdat, deliverytype, econtoffice, deliverynotes,
+         deliverystreet, deliverystreetnumber, subtotal, deliverycost, total, discountamount,
+         customers(firstname, lastname, telephone, email, city),
+         order_items(
+           quantity, price, productvariantid,
+           products(name, product_types(name)),
+           product_variants(
+             product_variant_property_values(
+               value,
+               properties(name)
+             )
+           )
+         )`;
+
 export async function GET(request: NextRequest) {
   return withAdminAuth(request, async () => {
     const sp = request.nextUrl.searchParams;
@@ -35,11 +67,15 @@ export async function GET(request: NextRequest) {
     const dateFrom = sp.get('dateFrom');
     const dateTo = sp.get('dateTo');
 
+    const days = Math.min(60, Math.max(1, Number(sp.get('days') ?? 7)));
+    const windowStart = listWindowStart(days, dateFrom);
+
     if (view === 'products') {
       const { data: shipmentsWithNumbers } = await supabaseAdmin
         .from('econt_shipments')
-        .select('id, order_id, shipment_number, raw_delivery_status, normalized_delivery_status')
+        .select('id, order_id, shipment_number, raw_delivery_status, normalized_delivery_status, created_at')
         .not('shipment_number', 'is', null)
+        .gte('created_at', windowStart)
         .order('updated_at', { ascending: false })
         .limit(400);
       const orderIds = [...new Set((shipmentsWithNumbers ?? []).map((row) => row.order_id).filter(Boolean))] as string[];
@@ -91,36 +127,19 @@ export async function GET(request: NextRequest) {
     }
 
     const [productNames, productTypeNames] = await Promise.all([
-      fetchShipmentQueueProductNames(supabaseAdmin),
-      fetchShipmentQueueProductTypes(supabaseAdmin),
+      fetchShipmentQueueProductNames(supabaseAdmin, { windowStart }),
+      fetchShipmentQueueProductTypes(supabaseAdmin, { windowStart }),
     ]);
 
-    let ordersQuery = supabaseAdmin
+    let idQuery = supabaseAdmin
       .from('orders')
-      .select(
-        `orderid, status, createdat, deliverytype, econtoffice, deliverynotes,
-         deliverystreet, deliverystreetnumber, subtotal, deliverycost, total, discountamount,
-         customers(firstname, lastname, telephone, email, city),
-         order_items(
-           quantity, price, productvariantid,
-           products(name, product_types(name)),
-           product_variants(
-             product_variant_property_values(
-               value,
-               properties(name)
-             )
-           )
-         )`,
-        { count: 'exact' }
-      )
-      .order('createdat', { ascending: false });
+      .select('orderid, createdat')
+      .gte('createdat', windowStart)
+      .order('createdat', { ascending: false })
+      .limit(3000);
 
-    if (dateFrom) ordersQuery = ordersQuery.gte('createdat', dateFrom);
-    if (dateTo) ordersQuery = ordersQuery.lte('createdat', `${dateTo}T23:59:59`);
-
-    if (q) {
-      ordersQuery = ordersQuery.ilike('orderid', `%${q}%`);
-    }
+    if (dateTo) idQuery = idQuery.lte('createdat', `${dateTo}T23:59:59`);
+    if (q) idQuery = idQuery.ilike('orderid', `%${q}%`);
 
     const stockFilterActive = productType || product;
     if (stockFilterActive) {
@@ -145,6 +164,9 @@ export async function GET(request: NextRequest) {
           page,
           pageSize,
           total: 0,
+          totalPages: 0,
+          days,
+          windowStart,
           rows: [],
           productNames,
           productTypeNames,
@@ -152,13 +174,11 @@ export async function GET(request: NextRequest) {
           productTypeFilter: productType || null,
         });
       }
-      ordersQuery = ordersQuery.in('orderid', matchingOrderIds);
+      idQuery = idQuery.in('orderid', matchingOrderIds);
     }
 
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-    const { data: orders, error, count } = await ordersQuery.range(from, to);
-    if (error) {
+    const { data: orderIdRows, error: idError } = await idQuery;
+    if (idError) {
       return structuredAdminErrorResponse({
         code: 'DB_ERROR',
         title: 'Грешка при зареждане',
@@ -168,17 +188,47 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const orderIds = (orders ?? []).map((o) => o.orderid);
-    const { data: shipments } = await supabaseAdmin
+    const orderedIds = (orderIdRows ?? []).map((row) => String(row.orderid));
+    const { data: shipmentsForWindow } = await supabaseAdmin
       .from('econt_shipments')
       .select('*')
-      .in('order_id', orderIds.length ? orderIds : ['__none__']);
+      .in('order_id', orderedIds.length ? orderedIds : ['__none__']);
 
-    const shipmentByOrder = new Map((shipments ?? []).map((s) => [s.order_id, s]));
+    const shipmentByOrder = new Map((shipmentsForWindow ?? []).map((s) => [s.order_id, s]));
 
-    let rows = (orders ?? []).map((order) => {
-      const shipment = shipmentByOrder.get(order.orderid) ?? null;
-      const cod = shipment?.expected_cod_amount ?? computeCodForOrder(order as Record<string, unknown>);
+    const filteredIds = orderedIds.filter((orderId) => {
+      const shipment = shipmentByOrder.get(orderId) ?? null;
+      return passesLabelFilter(labelState(shipment), filter);
+    });
+
+    const total = filteredIds.length;
+    const totalPages = total ? Math.ceil(total / pageSize) : 0;
+    const from = (page - 1) * pageSize;
+    const pageIds = filteredIds.slice(from, from + pageSize);
+
+    let orders: Record<string, unknown>[] = [];
+    if (pageIds.length) {
+      const { data: orderRows, error: orderError } = await supabaseAdmin
+        .from('orders')
+        .select(ORDER_DETAIL_SELECT)
+        .in('orderid', pageIds);
+      if (orderError) {
+        return structuredAdminErrorResponse({
+          code: 'DB_ERROR',
+          title: 'Грешка при зареждане',
+          message: 'Не успяхме да заредим детайлите на поръчките.',
+          retryable: true,
+          status: 500,
+        });
+      }
+      const byId = new Map((orderRows ?? []).map((order) => [String(order.orderid), order]));
+      orders = pageIds.map((id) => byId.get(id)).filter(Boolean) as Record<string, unknown>[];
+    }
+
+  const rows = orders.map((order) => {
+      const orderId = String(order.orderid);
+      const shipment = shipmentByOrder.get(orderId) ?? null;
+      const cod = shipment?.expected_cod_amount ?? computeCodForOrder(order);
       return {
         order,
         shipment,
@@ -186,17 +236,6 @@ export async function GET(request: NextRequest) {
         codAmount: cod,
       };
     });
-
-    if (filter !== 'all') {
-      rows = rows.filter((r) => {
-        if (filter === 'without_label') return r.labelState === 'without_label' || r.labelState === 'draft';
-        if (filter === 'ready') return r.labelState === 'ready';
-        if (filter === 'validation_error') return r.labelState === 'validation_error';
-        if (filter === 'created') return r.labelState === 'created';
-        if (filter === 'errors') return r.labelState === 'error';
-        return true;
-      });
-    }
 
     const { data: allShipments } = await supabaseAdmin.from('econt_shipments').select('creation_state, validation_state, shipment_number');
     const summary = {
@@ -264,7 +303,10 @@ export async function GET(request: NextRequest) {
       latestCreated,
       page,
       pageSize,
-      total: count ?? rows.length,
+      total,
+      totalPages,
+      days,
+      windowStart,
       rows,
       productNames,
       productTypeNames,
